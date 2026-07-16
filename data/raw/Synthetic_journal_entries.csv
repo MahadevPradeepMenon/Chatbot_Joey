@@ -1,0 +1,51 @@
+activity,anxiety (OS),anxiety num,behavior OS,behavior custom,environment OS,environment custom,mood (OS),notes,primary parent (User),supported person,record date,resolutions OS,resolutions custom,trigger
+Playground,High,3,Asking for help,,Outside,,Neutral,"Lunch was late, led to a meltdown before we could eat.",synthetic_parent@example.com,Child_A,2025-10-02 15:00:00,,,Hunger
+Bedtime routine,High,3,Crying,,Grandparents house,,Anxious,The new shirt tag was irritating his neck all day.,synthetic_parent@example.com,Child_A,2025-10-21 12:20:00,,,Scratchy clothes
+Bedtime routine,Low,1,Shouting,,Cafe,,Happy,"Long day at school, was very tired and irritable by evening.",synthetic_parent@example.com,Child_A,2025-10-17 00:32:00,,,Fatigue
+Birthday party,Extreme,4,Quiet,,Car,,Angry,"Living room lights were bothering him, he kept squinting.",synthetic_parent@example.com,Child_A,2025-10-05 04:02:00,,,Bright lights
+Homework,Extreme,4,Hiding,,Home,,Sad,Has a slight cold and is much more sensitive than usual.,synthetic_parent@example.com,Child_A,2025-10-29 10:44:00,,,Physical illness
+Bedtime routine,Moderate,2,Quiet,,Grandparents house,,Anxious,The new shirt tag was irritating his neck all day.,synthetic_parent@example.com,Child_A,2025-10-05 21:56:00,,,Scratchy clothes
+Doctor visit,High,3,Quiet,,Home,,Sad,A visitor arrived without warning and caused panic.,synthetic_parent@example.com,Child_A,2025-10-16 22:16:00,,,Unexpected guest
+Supermarket trip,Moderate,2,Stimming,,Cafe,,Anxious,Difficulties stopping play to start the bedtime routine.,synthetic_parent@example.com,Child_A,2025-10-09 10:44:00,,,Transitioning to bed
+Getting ready for school,Low,1,Shouting,,Outside,,Happy,A visitor arrived without warning and caused panic.,synthetic_parent@example.com,Child_A,2025-10-28 02:50:00,,,Unexpected guest
+Birthday party,Minimal,0,Quiet,,Car,,Happy,"Long day at school, was very tired and irritable by evening.",synthetic_parent@example.com,Child_A,2025-10-27 18:55:00,,,Fatigue
+Birthday party,Extreme,4,Stimming,,Grandparents house,,Overwhelmed,The new shirt tag was irritating his neck all day.,synthetic_parent@example.com,Child_A,2025-10-05 20:17:00,,,Scratchy clothes
+Getting ready for school,Moderate,2,Stimming,,School,,Sad,"Lunch was late, led to a meltdown before we could eat.",synthetic_parent@example.com,Child_A,2025-10-12 19:16:00,,,Hunger
+Supermarket trip,Moderate,2,Quiet,,Cafe,,Angry,"Lunch was late, led to a meltdown before we could eat.",synthetic_parent@example.com,Child_A,2025-10-07 22:59:00,,,Hunger
+Homework,High,3,Asking for help,,Cafe,,Angry,School bus was late and the schedule change was hard.,synthetic_parent@example.com,Child_A,2025-10-31 17:23:00,,,Change in routine
+Supermarket trip,High,3,Quiet,,Car,,Anxious,The smell of cooking in the kitchen was overwhelming.,synthetic_parent@example.com,Child_A,2025-10-04 19:34:00,,,Strong smells
+Playground,Extreme,4,Quiet,,Car,,Happy,Impatient and anxious while waiting for his turn at the slide.,synthetic_parent@example.com,Child_A,2025-10-11 02:25:00,,,Waiting in line
+Doctor visit,Low,1,Hiding,,Home,,Sad,A visitor arrived without warning and caused panic.,synthetic_parent@example.com,Child_A,2025-10-22 08:41:00,,,Unexpected guest
+Doctor visit,Moderate,2,Crying,,Cafe,,Anxious,"Living room lights were bothering him, he kept squinting.",synthetic_parent@example.com,Child_A,2025-10-07 05:08:00,,,Bright lights
+Getting ready for school,Moderate,2,Hiding,,School,,Anxious,The smell of cooking in the kitchen was overwhelming.,synthetic_parent@example.com,Child_A,2025-10-08 19:31:00,,,Strong smells
+Bedtime routine,Low,1,Quiet,,School,,Anxious,"Lunch was late, led to a meltdown before we could eat.",synthetic_parent@example.com,Child_A,2025-10-17 00:29:00,,,Hunger
+Doctor visit,Extreme,4,Asking for help,,Cafe,,Anxious,Difficulties stopping play to start the bedtime routine.,synthetic_parent@example.com,Child_A,2025-10-02 13:23:00,,,Transitioning to bed
+Dinner time,High,3,Crying,,Car,,Happy,"Long day at school, was very tired and irritable by evening.",synthetic_parent@example.com,Child_A,2025-10-19 12:23:00,,,Fatigue
+Getting ready for school,Extreme,4,Asking for help,,School,,Happy,"Long day at school, was very tired and irritable by evening.",synthetic_parent@example.com,Child_A,2025-10-05 16:15:00,,,Fatigue
+Supermarket trip,High,3,Stimming,,School,,Happy,Impatient and anxious while waiting for his turn at the slide.,synthetic_parent@example.com,Child_A,2025-10-12 12:15:00,,,Waiting in line
+Supermarket trip,Moderate,2,Shouting,,School,,Angry,The smell of cooking in the kitchen was overwhelming.,synthetic_parent@example.com,Child_A,2025-10-20 04:46:00,,,Strong smells
+Homework,Extreme,4,Asking for help,,Outside,,Anxious,Difficulties stopping play to start the bedtime routine.,synthetic_parent@example.com,Child_A,2025-10-27 00:56:00,,,Transitioning to bed
+Supermarket trip,High,3,Hiding,,Cafe,,Overwhelmed,"Lunch was late, led to a meltdown before we could eat.",synthetic_parent@example.com,Child_A,2025-10-19 23:09:00,,,Hunger
+Doctor visit,Extreme,4,Crying,,Home,,Overwhelmed,The new shirt tag was irritating his neck all day.,synthetic_parent@example.com,Child_A,2025-10-10 13:10:00,,,Scratchy clothes
+Supermarket trip,High,3,Crying,,Home,,Angry,A visitor arrived without warning and caused panic.,synthetic_parent@example.com,Child_A,2025-10-18 02:24:00,,,Unexpected guest
+Birthday party,High,3,Quiet,,Home,,Angry,"Lunch was late, led to a meltdown before we could eat.",synthetic_parent@example.com,Child_A,2025-10-21 11:23:00,,,Hunger
+Dinner time,Extreme,4,Quiet,,Cafe,,Angry,"Living room lights were bothering him, he kept squinting.",synthetic_parent@example.com,Child_A,2025-10-21 08:53:00,,,Bright lights
+Doctor visit,Moderate,2,Crying,,Outside,,Happy,"Lunch was late, led to a meltdown before we could eat.",synthetic_parent@example.com,Child_A,2025-10-06 18:54:00,,,Hunger
+Supermarket trip,High,3,Hiding,,Outside,,Neutral,Too many people at the shop made her want to hide.,synthetic_parent@example.com,Child_A,2025-10-07 14:56:00,,,Crowded place
+Playground,Extreme,4,Crying,,Outside,,Overwhelmed,The vacuum cleaner was too loud and caused a lot of distress.,synthetic_parent@example.com,Child_A,2025-10-29 01:01:00,,,Loud noise
+Bedtime routine,Extreme,4,Crying,,Cafe,,Anxious,The vacuum cleaner was too loud and caused a lot of distress.,synthetic_parent@example.com,Child_A,2025-10-15 05:41:00,,,Loud noise
+Supermarket trip,Moderate,2,Shouting,,Car,,Happy,A visitor arrived without warning and caused panic.,synthetic_parent@example.com,Child_A,2025-10-02 10:10:00,,,Unexpected guest
+Birthday party,Extreme,4,Asking for help,,Outside,,Overwhelmed,"Long day at school, was very tired and irritable by evening.",synthetic_parent@example.com,Child_A,2025-10-28 18:53:00,,,Fatigue
+Bedtime routine,Minimal,0,Stimming,,Outside,,Overwhelmed,A visitor arrived without warning and caused panic.,synthetic_parent@example.com,Child_A,2025-10-11 14:50:00,,,Unexpected guest
+Playground,Minimal,0,Asking for help,,School,,Neutral,A visitor arrived without warning and caused panic.,synthetic_parent@example.com,Child_A,2025-10-01 21:17:00,,,Unexpected guest
+Bedtime routine,Extreme,4,Stimming,,Car,,Angry,"Living room lights were bothering him, he kept squinting.",synthetic_parent@example.com,Child_A,2025-10-10 07:45:00,,,Bright lights
+Playground,Moderate,2,Shouting,,Cafe,,Overwhelmed,The smell of cooking in the kitchen was overwhelming.,synthetic_parent@example.com,Child_A,2025-10-30 05:11:00,,,Strong smells
+Playground,Extreme,4,Crying,,Cafe,,Sad,Too many people at the shop made her want to hide.,synthetic_parent@example.com,Child_A,2025-10-09 22:27:00,,,Crowded place
+Dinner time,High,3,Stimming,,Outside,,Anxious,Difficulties stopping play to start the bedtime routine.,synthetic_parent@example.com,Child_A,2025-10-20 10:59:00,,,Transitioning to bed
+Playground,Extreme,4,Hiding,,Cafe,,Happy,Has a slight cold and is much more sensitive than usual.,synthetic_parent@example.com,Child_A,2025-10-22 17:01:00,,,Physical illness
+Getting ready for school,Low,1,Asking for help,,Cafe,,Anxious,A visitor arrived without warning and caused panic.,synthetic_parent@example.com,Child_A,2025-10-24 18:31:00,,,Unexpected guest
+Homework,Extreme,4,Crying,,Home,,Angry,"Lunch was late, led to a meltdown before we could eat.",synthetic_parent@example.com,Child_A,2025-10-01 14:58:00,,,Hunger
+Playground,High,3,Hiding,,Cafe,,Overwhelmed,The vacuum cleaner was too loud and caused a lot of distress.,synthetic_parent@example.com,Child_A,2025-10-27 16:53:00,,,Loud noise
+Getting ready for school,Extreme,4,Asking for help,,Grandparents house,,Angry,The smell of cooking in the kitchen was overwhelming.,synthetic_parent@example.com,Child_A,2025-10-30 14:01:00,,,Strong smells
+Playground,High,3,Quiet,,School,,Overwhelmed,The new shirt tag was irritating his neck all day.,synthetic_parent@example.com,Child_A,2025-10-05 16:48:00,,,Scratchy clothes
+Homework,Extreme,4,Shouting,,School,,Overwhelmed,"Living room lights were bothering him, he kept squinting.",synthetic_parent@example.com,Child_A,2025-10-10 10:08:00,,,Bright lights
