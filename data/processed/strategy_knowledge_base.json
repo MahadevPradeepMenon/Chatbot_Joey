@@ -1,0 +1,65 @@
+[
+  {
+    "id": "sensory_processing_support",
+    "title": "Sensory Processing Support",
+    "category": "Sensory Processing & Environmental Support",
+    "keywords": ["sensory", "clothing", "tag", "label", "fabric", "lights", "noise", "smell", "crowded", "loud", "overwhelming"],
+    "when_to_use": "Use when the note suggests sensory discomfort, environmental overwhelm, or sensitivity to clothing, sound, light, smell, or crowded spaces.",
+    "safe_suggestion": "Consider reducing the sensory demand where possible, offering a calmer space, and tracking which sensory factors appear before distress.",
+    "safety_note": "This is not a diagnosis. Sensory patterns should be discussed with an appropriate professional if they significantly affect daily life."
+  },
+  {
+    "id": "emotional_regulation_support",
+    "title": "Emotional Regulation Support",
+    "category": "Behavioural Challenges & Emotional Regulation",
+    "keywords": ["meltdown", "distress", "upset", "frustrated", "angry", "crying", "refusal", "panic", "anxious", "worried"],
+    "when_to_use": "Use when the note describes emotional distress, anxiety, frustration, refusal, crying, panic, or meltdown.",
+    "safe_suggestion": "Focus on reducing demands, using calm language, and identifying what happened before the distress. Track patterns rather than assuming a single cause.",
+    "safety_note": "Joey should not claim certainty about the cause of behaviour from one note."
+  },
+  {
+    "id": "transition_support",
+    "title": "Transition and Routine Support",
+    "category": "Executive Function & Organisation",
+    "keywords": ["transition", "routine", "change", "schedule", "without warning", "visitor", "stopping play", "bedtime", "school bus", "late"],
+    "when_to_use": "Use when the note suggests difficulty with transitions, routine changes, unexpected events, or moving from one activity to another.",
+    "safe_suggestion": "Consider using warnings, visual reminders, countdowns, or a predictable sequence to make the transition easier.",
+    "safety_note": "Support should be adapted to the child and reviewed by the parent/carer."
+  },
+  {
+    "id": "sleep_bedtime_support",
+    "title": "Sleep and Bedtime Routine Support",
+    "category": "Sleep & Bedtime Routines",
+    "keywords": ["sleep", "slept badly", "tired", "bedtime", "night", "woke up", "drained"],
+    "when_to_use": "Use when the note mentions poor sleep, tiredness, bedtime difficulty, night waking, or low energy.",
+    "safe_suggestion": "Track sleep quality, bedtime routine, and next-day behaviour to see whether tiredness may be contributing.",
+    "safety_note": "Joey should not give medical sleep advice. Ongoing sleep concerns should be discussed with a healthcare professional."
+  },
+  {
+    "id": "eating_mealtime_support",
+    "title": "Eating and Mealtime Support",
+    "category": "Eating & Mealtime Challenges",
+    "keywords": ["food", "breakfast", "lunch", "dinner", "meal", "appetite", "eating", "texture", "gagged", "picky"],
+    "when_to_use": "Use when the note mentions meals, appetite, food refusal, food texture, or eating-related distress.",
+    "safe_suggestion": "Track what food was offered, timing, appetite, sensory factors, and whether the situation happened during stress or transition.",
+    "safety_note": "Joey should not give nutritional or medical advice."
+  },
+  {
+    "id": "school_support",
+    "title": "School Routine Support",
+    "category": "School Success & Academic Collaboration",
+    "keywords": ["school", "teacher", "classroom", "homework", "phonics", "school bus", "attendance"],
+    "when_to_use": "Use when the note mentions school, classroom demands, school transitions, homework, or school attendance.",
+    "safe_suggestion": "Track whether distress happens before school, during school-related tasks, or after school. This can help identify possible patterns to discuss with school staff.",
+    "safety_note": "Joey should avoid blaming school, staff, parents, or the child."
+  },
+  {
+    "id": "crisis_safety_support",
+    "title": "Crisis and Safety Support",
+    "category": "Crisis Management & Safety",
+    "keywords": ["safety", "hurt himself", "hurt herself", "self-injury", "self harm", "self-harm", "head banging", "danger", "injury"],
+    "when_to_use": "Use when the note mentions self-injury, possible harm, unsafe behaviour, or immediate danger.",
+    "safe_suggestion": "If there is immediate danger or risk of harm, seek urgent help. Consider speaking with a healthcare professional or relevant support service.",
+    "safety_note": "Safety concerns should not be handled as ordinary strategy suggestions."
+  }
+]
