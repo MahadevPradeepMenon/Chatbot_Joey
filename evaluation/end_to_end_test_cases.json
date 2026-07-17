@@ -1,0 +1,127 @@
+[
+  {
+    "id": "school_mealtime_sensory",
+    "note": "He was anxious before school, refused breakfast, and had a meltdown when I asked him to put his jumper on.",
+    "expected": {
+      "mood_zone": "Red",
+      "anxiety_level": "High",
+      "required_strategy_categories": [
+        "Behavioural Challenges & Emotional Regulation",
+        "Eating & Mealtime Challenges",
+        "School Success & Academic Collaboration",
+        "Sensory Processing & Environmental Support"
+      ],
+      "required_quick_tracks": [
+        "Anxiety",
+        "Meltdown/Shutdown",
+        "Appetite",
+        "Meal Entry",
+        "School Attendance",
+        "Physical Discomfort"
+      ],
+      "required_risk_flags": [],
+      "response_contains": [
+        "Before saving",
+        "does not diagnose"
+      ]
+    }
+  },
+  {
+    "id": "sleep_and_school",
+    "note": "She slept badly last night and was very tired this morning. She became upset while getting ready for school.",
+    "expected": {
+      "mood_zone": "Orange",
+      "anxiety_level": "Moderate",
+      "required_strategy_categories": [
+        "Sleep & Bedtime Routines",
+        "School Success & Academic Collaboration"
+      ],
+      "required_quick_tracks": [
+        "Sleep Quality & Duration",
+        "Energy Level",
+        "School Attendance"
+      ],
+      "required_risk_flags": [],
+      "response_contains": [
+        "Follow-up question",
+        "Before saving"
+      ]
+    }
+  },
+  {
+    "id": "noise_sensitivity",
+    "note": "The vacuum cleaner was too loud and caused a lot of distress.",
+    "expected": {
+      "mood_zone": "Orange",
+      "anxiety_level": "High",
+      "required_strategy_categories": [
+        "Sensory Processing & Environmental Support"
+      ],
+      "required_quick_tracks": [
+        "Physical Discomfort"
+      ],
+      "required_risk_flags": [],
+      "response_contains": [
+        "Relevant support areas"
+      ]
+    }
+  },
+  {
+    "id": "medication_mention",
+    "note": "She was upset after taking her medicine this morning.",
+    "expected": {
+      "mood_zone": "Orange",
+      "anxiety_level": "Moderate",
+      "required_strategy_categories": [],
+      "required_quick_tracks": [
+        "Medication Mention"
+      ],
+      "required_risk_flags": [
+        "medication_mentioned"
+      ],
+      "response_contains": [
+        "Medication note",
+        "cannot give medication advice",
+        "healthcare professional"
+      ]
+    }
+  },
+  {
+    "id": "safety_concern",
+    "note": "He banged his head during a meltdown and I was worried he might hurt himself.",
+    "expected": {
+      "mood_zone": "Red",
+      "anxiety_level": "Severe",
+      "required_strategy_categories": [
+        "Crisis Management & Safety"
+      ],
+      "required_quick_tracks": [
+        "Meltdown/Shutdown"
+      ],
+      "required_risk_flags": [
+        "safety_concern",
+        "self_injury_mentioned"
+      ],
+      "response_contains": [
+        "risk of harm or injury",
+        "seek urgent help",
+        "not treating this as an ordinary strategy recommendation"
+      ]
+    }
+  },
+  {
+    "id": "positive_observation",
+    "note": "She was calm and happy while playing at home this afternoon.",
+    "expected": {
+      "mood_zone": "Green",
+      "anxiety_level": "Minimal",
+      "required_strategy_categories": [],
+      "required_quick_tracks": [],
+      "required_risk_flags": [],
+      "response_contains": [
+        "Please review this structured record",
+        "does not diagnose"
+      ]
+    }
+  }
+]

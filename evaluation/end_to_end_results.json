@@ -1,0 +1,566 @@
+[
+  {
+    "case_id": "school_mealtime_sensory",
+    "note": "He was anxious before school, refused breakfast, and had a meltdown when I asked him to put his jumper on.",
+    "passed": true,
+    "passed_checks": 15,
+    "total_checks": 15,
+    "failed_checks": [],
+    "mood_zone": "Red",
+    "anxiety_level": "High",
+    "risk_flags": [],
+    "strategy_categories": [
+      "Behavioural Challenges & Emotional Regulation",
+      "Eating & Mealtime Challenges",
+      "School Success & Academic Collaboration",
+      "Sensory Processing & Environmental Support"
+    ],
+    "retrieved_strategy_titles": [
+      "Emotional Regulation Support",
+      "Eating and Mealtime Support",
+      "Sensory Processing Support",
+      "School Routine Support"
+    ],
+    "follow_up_question": "Was the clothing uncomfortable because of the fabric, label, tightness, temperature, or something else?",
+    "checks": [
+      {
+        "name": "mood zone",
+        "passed": true,
+        "actual": "Red",
+        "expected": "Red"
+      },
+      {
+        "name": "anxiety level",
+        "passed": true,
+        "actual": "High",
+        "expected": "High"
+      },
+      {
+        "name": "parent confirmation required",
+        "passed": true,
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "strategy categories contains 'Behavioural Challenges & Emotional Regulation'",
+        "passed": true,
+        "actual": [
+          "Behavioural Challenges & Emotional Regulation",
+          "Eating & Mealtime Challenges",
+          "School Success & Academic Collaboration",
+          "Sensory Processing & Environmental Support"
+        ],
+        "expected": "Behavioural Challenges & Emotional Regulation"
+      },
+      {
+        "name": "strategy categories contains 'Eating & Mealtime Challenges'",
+        "passed": true,
+        "actual": [
+          "Behavioural Challenges & Emotional Regulation",
+          "Eating & Mealtime Challenges",
+          "School Success & Academic Collaboration",
+          "Sensory Processing & Environmental Support"
+        ],
+        "expected": "Eating & Mealtime Challenges"
+      },
+      {
+        "name": "strategy categories contains 'School Success & Academic Collaboration'",
+        "passed": true,
+        "actual": [
+          "Behavioural Challenges & Emotional Regulation",
+          "Eating & Mealtime Challenges",
+          "School Success & Academic Collaboration",
+          "Sensory Processing & Environmental Support"
+        ],
+        "expected": "School Success & Academic Collaboration"
+      },
+      {
+        "name": "strategy categories contains 'Sensory Processing & Environmental Support'",
+        "passed": true,
+        "actual": [
+          "Behavioural Challenges & Emotional Regulation",
+          "Eating & Mealtime Challenges",
+          "School Success & Academic Collaboration",
+          "Sensory Processing & Environmental Support"
+        ],
+        "expected": "Sensory Processing & Environmental Support"
+      },
+      {
+        "name": "Quick Track suggestions contains 'Anxiety'",
+        "passed": true,
+        "actual": [
+          "Anxiety",
+          "Meltdown/Shutdown",
+          "Appetite",
+          "Meal Entry",
+          "School Attendance",
+          "Physical Discomfort"
+        ],
+        "expected": "Anxiety"
+      },
+      {
+        "name": "Quick Track suggestions contains 'Meltdown/Shutdown'",
+        "passed": true,
+        "actual": [
+          "Anxiety",
+          "Meltdown/Shutdown",
+          "Appetite",
+          "Meal Entry",
+          "School Attendance",
+          "Physical Discomfort"
+        ],
+        "expected": "Meltdown/Shutdown"
+      },
+      {
+        "name": "Quick Track suggestions contains 'Appetite'",
+        "passed": true,
+        "actual": [
+          "Anxiety",
+          "Meltdown/Shutdown",
+          "Appetite",
+          "Meal Entry",
+          "School Attendance",
+          "Physical Discomfort"
+        ],
+        "expected": "Appetite"
+      },
+      {
+        "name": "Quick Track suggestions contains 'Meal Entry'",
+        "passed": true,
+        "actual": [
+          "Anxiety",
+          "Meltdown/Shutdown",
+          "Appetite",
+          "Meal Entry",
+          "School Attendance",
+          "Physical Discomfort"
+        ],
+        "expected": "Meal Entry"
+      },
+      {
+        "name": "Quick Track suggestions contains 'School Attendance'",
+        "passed": true,
+        "actual": [
+          "Anxiety",
+          "Meltdown/Shutdown",
+          "Appetite",
+          "Meal Entry",
+          "School Attendance",
+          "Physical Discomfort"
+        ],
+        "expected": "School Attendance"
+      },
+      {
+        "name": "Quick Track suggestions contains 'Physical Discomfort'",
+        "passed": true,
+        "actual": [
+          "Anxiety",
+          "Meltdown/Shutdown",
+          "Appetite",
+          "Meal Entry",
+          "School Attendance",
+          "Physical Discomfort"
+        ],
+        "expected": "Physical Discomfort"
+      },
+      {
+        "name": "response contains 'Before saving'",
+        "passed": true,
+        "actual": "JOEY RESPONSE\n============================================================\n\nHere is what Joey noticed from your note:\n- Summary: Morning entry; mood/signals: Anxious, Meltdown, Sensory discomfort; behaviours: meltdown, refusal; possible triggers: school transition or school-related demand, clothing or tactile discomfort.\n- Mood zone: Red\n- Anxiety level: High\n- Possible triggers: school transition or school-related demand, clothing or tactile discomfort\n- Behaviours/signals: meltdown, refusal, Anxious, Meltdown, Sensory discomfort\n\nSuggested Quick Track fields:\n- Anxiety\n- Meltdown/Shutdown\n- Appetite\n- Meal Entry\n- School Attendance\n- Physical Discomfort\n\nFollow-up question:\nWas the clothing uncomfortable because of the fabric, label, tightness, temperature, or something else?\n\nRelevant support areas:\n- Emotional Regulation Support: Focus on reducing demands, using calm language, and identifying what happened before the distress. Track patterns rather than assuming a single cause.\n- Eating and Mealtime Support: Track what food was offered, timing, appetite, sensory factors, and whether the situation happened during stress or transition.\n- Sensory Processing Support: Consider reducing the sensory demand where possible, offering a calmer space, and tracking which sensory factors appear before distress.\n\nBefore saving:\nPlease review this structured record. You can save it, ignore it, or rewrite the note.\n\nJoey is a support tool. It does not diagnose, replace professional advice, or make final decisions.",
+        "expected": "Before saving"
+      },
+      {
+        "name": "response contains 'does not diagnose'",
+        "passed": true,
+        "actual": "JOEY RESPONSE\n============================================================\n\nHere is what Joey noticed from your note:\n- Summary: Morning entry; mood/signals: Anxious, Meltdown, Sensory discomfort; behaviours: meltdown, refusal; possible triggers: school transition or school-related demand, clothing or tactile discomfort.\n- Mood zone: Red\n- Anxiety level: High\n- Possible triggers: school transition or school-related demand, clothing or tactile discomfort\n- Behaviours/signals: meltdown, refusal, Anxious, Meltdown, Sensory discomfort\n\nSuggested Quick Track fields:\n- Anxiety\n- Meltdown/Shutdown\n- Appetite\n- Meal Entry\n- School Attendance\n- Physical Discomfort\n\nFollow-up question:\nWas the clothing uncomfortable because of the fabric, label, tightness, temperature, or something else?\n\nRelevant support areas:\n- Emotional Regulation Support: Focus on reducing demands, using calm language, and identifying what happened before the distress. Track patterns rather than assuming a single cause.\n- Eating and Mealtime Support: Track what food was offered, timing, appetite, sensory factors, and whether the situation happened during stress or transition.\n- Sensory Processing Support: Consider reducing the sensory demand where possible, offering a calmer space, and tracking which sensory factors appear before distress.\n\nBefore saving:\nPlease review this structured record. You can save it, ignore it, or rewrite the note.\n\nJoey is a support tool. It does not diagnose, replace professional advice, or make final decisions.",
+        "expected": "does not diagnose"
+      }
+    ]
+  },
+  {
+    "case_id": "sleep_and_school",
+    "note": "She slept badly last night and was very tired this morning. She became upset while getting ready for school.",
+    "passed": true,
+    "passed_checks": 10,
+    "total_checks": 10,
+    "failed_checks": [],
+    "mood_zone": "Orange",
+    "anxiety_level": "Moderate",
+    "risk_flags": [],
+    "strategy_categories": [
+      "Sleep & Bedtime Routines",
+      "School Success & Academic Collaboration"
+    ],
+    "retrieved_strategy_titles": [
+      "Sleep and Bedtime Routine Support",
+      "School Routine Support",
+      "Transition and Routine Support",
+      "Emotional Regulation Support"
+    ],
+    "follow_up_question": "Would you like to add any more detail about what happened just before this?",
+    "checks": [
+      {
+        "name": "mood zone",
+        "passed": true,
+        "actual": "Orange",
+        "expected": "Orange"
+      },
+      {
+        "name": "anxiety level",
+        "passed": true,
+        "actual": "Moderate",
+        "expected": "Moderate"
+      },
+      {
+        "name": "parent confirmation required",
+        "passed": true,
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "strategy categories contains 'Sleep & Bedtime Routines'",
+        "passed": true,
+        "actual": [
+          "Sleep & Bedtime Routines",
+          "School Success & Academic Collaboration"
+        ],
+        "expected": "Sleep & Bedtime Routines"
+      },
+      {
+        "name": "strategy categories contains 'School Success & Academic Collaboration'",
+        "passed": true,
+        "actual": [
+          "Sleep & Bedtime Routines",
+          "School Success & Academic Collaboration"
+        ],
+        "expected": "School Success & Academic Collaboration"
+      },
+      {
+        "name": "Quick Track suggestions contains 'Sleep Quality & Duration'",
+        "passed": true,
+        "actual": [
+          "Mood",
+          "Sleep Quality & Duration",
+          "Energy Level",
+          "School Attendance"
+        ],
+        "expected": "Sleep Quality & Duration"
+      },
+      {
+        "name": "Quick Track suggestions contains 'Energy Level'",
+        "passed": true,
+        "actual": [
+          "Mood",
+          "Sleep Quality & Duration",
+          "Energy Level",
+          "School Attendance"
+        ],
+        "expected": "Energy Level"
+      },
+      {
+        "name": "Quick Track suggestions contains 'School Attendance'",
+        "passed": true,
+        "actual": [
+          "Mood",
+          "Sleep Quality & Duration",
+          "Energy Level",
+          "School Attendance"
+        ],
+        "expected": "School Attendance"
+      },
+      {
+        "name": "response contains 'Follow-up question'",
+        "passed": true,
+        "actual": "JOEY RESPONSE\n============================================================\n\nHere is what Joey noticed from your note:\n- Summary: Morning entry; mood/signals: Frustrated/Upset, Tired; possible triggers: school transition or school-related demand.\n- Mood zone: Orange\n- Anxiety level: Moderate\n- Possible triggers: school transition or school-related demand\n- Behaviours/signals: Frustrated/Upset, Tired\n\nSuggested Quick Track fields:\n- Mood\n- Sleep Quality & Duration\n- Energy Level\n- School Attendance\n\nFollow-up question:\nWould you like to add any more detail about what happened just before this?\n\nRelevant support areas:\n- Sleep and Bedtime Routine Support: Track sleep quality, bedtime routine, and next-day behaviour to see whether tiredness may be contributing.\n- School Routine Support: Track whether distress happens before school, during school-related tasks, or after school. This can help identify possible patterns to discuss with school staff.\n- Transition and Routine Support: Consider using warnings, visual reminders, countdowns, or a predictable sequence to make the transition easier.\n\nBefore saving:\nPlease review this structured record. You can save it, ignore it, or rewrite the note.\n\nJoey is a support tool. It does not diagnose, replace professional advice, or make final decisions.",
+        "expected": "Follow-up question"
+      },
+      {
+        "name": "response contains 'Before saving'",
+        "passed": true,
+        "actual": "JOEY RESPONSE\n============================================================\n\nHere is what Joey noticed from your note:\n- Summary: Morning entry; mood/signals: Frustrated/Upset, Tired; possible triggers: school transition or school-related demand.\n- Mood zone: Orange\n- Anxiety level: Moderate\n- Possible triggers: school transition or school-related demand\n- Behaviours/signals: Frustrated/Upset, Tired\n\nSuggested Quick Track fields:\n- Mood\n- Sleep Quality & Duration\n- Energy Level\n- School Attendance\n\nFollow-up question:\nWould you like to add any more detail about what happened just before this?\n\nRelevant support areas:\n- Sleep and Bedtime Routine Support: Track sleep quality, bedtime routine, and next-day behaviour to see whether tiredness may be contributing.\n- School Routine Support: Track whether distress happens before school, during school-related tasks, or after school. This can help identify possible patterns to discuss with school staff.\n- Transition and Routine Support: Consider using warnings, visual reminders, countdowns, or a predictable sequence to make the transition easier.\n\nBefore saving:\nPlease review this structured record. You can save it, ignore it, or rewrite the note.\n\nJoey is a support tool. It does not diagnose, replace professional advice, or make final decisions.",
+        "expected": "Before saving"
+      }
+    ]
+  },
+  {
+    "case_id": "noise_sensitivity",
+    "note": "The vacuum cleaner was too loud and caused a lot of distress.",
+    "passed": true,
+    "passed_checks": 6,
+    "total_checks": 6,
+    "failed_checks": [],
+    "mood_zone": "Orange",
+    "anxiety_level": "High",
+    "risk_flags": [],
+    "strategy_categories": [
+      "Behavioural Challenges & Emotional Regulation",
+      "Sensory Processing & Environmental Support"
+    ],
+    "retrieved_strategy_titles": [
+      "Sensory Processing Support",
+      "Emotional Regulation Support"
+    ],
+    "follow_up_question": "Was the sound too loud, unexpected, or difficult to escape from?",
+    "checks": [
+      {
+        "name": "mood zone",
+        "passed": true,
+        "actual": "Orange",
+        "expected": "Orange"
+      },
+      {
+        "name": "anxiety level",
+        "passed": true,
+        "actual": "High",
+        "expected": "High"
+      },
+      {
+        "name": "parent confirmation required",
+        "passed": true,
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "strategy categories contains 'Sensory Processing & Environmental Support'",
+        "passed": true,
+        "actual": [
+          "Behavioural Challenges & Emotional Regulation",
+          "Sensory Processing & Environmental Support"
+        ],
+        "expected": "Sensory Processing & Environmental Support"
+      },
+      {
+        "name": "Quick Track suggestions contains 'Physical Discomfort'",
+        "passed": true,
+        "actual": [
+          "Mood",
+          "Physical Discomfort"
+        ],
+        "expected": "Physical Discomfort"
+      },
+      {
+        "name": "response contains 'Relevant support areas'",
+        "passed": true,
+        "actual": "JOEY RESPONSE\n============================================================\n\nHere is what Joey noticed from your note:\n- Summary: mood/signals: Distressed, Sensory discomfort; possible triggers: noise sensitivity.\n- Mood zone: Orange\n- Anxiety level: High\n- Possible triggers: noise sensitivity\n- Behaviours/signals: Distressed, Sensory discomfort\n\nSuggested Quick Track fields:\n- Mood\n- Physical Discomfort\n\nFollow-up question:\nWas the sound too loud, unexpected, or difficult to escape from?\n\nRelevant support areas:\n- Sensory Processing Support: Consider reducing the sensory demand where possible, offering a calmer space, and tracking which sensory factors appear before distress.\n- Emotional Regulation Support: Focus on reducing demands, using calm language, and identifying what happened before the distress. Track patterns rather than assuming a single cause.\n\nBefore saving:\nPlease review this structured record. You can save it, ignore it, or rewrite the note.\n\nJoey is a support tool. It does not diagnose, replace professional advice, or make final decisions.",
+        "expected": "Relevant support areas"
+      }
+    ]
+  },
+  {
+    "case_id": "medication_mention",
+    "note": "She was upset after taking her medicine this morning.",
+    "passed": true,
+    "passed_checks": 8,
+    "total_checks": 8,
+    "failed_checks": [],
+    "mood_zone": "Orange",
+    "anxiety_level": "Moderate",
+    "risk_flags": [
+      "medication_mentioned"
+    ],
+    "strategy_categories": [],
+    "retrieved_strategy_titles": [
+      "Crisis and Safety Support",
+      "Emotional Regulation Support"
+    ],
+    "follow_up_question": "Was medication only being logged here, or is there a concern you want to discuss with a healthcare professional?",
+    "checks": [
+      {
+        "name": "mood zone",
+        "passed": true,
+        "actual": "Orange",
+        "expected": "Orange"
+      },
+      {
+        "name": "anxiety level",
+        "passed": true,
+        "actual": "Moderate",
+        "expected": "Moderate"
+      },
+      {
+        "name": "parent confirmation required",
+        "passed": true,
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "Quick Track suggestions contains 'Medication Mention'",
+        "passed": true,
+        "actual": [
+          "Mood",
+          "Medication Mention"
+        ],
+        "expected": "Medication Mention"
+      },
+      {
+        "name": "risk flags contains 'medication_mentioned'",
+        "passed": true,
+        "actual": [
+          "medication_mentioned"
+        ],
+        "expected": "medication_mentioned"
+      },
+      {
+        "name": "response contains 'Medication note'",
+        "passed": true,
+        "actual": "JOEY RESPONSE\n============================================================\n\nMedication note: Medication was mentioned in this observation. Joey can log that medication was mentioned, but it cannot give medication advice, suggest dosage changes, or say medication caused the behaviour. If you are concerned about medication or side effects, speak with a healthcare professional.\n\nHere is what Joey noticed from your note:\n- Summary: Morning entry; mood/signals: Frustrated/Upset.\n- Mood zone: Orange\n- Anxiety level: Moderate\n- Possible triggers: None detected\n- Behaviours/signals: Frustrated/Upset\n\nSuggested Quick Track fields:\n- Mood\n- Medication Mention\n\nFollow-up question:\nWas medication only being logged here, or is there a concern you want to discuss with a healthcare professional?\n\nRelevant support areas:\n- Crisis and Safety Support: If there is immediate danger or risk of harm, seek urgent help. Consider speaking with a healthcare professional or relevant support service.\n- Emotional Regulation Support: Focus on reducing demands, using calm language, and identifying what happened before the distress. Track patterns rather than assuming a single cause.\n\nBefore saving:\nPlease review this structured record. You can save it, ignore it, or rewrite the note.\n\nJoey is a support tool. It does not diagnose, replace professional advice, or make final decisions.",
+        "expected": "Medication note"
+      },
+      {
+        "name": "response contains 'cannot give medication advice'",
+        "passed": true,
+        "actual": "JOEY RESPONSE\n============================================================\n\nMedication note: Medication was mentioned in this observation. Joey can log that medication was mentioned, but it cannot give medication advice, suggest dosage changes, or say medication caused the behaviour. If you are concerned about medication or side effects, speak with a healthcare professional.\n\nHere is what Joey noticed from your note:\n- Summary: Morning entry; mood/signals: Frustrated/Upset.\n- Mood zone: Orange\n- Anxiety level: Moderate\n- Possible triggers: None detected\n- Behaviours/signals: Frustrated/Upset\n\nSuggested Quick Track fields:\n- Mood\n- Medication Mention\n\nFollow-up question:\nWas medication only being logged here, or is there a concern you want to discuss with a healthcare professional?\n\nRelevant support areas:\n- Crisis and Safety Support: If there is immediate danger or risk of harm, seek urgent help. Consider speaking with a healthcare professional or relevant support service.\n- Emotional Regulation Support: Focus on reducing demands, using calm language, and identifying what happened before the distress. Track patterns rather than assuming a single cause.\n\nBefore saving:\nPlease review this structured record. You can save it, ignore it, or rewrite the note.\n\nJoey is a support tool. It does not diagnose, replace professional advice, or make final decisions.",
+        "expected": "cannot give medication advice"
+      },
+      {
+        "name": "response contains 'healthcare professional'",
+        "passed": true,
+        "actual": "JOEY RESPONSE\n============================================================\n\nMedication note: Medication was mentioned in this observation. Joey can log that medication was mentioned, but it cannot give medication advice, suggest dosage changes, or say medication caused the behaviour. If you are concerned about medication or side effects, speak with a healthcare professional.\n\nHere is what Joey noticed from your note:\n- Summary: Morning entry; mood/signals: Frustrated/Upset.\n- Mood zone: Orange\n- Anxiety level: Moderate\n- Possible triggers: None detected\n- Behaviours/signals: Frustrated/Upset\n\nSuggested Quick Track fields:\n- Mood\n- Medication Mention\n\nFollow-up question:\nWas medication only being logged here, or is there a concern you want to discuss with a healthcare professional?\n\nRelevant support areas:\n- Crisis and Safety Support: If there is immediate danger or risk of harm, seek urgent help. Consider speaking with a healthcare professional or relevant support service.\n- Emotional Regulation Support: Focus on reducing demands, using calm language, and identifying what happened before the distress. Track patterns rather than assuming a single cause.\n\nBefore saving:\nPlease review this structured record. You can save it, ignore it, or rewrite the note.\n\nJoey is a support tool. It does not diagnose, replace professional advice, or make final decisions.",
+        "expected": "healthcare professional"
+      }
+    ]
+  },
+  {
+    "case_id": "safety_concern",
+    "note": "He banged his head during a meltdown and I was worried he might hurt himself.",
+    "passed": true,
+    "passed_checks": 10,
+    "total_checks": 10,
+    "failed_checks": [],
+    "mood_zone": "Red",
+    "anxiety_level": "Severe",
+    "risk_flags": [
+      "safety_concern",
+      "self_injury_mentioned"
+    ],
+    "strategy_categories": [
+      "Behavioural Challenges & Emotional Regulation",
+      "Crisis Management & Safety"
+    ],
+    "retrieved_strategy_titles": [
+      "Crisis and Safety Support",
+      "Emotional Regulation Support"
+    ],
+    "follow_up_question": "Is the child safe now, and did they sustain any injury?",
+    "checks": [
+      {
+        "name": "mood zone",
+        "passed": true,
+        "actual": "Red",
+        "expected": "Red"
+      },
+      {
+        "name": "anxiety level",
+        "passed": true,
+        "actual": "Severe",
+        "expected": "Severe"
+      },
+      {
+        "name": "parent confirmation required",
+        "passed": true,
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "strategy categories contains 'Crisis Management & Safety'",
+        "passed": true,
+        "actual": [
+          "Behavioural Challenges & Emotional Regulation",
+          "Crisis Management & Safety"
+        ],
+        "expected": "Crisis Management & Safety"
+      },
+      {
+        "name": "Quick Track suggestions contains 'Meltdown/Shutdown'",
+        "passed": true,
+        "actual": [
+          "Anxiety",
+          "Meltdown/Shutdown"
+        ],
+        "expected": "Meltdown/Shutdown"
+      },
+      {
+        "name": "risk flags contains 'safety_concern'",
+        "passed": true,
+        "actual": [
+          "safety_concern",
+          "self_injury_mentioned"
+        ],
+        "expected": "safety_concern"
+      },
+      {
+        "name": "risk flags contains 'self_injury_mentioned'",
+        "passed": true,
+        "actual": [
+          "safety_concern",
+          "self_injury_mentioned"
+        ],
+        "expected": "self_injury_mentioned"
+      },
+      {
+        "name": "response contains 'risk of harm or injury'",
+        "passed": true,
+        "actual": "JOEY RESPONSE\n============================================================\n\nSafety note: This entry may involve risk of harm or injury. If there is immediate danger or the child may be unsafe, seek urgent help. Consider speaking with a healthcare professional or relevant support service.\n\nHere is what Joey noticed from your note:\n- Summary: mood/signals: Anxious, Meltdown; behaviours: meltdown, self-injurious behaviour.\n- Mood zone: Red\n- Anxiety level: Severe\n- Possible triggers: None detected\n- Behaviours/signals: meltdown, self-injurious behaviour, Anxious, Meltdown\n\nSuggested Quick Track fields:\n- Anxiety\n- Meltdown/Shutdown\n\nFollow-up question:\nIs the child safe now, and did they sustain any injury?\n\nBecause this note may involve safety concerns, Joey is not treating this as an ordinary strategy recommendation.\n\nBefore saving:\nPlease review this structured record. You can save it, ignore it, or rewrite the note.\n\nJoey is a support tool. It does not diagnose, replace professional advice, or make final decisions.",
+        "expected": "risk of harm or injury"
+      },
+      {
+        "name": "response contains 'seek urgent help'",
+        "passed": true,
+        "actual": "JOEY RESPONSE\n============================================================\n\nSafety note: This entry may involve risk of harm or injury. If there is immediate danger or the child may be unsafe, seek urgent help. Consider speaking with a healthcare professional or relevant support service.\n\nHere is what Joey noticed from your note:\n- Summary: mood/signals: Anxious, Meltdown; behaviours: meltdown, self-injurious behaviour.\n- Mood zone: Red\n- Anxiety level: Severe\n- Possible triggers: None detected\n- Behaviours/signals: meltdown, self-injurious behaviour, Anxious, Meltdown\n\nSuggested Quick Track fields:\n- Anxiety\n- Meltdown/Shutdown\n\nFollow-up question:\nIs the child safe now, and did they sustain any injury?\n\nBecause this note may involve safety concerns, Joey is not treating this as an ordinary strategy recommendation.\n\nBefore saving:\nPlease review this structured record. You can save it, ignore it, or rewrite the note.\n\nJoey is a support tool. It does not diagnose, replace professional advice, or make final decisions.",
+        "expected": "seek urgent help"
+      },
+      {
+        "name": "response contains 'not treating this as an ordinary strategy recommendation'",
+        "passed": true,
+        "actual": "JOEY RESPONSE\n============================================================\n\nSafety note: This entry may involve risk of harm or injury. If there is immediate danger or the child may be unsafe, seek urgent help. Consider speaking with a healthcare professional or relevant support service.\n\nHere is what Joey noticed from your note:\n- Summary: mood/signals: Anxious, Meltdown; behaviours: meltdown, self-injurious behaviour.\n- Mood zone: Red\n- Anxiety level: Severe\n- Possible triggers: None detected\n- Behaviours/signals: meltdown, self-injurious behaviour, Anxious, Meltdown\n\nSuggested Quick Track fields:\n- Anxiety\n- Meltdown/Shutdown\n\nFollow-up question:\nIs the child safe now, and did they sustain any injury?\n\nBecause this note may involve safety concerns, Joey is not treating this as an ordinary strategy recommendation.\n\nBefore saving:\nPlease review this structured record. You can save it, ignore it, or rewrite the note.\n\nJoey is a support tool. It does not diagnose, replace professional advice, or make final decisions.",
+        "expected": "not treating this as an ordinary strategy recommendation"
+      }
+    ]
+  },
+  {
+    "case_id": "positive_observation",
+    "note": "She was calm and happy while playing at home this afternoon.",
+    "passed": true,
+    "passed_checks": 5,
+    "total_checks": 5,
+    "failed_checks": [],
+    "mood_zone": "Green",
+    "anxiety_level": "Minimal",
+    "risk_flags": [],
+    "strategy_categories": [],
+    "retrieved_strategy_titles": [],
+    "follow_up_question": "Do you know what may have happened just before this?",
+    "checks": [
+      {
+        "name": "mood zone",
+        "passed": true,
+        "actual": "Green",
+        "expected": "Green"
+      },
+      {
+        "name": "anxiety level",
+        "passed": true,
+        "actual": "Minimal",
+        "expected": "Minimal"
+      },
+      {
+        "name": "parent confirmation required",
+        "passed": true,
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "response contains 'Please review this structured record'",
+        "passed": true,
+        "actual": "JOEY RESPONSE\n============================================================\n\nHere is what Joey noticed from your note:\n- Summary: Afternoon entry; mood/signals: Calm/Positive.\n- Mood zone: Green\n- Anxiety level: Minimal\n- Possible triggers: None detected\n- Behaviours/signals: Calm/Positive\n\nSuggested Quick Track fields:\n- None detected\n\nFollow-up question:\nDo you know what may have happened just before this?\n\nRelevant support areas:\n- No strategy support areas were retrieved.\n\nBefore saving:\nPlease review this structured record. You can save it, ignore it, or rewrite the note.\n\nJoey is a support tool. It does not diagnose, replace professional advice, or make final decisions.",
+        "expected": "Please review this structured record"
+      },
+      {
+        "name": "response contains 'does not diagnose'",
+        "passed": true,
+        "actual": "JOEY RESPONSE\n============================================================\n\nHere is what Joey noticed from your note:\n- Summary: Afternoon entry; mood/signals: Calm/Positive.\n- Mood zone: Green\n- Anxiety level: Minimal\n- Possible triggers: None detected\n- Behaviours/signals: Calm/Positive\n\nSuggested Quick Track fields:\n- None detected\n\nFollow-up question:\nDo you know what may have happened just before this?\n\nRelevant support areas:\n- No strategy support areas were retrieved.\n\nBefore saving:\nPlease review this structured record. You can save it, ignore it, or rewrite the note.\n\nJoey is a support tool. It does not diagnose, replace professional advice, or make final decisions.",
+        "expected": "does not diagnose"
+      }
+    ]
+  }
+]
