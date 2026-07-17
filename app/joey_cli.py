@@ -2,6 +2,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 from rag.strategy_retriever import retrieve_strategies, display_retrieved_strategies
+from app.response_builder import build_parent_response
 
 from app.extractor import extract_structured_record
 
@@ -109,6 +110,14 @@ def run_joey_cli() -> None:
 
         retrieved_strategies = retrieve_strategies(record, original_note=note)
         display_retrieved_strategies(retrieved_strategies)
+
+        parent_response = build_parent_response(
+            original_note=note,
+            record=record,
+            retrieved_strategies=retrieved_strategies,
+        )
+
+        print("\n" + parent_response)
 
         print("\n" + "-" * 60)
         print("Confirmation")
