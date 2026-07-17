@@ -1,31 +1,13 @@
-# Dataset Extractor Review
+## Extractor Improvement: Version 2
 
-## Purpose
+After reviewing the first extraction output, several common patterns were missed by the baseline rule-based extractor.
 
-This review checks how Joey's rule-based extractor performs on Dilyara's synthetic journal entries.
+The improved extractor adds rules for:
 
-## What to Check
+- sensory discomfort such as clothing tags, bright lights, smells, loud sounds, and crowded environments
+- transition difficulties such as schedule changes, unexpected visitors, stopping play, and bedtime routines
+- physical discomfort such as cold, illness, or being more sensitive than usual
+- stronger panic detection
+- improved follow-up questions for sensory, transition, school, food, and safety-related entries
 
-For each extracted record, review:
-
-1. Is the summary accurate?
-2. Is the anxiety level reasonable?
-3. Is the mood zone reasonable?
-4. Are behaviours correctly detected?
-5. Are possible triggers useful?
-6. Are Quick Track suggestions relevant?
-7. Are strategy categories appropriate?
-8. Is the follow-up question useful?
-9. Are safety concerns flagged where needed?
-
-## Initial Observations
-
-To be completed after reviewing `data/processed/joey_extracted_records.csv`.
-
-## Known Limitations
-
-- The extractor is rule-based and keyword-dependent.
-- It may miss patterns when parents use unexpected wording.
-- It may over-detect some categories if keywords appear in unrelated contexts.
-- It cannot understand nuance like a real LLM.
-- This is a baseline before adding LLM/RAG support.
+This improvement step demonstrates error analysis and iterative system refinement.

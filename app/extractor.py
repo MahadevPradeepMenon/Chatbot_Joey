@@ -7,8 +7,64 @@ from app.schemas import (
 
 
 def contains_any(text: str, keywords: list[str]) -> bool:
-    """Return True if any keyword appears in the text."""
+    """Return True if any keyword or phrase appears in the text."""
     return any(keyword in text for keyword in keywords)
+
+
+def add_unique(items: list[str], value: str) -> None:
+    """Add a value to a list only if it is not already present."""
+    if value not in items:
+        items.append(value)
+
+
+def add_many(items: list[str], values: list[str]) -> None:
+    """Add multiple unique values to a list."""
+    for value in values:
+        add_unique(items, value)
+
+
+def upgrade_mood_zone(current: MoodZone, candidate: MoodZone) -> MoodZone:
+    """
+    Upgrade mood zone only when the new zone is more urgent.
+
+    Priority:
+    Unknown < Green < Blue < Orange < Red
+    """
+
+    priority = {
+        MoodZone.unknown: 0,
+        MoodZone.green: 1,
+        MoodZone.blue: 2,
+        MoodZone.orange: 3,
+        MoodZone.red: 4,
+    }
+
+    if priority[candidate] > priority[current]:
+        return candidate
+
+    return current
+
+
+def upgrade_anxiety_level(
+    current: AnxietyLevel,
+    candidate: AnxietyLevel,
+) -> AnxietyLevel:
+    """
+    Upgrade anxiety level only when the new level is more serious.
+    """
+
+    priority = {
+        AnxietyLevel.unknown: 0,
+        AnxietyLevel.minimal: 1,
+        AnxietyLevel.moderate: 2,
+        AnxietyLevel.high: 3,
+        AnxietyLevel.severe: 4,
+    }
+
+    if priority[candidate] > priority[current]:
+        return candidate
+
+    return current
 
 
 def extract_structured_record(note: str) -> StructuredJoeyRecord:
@@ -18,7 +74,8 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
     This takes a parent/carer free-text note and converts it into a
     structured Hey Joey-style record.
 
-    This is not the final AI system. It is a safe baseline extractor.
+    This is still not the final AI system.
+    It is an improved baseline extractor after dataset review.
     """
 
     text = note.lower()
@@ -43,6 +100,7 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
     # -------------------------
     # Time of day detection
     # -------------------------
+
     if contains_any(text, ["morning", "before school", "breakfast"]):
         time_of_day = "morning"
     elif contains_any(text, ["afternoon", "after school"]):
@@ -55,149 +113,376 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
     # -------------------------
     # Environment detection
     # -------------------------
-    if contains_any(text, ["home", "bedroom", "bathroom", "kitchen"]):
+
+    if contains_any(text, ["home", "bedroom", "bathroom", "kitchen", "living room"]):
         environment = "home"
     elif contains_any(text, ["school", "classroom", "teacher"]):
         environment = "school"
-    elif contains_any(text, ["shop", "supermarket", "bus", "car", "outside"]):
-        environment = "community/outside"
+    elif contains_any(text, ["shop", "supermarket"]):
+        environment = "community/shop"
+    elif contains_any(text, ["bus", "car", "outside"]):
+        environment = "community/transport"
 
     # -------------------------
-    # Anxiety detection
+    # Anxiety and panic detection
     # -------------------------
-    if contains_any(text, ["anxious", "worried", "panic", "nervous", "fear", "scared"]):
-        mood_labels.append("Anxious")
-        quick_track_suggestions.append("Anxiety")
-        strategy_categories.append("Behavioural Challenges & Emotional Regulation")
 
-        if contains_any(text, ["panic", "severe", "terrified"]):
-            anxiety_level = AnxietyLevel.severe
-        else:
-            anxiety_level = AnxietyLevel.moderate
+    if contains_any(
+        text,
+        ["anxious", "worried", "nervous", "fear", "scared", "impatient"],
+    ):
+        add_unique(mood_labels, "Anxious")
+        add_unique(quick_track_suggestions, "Anxiety")
+        add_unique(strategy_categories, "Behavioural Challenges & Emotional Regulation")
+
+        anxiety_level = upgrade_anxiety_level(
+            anxiety_level,
+            AnxietyLevel.moderate,
+        )
+        mood_zone = upgrade_mood_zone(mood_zone, MoodZone.orange)
+
+    if contains_any(text, ["panic", "panicked", "terrified"]):
+        add_unique(mood_labels, "Panic")
+        add_unique(quick_track_suggestions, "Anxiety")
+        add_unique(strategy_categories, "Behavioural Challenges & Emotional Regulation")
+
+        anxiety_level = upgrade_anxiety_level(
+            anxiety_level,
+            AnxietyLevel.severe,
+        )
+        mood_zone = upgrade_mood_zone(mood_zone, MoodZone.red)
 
     # -------------------------
     # Meltdown / shutdown detection
     # -------------------------
+
     if contains_any(text, ["meltdown", "screaming", "screamed", "enraged"]):
-        mood_labels.append("Meltdown")
-        behaviours.append("meltdown")
-        quick_track_suggestions.append("Meltdown/Shutdown")
-        strategy_categories.append("Behavioural Challenges & Emotional Regulation")
-        mood_zone = MoodZone.red
-        anxiety_level = AnxietyLevel.high
+        add_unique(mood_labels, "Meltdown")
+        add_unique(behaviours, "meltdown")
+        add_unique(quick_track_suggestions, "Meltdown/Shutdown")
+        add_unique(strategy_categories, "Behavioural Challenges & Emotional Regulation")
 
-    if contains_any(text, ["shutdown", "froze", "freeze", "wouldn't speak", "stopped responding"]):
-        mood_labels.append("Shutdown")
-        behaviours.append("shutdown")
-        quick_track_suggestions.append("Meltdown/Shutdown")
-        strategy_categories.append("Crisis Management & Safety")
-        mood_zone = MoodZone.red
-        anxiety_level = AnxietyLevel.high
+        anxiety_level = upgrade_anxiety_level(
+            anxiety_level,
+            AnxietyLevel.high,
+        )
+        mood_zone = upgrade_mood_zone(mood_zone, MoodZone.red)
+
+    if contains_any(
+        text,
+        ["shutdown", "froze", "freeze", "wouldn't speak", "stopped responding"],
+    ):
+        add_unique(mood_labels, "Shutdown")
+        add_unique(behaviours, "shutdown")
+        add_unique(quick_track_suggestions, "Meltdown/Shutdown")
+        add_unique(strategy_categories, "Crisis Management & Safety")
+
+        anxiety_level = upgrade_anxiety_level(
+            anxiety_level,
+            AnxietyLevel.high,
+        )
+        mood_zone = upgrade_mood_zone(mood_zone, MoodZone.red)
 
     # -------------------------
-    # Mood zone detection
+    # General emotional state detection
     # -------------------------
-    if contains_any(text, ["angry", "rage", "screaming", "meltdown", "shutdown", "scared"]):
-        mood_zone = MoodZone.red
 
-    elif contains_any(text, ["worried", "restless", "annoyed", "frustrated", "anxious"]):
-        mood_zone = MoodZone.orange
+    if contains_any(text, ["angry", "rage", "distress", "distressed"]):
+        add_unique(mood_labels, "Distressed")
+        add_unique(quick_track_suggestions, "Mood")
+        add_unique(strategy_categories, "Behavioural Challenges & Emotional Regulation")
 
-    elif contains_any(text, ["happy", "calm", "confident", "balanced"]):
-        mood_zone = MoodZone.green
+        anxiety_level = upgrade_anxiety_level(
+            anxiety_level,
+            AnxietyLevel.high,
+        )
+        mood_zone = upgrade_mood_zone(mood_zone, MoodZone.orange)
 
-    elif contains_any(text, ["tired", "drained", "bored", "miserable", "upset"]):
-        mood_zone = MoodZone.blue
+    if contains_any(text, ["frustrated", "irritable", "annoyed", "upset"]):
+        add_unique(mood_labels, "Frustrated/Upset")
+        add_unique(quick_track_suggestions, "Mood")
+        mood_zone = upgrade_mood_zone(mood_zone, MoodZone.orange)
+
+    if contains_any(text, ["happy", "calm", "confident", "balanced"]):
+        add_unique(mood_labels, "Calm/Positive")
+
+        if mood_zone == MoodZone.unknown:
+            mood_zone = MoodZone.green
+            anxiety_level = AnxietyLevel.minimal
+
+    # -------------------------
+    # Tiredness / sleep detection
+    # -------------------------
+
+    if contains_any(
+        text,
+        [
+            "slept badly",
+            "poor sleep",
+            "woke up",
+            "night waking",
+            "bedtime",
+            "tired",
+            "drained",
+            "long day",
+        ],
+    ):
+        add_unique(mood_labels, "Tired")
+        add_unique(quick_track_suggestions, "Sleep Quality & Duration")
+        add_unique(quick_track_suggestions, "Energy Level")
+        add_unique(strategy_categories, "Sleep & Bedtime Routines")
+
+        if mood_zone in [MoodZone.unknown, MoodZone.green]:
+            mood_zone = MoodZone.blue
 
     # -------------------------
     # Behaviour detection
     # -------------------------
+
     if contains_any(text, ["refused", "refusing", "wouldn't", "would not"]):
-        behaviours.append("refusal")
+        add_unique(behaviours, "refusal")
+        add_unique(strategy_categories, "Behavioural Challenges & Emotional Regulation")
+
+        mood_zone = upgrade_mood_zone(mood_zone, MoodZone.orange)
 
     if contains_any(text, ["crying", "cried", "tearful"]):
-        behaviours.append("crying")
+        add_unique(behaviours, "crying")
+        mood_zone = upgrade_mood_zone(mood_zone, MoodZone.orange)
 
     if contains_any(text, ["hit", "kicked", "bit", "biting"]):
-        behaviours.append("aggressive behaviour")
-        strategy_categories.append("Behavioural Challenges & Emotional Regulation")
+        add_unique(behaviours, "aggressive behaviour")
+        add_unique(strategy_categories, "Behavioural Challenges & Emotional Regulation")
+        mood_zone = upgrade_mood_zone(mood_zone, MoodZone.red)
+
+    if contains_any(text, ["hide", "hiding", "wanted to hide"]):
+        add_unique(behaviours, "avoidance/hiding")
+        add_unique(mood_labels, "Overwhelmed")
+        mood_zone = upgrade_mood_zone(mood_zone, MoodZone.orange)
 
     # -------------------------
     # Safety detection
     # -------------------------
-    if contains_any(text, ["head banging", "banged his head", "banged her head", "hurt himself", "hurt herself", "self-injury", "self harm"]):
-        risk_flags.append("safety_concern")
-        risk_flags.append("self_injury_mentioned")
-        behaviours.append("self-injurious behaviour")
-        quick_track_suggestions.append("Meltdown/Shutdown")
-        strategy_categories.append("Crisis Management & Safety")
-        anxiety_level = AnxietyLevel.severe
-        mood_zone = MoodZone.red
+
+    if contains_any(
+        text,
+        [
+            "head banging",
+            "banged his head",
+            "banged her head",
+            "hurt himself",
+            "hurt herself",
+            "self-injury",
+            "self harm",
+            "self-harm",
+        ],
+    ):
+        add_unique(risk_flags, "safety_concern")
+        add_unique(risk_flags, "self_injury_mentioned")
+        add_unique(behaviours, "self-injurious behaviour")
+        add_unique(quick_track_suggestions, "Meltdown/Shutdown")
+        add_unique(strategy_categories, "Crisis Management & Safety")
+
+        anxiety_level = upgrade_anxiety_level(
+            anxiety_level,
+            AnxietyLevel.severe,
+        )
+        mood_zone = upgrade_mood_zone(mood_zone, MoodZone.red)
         confidence = ConfidenceLevel.high
-        missing_information.append("whether there is immediate danger")
-        missing_information.append("whether injury occurred")
+
+        add_unique(missing_information, "whether there is immediate danger")
+        add_unique(missing_information, "whether injury occurred")
+
         follow_up_question = "Is the child safe now, and did they sustain any injury?"
 
     # -------------------------
     # Food / appetite detection
     # -------------------------
-    if contains_any(text, ["breakfast", "lunch", "dinner", "meal", "food", "eat", "eating", "appetite"]):
-        quick_track_suggestions.append("Appetite")
-        quick_track_suggestions.append("Meal Entry")
-        strategy_categories.append("Eating & Mealtime Challenges")
+
+    if contains_any(
+        text,
+        ["breakfast", "lunch", "dinner", "meal", "food", "eat", "eating", "appetite"],
+    ):
+        add_unique(quick_track_suggestions, "Appetite")
+        add_unique(quick_track_suggestions, "Meal Entry")
+        add_unique(strategy_categories, "Eating & Mealtime Challenges")
+
+        if activity is None:
+            activity = "mealtime"
+
+    if contains_any(text, ["lunch was late", "breakfast was late", "dinner was late"]):
+        add_unique(possible_triggers, "delayed meal or hunger")
+        add_unique(strategy_categories, "Eating & Mealtime Challenges")
 
     if contains_any(text, ["gagged", "texture", "restricted diet", "picky", "refused food"]):
-        possible_triggers.append("food texture or mealtime difficulty")
-        strategy_categories.append("Eating & Mealtime Challenges")
+        add_unique(possible_triggers, "food texture or mealtime difficulty")
+        add_unique(strategy_categories, "Eating & Mealtime Challenges")
 
     # -------------------------
-    # Sleep / tiredness detection
+    # School and routine detection
     # -------------------------
-    if contains_any(text, ["slept badly", "poor sleep", "woke up", "night waking", "bedtime", "tired", "drained"]):
-        quick_track_suggestions.append("Sleep Quality & Duration")
-        quick_track_suggestions.append("Energy Level")
-        strategy_categories.append("Sleep & Bedtime Routines")
 
-        if mood_zone == MoodZone.unknown:
-            mood_zone = MoodZone.blue
-
-    # -------------------------
-    # School detection
-    # -------------------------
     if contains_any(text, ["school", "teacher", "classroom", "homework", "phonics"]):
         activity = "school-related routine"
-        possible_triggers.append("school transition or school-related demand")
-        quick_track_suggestions.append("School Attendance")
-        strategy_categories.append("School Success & Academic Collaboration")
+        add_unique(possible_triggers, "school transition or school-related demand")
+        add_unique(quick_track_suggestions, "School Attendance")
+        add_unique(strategy_categories, "School Success & Academic Collaboration")
+
+    if contains_any(
+        text,
+        ["school bus", "bus was late", "schedule change", "schedule was hard"],
+    ):
+        add_unique(possible_triggers, "unexpected schedule change")
+        add_unique(strategy_categories, "Executive Function & Organisation")
+        mood_zone = upgrade_mood_zone(mood_zone, MoodZone.orange)
 
     # -------------------------
-    # Clothing / sensory detection
+    # Transition difficulty detection
     # -------------------------
-    if contains_any(text, ["jumper", "clothes", "clothing", "label", "seam", "fabric", "socks"]):
-        possible_triggers.append("clothing or tactile discomfort")
-        strategy_categories.append("Sensory Processing & Environmental Support")
+
+    if contains_any(
+        text,
+        [
+            "transition",
+            "change",
+            "without warning",
+            "no warning",
+            "visitor arrived",
+            "stopping play",
+            "stop play",
+            "start the bedtime routine",
+            "bedtime routine",
+            "schedule change",
+            "routine",
+        ],
+    ):
+        add_unique(possible_triggers, "transition or unexpected change")
+        add_unique(strategy_categories, "Executive Function & Organisation")
+        add_unique(strategy_categories, "Behavioural Challenges & Emotional Regulation")
+        mood_zone = upgrade_mood_zone(mood_zone, MoodZone.orange)
+
+        if activity is None and contains_any(text, ["visitor arrived", "visitor"]):
+            activity = "unexpected visitor"
+        elif activity is None and contains_any(text, ["stopping play", "stop play"]):
+            activity = "transition away from play"
+        elif activity is None and contains_any(text, ["bedtime"]):
+            activity = "bedtime routine"
+
+    # -------------------------
+    # Sensory processing detection
+    # -------------------------
+
+    if contains_any(
+        text,
+        [
+            "shirt tag",
+            "tag",
+            "jumper",
+            "clothes",
+            "clothing",
+            "label",
+            "seam",
+            "fabric",
+            "socks",
+        ],
+    ):
+        add_unique(possible_triggers, "clothing or tactile discomfort")
+        add_unique(strategy_categories, "Sensory Processing & Environmental Support")
+        add_unique(quick_track_suggestions, "Physical Discomfort")
+        add_unique(mood_labels, "Sensory discomfort")
+
+        mood_zone = upgrade_mood_zone(mood_zone, MoodZone.orange)
+
+        add_unique(missing_information, "reason for clothing discomfort")
 
         if follow_up_question is None:
-            missing_information.append("reason for clothing discomfort")
             follow_up_question = (
                 "Was the clothing uncomfortable because of the fabric, label, tightness, temperature, or something else?"
             )
 
+    if contains_any(text, ["lights", "light", "bright", "squinting"]):
+        add_unique(possible_triggers, "visual sensitivity or bright lighting")
+        add_unique(strategy_categories, "Sensory Processing & Environmental Support")
+        add_unique(quick_track_suggestions, "Physical Discomfort")
+        add_unique(mood_labels, "Sensory discomfort")
+
+        mood_zone = upgrade_mood_zone(mood_zone, MoodZone.orange)
+
+        if follow_up_question is None:
+            follow_up_question = "Were the lights too bright, flickering, or difficult in another way?"
+
+    if contains_any(text, ["smell", "cooking", "overwhelming"]):
+        add_unique(possible_triggers, "smell sensitivity or sensory overwhelm")
+        add_unique(strategy_categories, "Sensory Processing & Environmental Support")
+        add_unique(mood_labels, "Overwhelmed")
+
+        mood_zone = upgrade_mood_zone(mood_zone, MoodZone.orange)
+
+        if follow_up_question is None:
+            follow_up_question = "Was the smell the main difficulty, or were there other sensory triggers as well?"
+
+    if contains_any(text, ["vacuum", "too loud", "loud", "noise", "noisy"]):
+        add_unique(possible_triggers, "noise sensitivity")
+        add_unique(strategy_categories, "Sensory Processing & Environmental Support")
+        add_unique(quick_track_suggestions, "Physical Discomfort")
+        add_unique(mood_labels, "Sensory discomfort")
+
+        mood_zone = upgrade_mood_zone(mood_zone, MoodZone.orange)
+
+        if follow_up_question is None:
+            follow_up_question = "Was the sound too loud, unexpected, or difficult to escape from?"
+
+    if contains_any(text, ["too many people", "crowded", "busy shop", "shop made"]):
+        add_unique(possible_triggers, "crowded or socially overwhelming environment")
+        add_unique(strategy_categories, "Sensory Processing & Environmental Support")
+        add_unique(strategy_categories, "Friendship & Social Skills")
+        add_unique(mood_labels, "Overwhelmed")
+
+        mood_zone = upgrade_mood_zone(mood_zone, MoodZone.orange)
+
+        if follow_up_question is None:
+            follow_up_question = "Was the difficulty mainly the number of people, the noise, the space, or something else?"
+
+    # -------------------------
+    # Physical discomfort detection
+    # -------------------------
+
+    if contains_any(text, ["cold", "unwell", "ill", "sick", "sensitive than usual", "more sensitive"]):
+        add_unique(possible_triggers, "physical discomfort or illness")
+        add_unique(quick_track_suggestions, "Physical Discomfort")
+        add_unique(mood_labels, "Physically uncomfortable")
+
+        if mood_zone == MoodZone.unknown:
+            mood_zone = MoodZone.blue
+
+        if follow_up_question is None:
+            follow_up_question = "Was there any sign of pain, illness, tiredness, or sensory sensitivity?"
+
     # -------------------------
     # Hygiene detection
     # -------------------------
-    if contains_any(text, ["toothbrush", "toothbrushing", "brush teeth", "hair brushing", "bath", "shower", "washing"]):
+
+    if contains_any(
+        text,
+        ["toothbrush", "toothbrushing", "brush teeth", "hair brushing", "bath", "shower", "washing"],
+    ):
         activity = "hygiene routine"
-        possible_triggers.append("hygiene or self-care difficulty")
-        strategy_categories.append("Personal Hygiene & Self-Care")
+        add_unique(possible_triggers, "hygiene or self-care difficulty")
+        add_unique(strategy_categories, "Personal Hygiene & Self-Care")
 
     # -------------------------
     # Medication mention detection
     # -------------------------
-    if contains_any(text, ["medication", "medicine", "tablet", "dose", "dosage", "adderall", "ritalin"]):
-        quick_track_suggestions.append("Medication Mention")
-        risk_flags.append("medication_mentioned")
-        missing_information.append("medication concerns should be discussed with a healthcare professional")
+
+    if contains_any(
+        text,
+        ["medication", "medicine", "tablet", "dose", "dosage", "adderall", "ritalin"],
+    ):
+        add_unique(quick_track_suggestions, "Medication Mention")
+        add_unique(risk_flags, "medication_mentioned")
+        add_unique(
+            missing_information,
+            "medication concerns should be discussed with a healthcare professional",
+        )
 
         if follow_up_question is None:
             follow_up_question = (
@@ -207,43 +492,30 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
     # -------------------------
     # Default follow-up question
     # -------------------------
+
     if follow_up_question is None:
-        if not possible_triggers:
-            missing_information.append("possible trigger")
-            follow_up_question = "Do you know what may have happened just before this?"
+        if possible_triggers:
+            follow_up_question = "Would you like to add any more detail about what happened just before this?"
         elif environment is None:
-            missing_information.append("environment")
+            add_unique(missing_information, "environment")
             follow_up_question = "Where did this happen?"
         else:
-            follow_up_question = "Would you like to save this as a journal entry?"
+            add_unique(missing_information, "possible trigger")
+            follow_up_question = "Do you know what may have happened just before this?"
 
     # -------------------------
-    # If anxiety is unknown but distress is clear
+    # Final fallback
     # -------------------------
-    if anxiety_level == AnxietyLevel.unknown:
-        if contains_any(text, ["meltdown", "panic", "scared", "worried", "anxious"]):
-            anxiety_level = AnxietyLevel.high
-        elif contains_any(text, ["upset", "frustrated", "crying"]):
-            anxiety_level = AnxietyLevel.moderate
 
-    # -------------------------
-    # Create summary
-    # -------------------------
+    if anxiety_level == AnxietyLevel.unknown and mood_zone in [MoodZone.orange, MoodZone.red]:
+        anxiety_level = AnxietyLevel.moderate
+        
     summary = build_summary(
         time_of_day=time_of_day,
         behaviours=behaviours,
         mood_labels=mood_labels,
         possible_triggers=possible_triggers,
     )
-
-    # Remove duplicates while keeping order
-    mood_labels = deduplicate(mood_labels)
-    behaviours = deduplicate(behaviours)
-    possible_triggers = deduplicate(possible_triggers)
-    quick_track_suggestions = deduplicate(quick_track_suggestions)
-    strategy_categories = deduplicate(strategy_categories)
-    risk_flags = deduplicate(risk_flags)
-    missing_information = deduplicate(missing_information)
 
     return StructuredJoeyRecord(
         entry_type="journal_entry",
@@ -281,31 +553,18 @@ def build_summary(
         parts.append(f"{time_of_day.capitalize()} entry")
 
     if mood_labels:
-        parts.append("mood/signals: " + ", ".join(deduplicate(mood_labels)))
+        parts.append("mood/signals: " + ", ".join(mood_labels))
 
     if behaviours:
-        parts.append("behaviours: " + ", ".join(deduplicate(behaviours)))
+        parts.append("behaviours: " + ", ".join(behaviours))
 
     if possible_triggers:
-        parts.append("possible triggers: " + ", ".join(deduplicate(possible_triggers)))
+        parts.append("possible triggers: " + ", ".join(possible_triggers))
 
     if not parts:
         return "Parent/carer observation recorded with limited structured detail."
 
     return "; ".join(parts) + "."
-
-
-def deduplicate(items: list[str]) -> list[str]:
-    """Remove duplicate items while preserving order."""
-    seen = set()
-    result = []
-
-    for item in items:
-        if item not in seen:
-            seen.add(item)
-            result.append(item)
-
-    return result
 
 
 if __name__ == "__main__":
