@@ -119,3 +119,11 @@ This should include:
 - asking one useful follow-up question
 - asking the parent/carer to confirm or edit before saving
 - preparing the system for later RAG-based strategy retrieval
+
+## Formal Version Comparison
+
+A separate comparison file was created at:
+
+`evaluation/extractor_version_comparison.md`
+
+This records the Version 1 and Version 2 extractor results, including mood-zone distribution, anxiety-level distribution, interpretation, limitations, and thesis relevance.
