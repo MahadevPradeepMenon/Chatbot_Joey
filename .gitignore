@@ -214,8 +214,14 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# Project local data
+# Project local and private data
 data/local/
+data/raw/strategies/
+data/processed/strategies_text/
+data/processed/strategy_chunks/
+data/indexes/
 
 # Streamlit
 .streamlit/secrets.toml
+
+

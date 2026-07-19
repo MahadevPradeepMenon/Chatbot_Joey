@@ -1,3 +1,6 @@
 pydantic
 pandas
 openpyxl
+python-docx
+pypdf
+
