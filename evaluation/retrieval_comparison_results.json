@@ -1,0 +1,376 @@
+{
+  "evaluation_name": "Hey Joey rule-based versus semantic retrieval comparison",
+  "top_k": 3,
+  "baseline_summary": {
+    "query_count": 10,
+    "hit_at_1": 3,
+    "hit_at_1_rate": 0.3,
+    "hit_at_3": 5,
+    "hit_at_3_rate": 0.5,
+    "mean_reciprocal_rank": 0.4,
+    "average_latency_seconds": 0.000493,
+    "average_results_returned": 1.9,
+    "errors": 0
+  },
+  "semantic_summary": {
+    "query_count": 10,
+    "hit_at_1": 8,
+    "hit_at_1_rate": 0.8,
+    "hit_at_3": 9,
+    "hit_at_3_rate": 0.9,
+    "mean_reciprocal_rank": 0.8333,
+    "average_latency_seconds": 0.029215,
+    "average_results_returned": 3,
+    "errors": 0
+  },
+  "results": [
+    {
+      "case_id": "friendship",
+      "query": "My child wants friends but struggles to join games and keep conversations going with other children.",
+      "expected_keywords": [
+        "friendship",
+        "social skills",
+        "communication"
+      ],
+      "baseline_first_relevant_rank": null,
+      "semantic_first_relevant_rank": 3,
+      "baseline_hit_at_1": false,
+      "semantic_hit_at_1": false,
+      "baseline_hit_at_3": false,
+      "semantic_hit_at_3": true,
+      "baseline_latency_seconds": 0.00089,
+      "semantic_latency_seconds": 0.03303,
+      "baseline_result_count": 0,
+      "semantic_result_count": 3,
+      "baseline_titles": [],
+      "semantic_titles": [
+        "E2: Scaffolded Playdate Structure",
+        "D1: Strength Spotting Daily Practice",
+        "G2: Learning to Read and Respond to Disinterest Cues"
+      ],
+      "semantic_sources": [
+        "10. Managing Social Anxiety Collection.docx",
+        "10. Managing Social Anxiety Collection.docx",
+        "1 Complete_Friendship_Strategies_Collection_Revised.docx"
+      ],
+      "baseline_error": null,
+      "semantic_error": null
+    },
+    {
+      "case_id": "toilet_training",
+      "query": "My child avoids using the toilet and becomes anxious when asked to sit on it.",
+      "expected_keywords": [
+        "toilet training",
+        "toileting",
+        "toilet"
+      ],
+      "baseline_first_relevant_rank": null,
+      "semantic_first_relevant_rank": 1,
+      "baseline_hit_at_1": false,
+      "semantic_hit_at_1": true,
+      "baseline_hit_at_3": false,
+      "semantic_hit_at_3": true,
+      "baseline_latency_seconds": 0.000426,
+      "semantic_latency_seconds": 0.032897,
+      "baseline_result_count": 2,
+      "semantic_result_count": 3,
+      "baseline_titles": [
+        "Emotional Regulation Support",
+        "Transition and Routine Support"
+      ],
+      "semantic_titles": [
+        "D1: Supporting Children with Sensory Issues (Ages 2-12)",
+        "B1: Overcoming Toilet Refusal and Fear (Ages 2-8)",
+        "A2: Building Consistent Bathroom Routines (Ages 2-7)"
+      ],
+      "semantic_sources": [
+        "2 Toilet_Training_Collection_Revised.docx",
+        "2 Toilet_Training_Collection_Revised.docx",
+        "2 Toilet_Training_Collection_Revised.docx"
+      ],
+      "baseline_error": null,
+      "semantic_error": null
+    },
+    {
+      "case_id": "sensory_processing",
+      "query": "My child covers their ears and becomes overwhelmed when the classroom is noisy.",
+      "expected_keywords": [
+        "sensory processing",
+        "sensory"
+      ],
+      "baseline_first_relevant_rank": 2,
+      "semantic_first_relevant_rank": 1,
+      "baseline_hit_at_1": false,
+      "semantic_hit_at_1": true,
+      "baseline_hit_at_3": true,
+      "semantic_hit_at_3": true,
+      "baseline_latency_seconds": 0.000457,
+      "semantic_latency_seconds": 0.03106,
+      "baseline_result_count": 3,
+      "semantic_result_count": 3,
+      "baseline_titles": [
+        "School Routine Support",
+        "Sensory Processing Support",
+        "Transition and Routine Support"
+      ],
+      "semantic_titles": [
+        "A2: Recognizing Sensory Overload Before It Becomes a Meltdown (Ages 2-15)",
+        "B2: Managing Sensory Environment Proactively (Ages 2-15)",
+        "D1: Learning Your Child's Unique Sensory Profile (Ages 2-15)"
+      ],
+      "semantic_sources": [
+        "4 Behavioral_Challenges_Collection_REVISED.docx",
+        "4 Behavioral_Challenges_Collection_REVISED.docx",
+        "3 Sensory_Processing_Collection_REVISED.docx"
+      ],
+      "baseline_error": null,
+      "semantic_error": null
+    },
+    {
+      "case_id": "behavioural_regulation",
+      "query": "Small changes can lead to a major meltdown and my child finds it difficult to calm down.",
+      "expected_keywords": [
+        "behavioral challenges",
+        "behavioural challenges",
+        "emotional regulation",
+        "meltdown"
+      ],
+      "baseline_first_relevant_rank": 1,
+      "semantic_first_relevant_rank": 1,
+      "baseline_hit_at_1": true,
+      "semantic_hit_at_1": true,
+      "baseline_hit_at_3": true,
+      "semantic_hit_at_3": true,
+      "baseline_latency_seconds": 0.000403,
+      "semantic_latency_seconds": 0.030585,
+      "baseline_result_count": 2,
+      "semantic_result_count": 3,
+      "baseline_titles": [
+        "Emotional Regulation Support",
+        "Transition and Routine Support"
+      ],
+      "semantic_titles": [
+        "A1: Identifying Meltdowns vs. Tantrums (Ages 2-15)",
+        "A3: Understanding Emotional Outbursts and Dysregulation (Ages 3-15)",
+        "B1: Creating Predictable Structure and Routines (Ages 2-12)"
+      ],
+      "semantic_sources": [
+        "4 Behavioral_Challenges_Collection_REVISED.docx",
+        "4 Behavioral_Challenges_Collection_REVISED.docx",
+        "4 Behavioral_Challenges_Collection_REVISED.docx"
+      ],
+      "baseline_error": null,
+      "semantic_error": null
+    },
+    {
+      "case_id": "crisis_management",
+      "query": "My child is escalating quickly during a meltdown and I need a calm safety plan for what to do in the moment.",
+      "expected_keywords": [
+        "crisis management",
+        "immediate response",
+        "safety plan",
+        "meltdown"
+      ],
+      "baseline_first_relevant_rank": 2,
+      "semantic_first_relevant_rank": 1,
+      "baseline_hit_at_1": false,
+      "semantic_hit_at_1": true,
+      "baseline_hit_at_3": true,
+      "semantic_hit_at_3": true,
+      "baseline_latency_seconds": 0.000362,
+      "semantic_latency_seconds": 0.028121,
+      "baseline_result_count": 2,
+      "semantic_result_count": 3,
+      "baseline_titles": [
+        "Emotional Regulation Support",
+        "Crisis and Safety Support"
+      ],
+      "semantic_titles": [
+        "B1: Identifying the Pre-Crisis Escalation Cycle (Ages 3-18)",
+        "C1: Immediate Response to Meltdowns (Ages 2-15)",
+        "B2: Implementing the Crisis Prevention Window (Ages 3-18)"
+      ],
+      "semantic_sources": [
+        "5 Crisis_Management_Collection_REVISED.docx",
+        "4 Behavioral_Challenges_Collection_REVISED.docx",
+        "5 Crisis_Management_Collection_REVISED.docx"
+      ],
+      "baseline_error": null,
+      "semantic_error": null
+    },
+    {
+      "case_id": "hygiene",
+      "query": "Brushing teeth and washing hair cause distress and resistance every day.",
+      "expected_keywords": [
+        "hygiene",
+        "brushing teeth",
+        "washing"
+      ],
+      "baseline_first_relevant_rank": null,
+      "semantic_first_relevant_rank": 1,
+      "baseline_hit_at_1": false,
+      "semantic_hit_at_1": true,
+      "baseline_hit_at_3": false,
+      "semantic_hit_at_3": true,
+      "baseline_latency_seconds": 0.000489,
+      "semantic_latency_seconds": 0.027771,
+      "baseline_result_count": 2,
+      "semantic_result_count": 3,
+      "baseline_titles": [
+        "Emotional Regulation Support",
+        "Transition and Routine Support"
+      ],
+      "semantic_titles": [
+        "A2: Recognizing Sensory Processing Issues in Hygiene (Ages 2-18)",
+        "A1: Identifying the Root Cause of Hygiene Resistance (Ages 2-18)",
+        "A3: Understanding Executive Function Barriers to Hygiene (Ages 5-18)"
+      ],
+      "semantic_sources": [
+        "6 Hygiene_Collection_REVISED.docx",
+        "6 Hygiene_Collection_REVISED.docx",
+        "6 Hygiene_Collection_REVISED.docx"
+      ],
+      "baseline_error": null,
+      "semantic_error": null
+    },
+    {
+      "case_id": "sleep_bedtime",
+      "query": "Bedtime takes a long time and my child repeatedly leaves the bedroom instead of settling to sleep.",
+      "expected_keywords": [
+        "sleep",
+        "bedtime"
+      ],
+      "baseline_first_relevant_rank": 1,
+      "semantic_first_relevant_rank": 1,
+      "baseline_hit_at_1": true,
+      "semantic_hit_at_1": true,
+      "baseline_hit_at_3": true,
+      "semantic_hit_at_3": true,
+      "baseline_latency_seconds": 0.00052,
+      "semantic_latency_seconds": 0.028083,
+      "baseline_result_count": 3,
+      "semantic_result_count": 3,
+      "baseline_titles": [
+        "Sleep and Bedtime Routine Support",
+        "Eating and Mealtime Support",
+        "Transition and Routine Support"
+      ],
+      "semantic_titles": [
+        "A1: Establishing a Predictable Bedtime Routine",
+        "A3: Managing Routine Disruptions and Transitions",
+        "D2: Supporting Children Who \"Can't\" Fall Asleep"
+      ],
+      "semantic_sources": [
+        "7 Sleep_Bedtime_Routines_Collection_First_Pass_Approved.docx",
+        "7 Sleep_Bedtime_Routines_Collection_First_Pass_Approved.docx",
+        "7 Sleep_Bedtime_Routines_Collection_First_Pass_Approved.docx"
+      ],
+      "baseline_error": null,
+      "semantic_error": null
+    },
+    {
+      "case_id": "eating_mealtime",
+      "query": "My child refuses unfamiliar foods and becomes distressed by food smells and textures.",
+      "expected_keywords": [
+        "eating",
+        "mealtime",
+        "food"
+      ],
+      "baseline_first_relevant_rank": 1,
+      "semantic_first_relevant_rank": 1,
+      "baseline_hit_at_1": true,
+      "semantic_hit_at_1": true,
+      "baseline_hit_at_3": true,
+      "semantic_hit_at_3": true,
+      "baseline_latency_seconds": 0.000488,
+      "semantic_latency_seconds": 0.035451,
+      "baseline_result_count": 3,
+      "semantic_result_count": 3,
+      "baseline_titles": [
+        "Eating and Mealtime Support",
+        "Sensory Processing Support",
+        "Emotional Regulation Support"
+      ],
+      "semantic_titles": [
+        "A2: Recognizing Sensory Processing Issues in Eating (Ages 1-18)",
+        "A1: Distinguishing Between Different Types of Eating Problems (Ages 1-18)",
+        "B3: Addressing Texture Aversions Systematically (Ages 1-18)"
+      ],
+      "semantic_sources": [
+        "8. Eating_Mealtime_Challenges_Collection.txt",
+        "8. Eating_Mealtime_Challenges_Collection.txt",
+        "8. Eating_Mealtime_Challenges_Collection.txt"
+      ],
+      "baseline_error": null,
+      "semantic_error": null
+    },
+    {
+      "case_id": "communication",
+      "query": "My child becomes frustrated because they cannot explain what they need and sometimes stops responding.",
+      "expected_keywords": [
+        "communication",
+        "expressive language",
+        "visual communication"
+      ],
+      "baseline_first_relevant_rank": null,
+      "semantic_first_relevant_rank": null,
+      "baseline_hit_at_1": false,
+      "semantic_hit_at_1": false,
+      "baseline_hit_at_3": false,
+      "semantic_hit_at_3": false,
+      "baseline_latency_seconds": 0.00047,
+      "semantic_latency_seconds": 0.023521,
+      "baseline_result_count": 1,
+      "semantic_result_count": 3,
+      "baseline_titles": [
+        "Emotional Regulation Support"
+      ],
+      "semantic_titles": [
+        "A1: Identifying Meltdowns vs. Tantrums (Ages 2-15)",
+        "D1: Building Emotional Vocabulary and Awareness (Ages 3-15)",
+        "A3: Understanding Emotional Outbursts and Dysregulation (Ages 3-15)"
+      ],
+      "semantic_sources": [
+        "4 Behavioral_Challenges_Collection_REVISED.docx",
+        "4 Behavioral_Challenges_Collection_REVISED.docx",
+        "4 Behavioral_Challenges_Collection_REVISED.docx"
+      ],
+      "baseline_error": null,
+      "semantic_error": null
+    },
+    {
+      "case_id": "social_anxiety",
+      "query": "My child becomes very nervous around other children and avoids joining social activities.",
+      "expected_keywords": [
+        "social anxiety",
+        "social situations",
+        "anxiety"
+      ],
+      "baseline_first_relevant_rank": null,
+      "semantic_first_relevant_rank": 1,
+      "baseline_hit_at_1": false,
+      "semantic_hit_at_1": true,
+      "baseline_hit_at_3": false,
+      "semantic_hit_at_3": true,
+      "baseline_latency_seconds": 0.000426,
+      "semantic_latency_seconds": 0.021631,
+      "baseline_result_count": 1,
+      "semantic_result_count": 3,
+      "baseline_titles": [
+        "Emotional Regulation Support"
+      ],
+      "semantic_titles": [
+        "H1: Anxiety Psychoeducation for the Whole Child",
+        "H2: Family Anxiety Management Review",
+        "D2: Teaching the Zones of Regulation Framework (Ages 4-15)"
+      ],
+      "semantic_sources": [
+        "10. Managing Social Anxiety Collection.docx",
+        "10. Managing Social Anxiety Collection.docx",
+        "4 Behavioral_Challenges_Collection_REVISED.docx"
+      ],
+      "baseline_error": null,
+      "semantic_error": null
+    }
+  ]
+}

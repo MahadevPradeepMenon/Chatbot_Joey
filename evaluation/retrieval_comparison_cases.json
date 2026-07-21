@@ -1,0 +1,92 @@
+[
+  {
+    "case_id": "friendship",
+    "query": "My child wants friends but struggles to join games and keep conversations going with other children.",
+    "expected_keywords": [
+      "friendship",
+      "social skills",
+      "communication"
+    ]
+  },
+  {
+    "case_id": "toilet_training",
+    "query": "My child avoids using the toilet and becomes anxious when asked to sit on it.",
+    "expected_keywords": [
+      "toilet training",
+      "toileting",
+      "toilet"
+    ]
+  },
+  {
+    "case_id": "sensory_processing",
+    "query": "My child covers their ears and becomes overwhelmed when the classroom is noisy.",
+    "expected_keywords": [
+      "sensory processing",
+      "sensory"
+    ]
+  },
+  {
+    "case_id": "behavioural_regulation",
+    "query": "Small changes can lead to a major meltdown and my child finds it difficult to calm down.",
+    "expected_keywords": [
+      "behavioral challenges",
+      "behavioural challenges",
+      "emotional regulation",
+      "meltdown"
+    ]
+  },
+  {
+    "case_id": "crisis_management",
+    "query": "My child is escalating quickly during a meltdown and I need a calm safety plan for what to do in the moment.",
+    "expected_keywords": [
+      "crisis management",
+      "immediate response",
+      "safety plan",
+      "meltdown"
+    ]
+  },
+  {
+    "case_id": "hygiene",
+    "query": "Brushing teeth and washing hair cause distress and resistance every day.",
+    "expected_keywords": [
+      "hygiene",
+      "brushing teeth",
+      "washing"
+    ]
+  },
+  {
+    "case_id": "sleep_bedtime",
+    "query": "Bedtime takes a long time and my child repeatedly leaves the bedroom instead of settling to sleep.",
+    "expected_keywords": [
+      "sleep",
+      "bedtime"
+    ]
+  },
+  {
+    "case_id": "eating_mealtime",
+    "query": "My child refuses unfamiliar foods and becomes distressed by food smells and textures.",
+    "expected_keywords": [
+      "eating",
+      "mealtime",
+      "food"
+    ]
+  },
+  {
+    "case_id": "communication",
+    "query": "My child becomes frustrated because they cannot explain what they need and sometimes stops responding.",
+    "expected_keywords": [
+      "communication",
+      "expressive language",
+      "visual communication"
+    ]
+  },
+  {
+    "case_id": "social_anxiety",
+    "query": "My child becomes very nervous around other children and avoids joining social activities.",
+    "expected_keywords": [
+      "social anxiety",
+      "social situations",
+      "anxiety"
+    ]
+  }
+]
