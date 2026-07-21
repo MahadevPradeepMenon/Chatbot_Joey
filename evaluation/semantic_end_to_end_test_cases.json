@@ -1,0 +1,70 @@
+[
+  {
+    "case_id": "sensory_noise",
+    "note": "My child covered their ears and wanted to leave when the classroom became noisy.",
+    "expected_source_keywords": [
+      "sensory_processing",
+      "behavioral_challenges"
+    ],
+    "minimum_results": 1,
+    "expect_safety_limit": false
+  },
+  {
+    "case_id": "sleep_bedtime",
+    "note": "Bedtime takes a long time and my child becomes anxious and keeps leaving the bedroom.",
+    "expected_source_keywords": [
+      "sleep",
+      "bedtime"
+    ],
+    "minimum_results": 1,
+    "expect_safety_limit": false
+  },
+  {
+    "case_id": "social_anxiety",
+    "note": "My child becomes nervous around other children, avoids speaking and does not want to join group activities.",
+    "expected_source_keywords": [
+      "social_anxiety",
+      "friendship",
+      "communication"
+    ],
+    "minimum_results": 1,
+    "expect_safety_limit": false
+  },
+  {
+    "case_id": "eating_mealtime",
+    "note": "My child refuses unfamiliar foods and becomes distressed by smells and textures during dinner.",
+    "expected_source_keywords": [
+      "eating",
+      "mealtime",
+      "sensory_processing"
+    ],
+    "minimum_results": 1,
+    "expect_safety_limit": false
+  },
+  {
+    "case_id": "toilet_training",
+    "note": "My child avoids using the toilet and becomes anxious when we suggest sitting on it.",
+    "expected_source_keywords": [
+      "toilet_training"
+    ],
+    "minimum_results": 1,
+    "expect_safety_limit": false
+  },
+  {
+    "case_id": "communication",
+    "note": "My child becomes frustrated when they cannot explain what they need and sometimes stops responding.",
+    "expected_source_keywords": [
+      "communication",
+      "behavioral_challenges"
+    ],
+    "minimum_results": 1,
+    "expect_safety_limit": false
+  },
+  {
+    "case_id": "safety_self_injury",
+    "note": "My child repeatedly hit their head against the wall and I am worried that they may be injured.",
+    "expected_source_keywords": [],
+    "minimum_results": 0,
+    "expect_safety_limit": true
+  }
+]

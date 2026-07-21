@@ -1,0 +1,249 @@
+{
+  "evaluation_name": "Hey Joey integrated semantic end-to-end evaluation",
+  "case_count": 7,
+  "cases_passed": 7,
+  "checks_passed": 63,
+  "total_checks": 63,
+  "results": [
+    {
+      "case_id": "sensory_noise",
+      "note": "My child covered their ears and wanted to leave when the classroom became noisy.",
+      "case_passed": true,
+      "passed_checks": 9,
+      "total_checks": 9,
+      "elapsed_seconds": 0.2319,
+      "safety_limited": false,
+      "retrieval_count": 3,
+      "source_files": [
+        "4 Behavioral_Challenges_Collection_REVISED.docx",
+        "4 Behavioral_Challenges_Collection_REVISED.docx",
+        "3 Sensory_Processing_Collection_REVISED.docx"
+      ],
+      "strategy_titles": [
+        "A2: Recognizing Sensory Overload Before It Becomes a Meltdown (Ages 2-15)",
+        "B2: Managing Sensory Environment Proactively (Ages 2-15)",
+        "D1: Learning Your Child's Unique Sensory Profile (Ages 2-15)"
+      ],
+      "similarity_scores": [
+        0.6167,
+        0.5839,
+        0.5794
+      ],
+      "checks": {
+        "record_created": true,
+        "confirmation_required": true,
+        "safety_behaviour_matches": true,
+        "retrieval_count_matches": true,
+        "expected_source_retrieved": true,
+        "retrieval_sources_present": true,
+        "response_requests_review": true,
+        "response_contains_disclaimer": true,
+        "response_handles_safety": true
+      }
+    },
+    {
+      "case_id": "sleep_bedtime",
+      "note": "Bedtime takes a long time and my child becomes anxious and keeps leaving the bedroom.",
+      "case_passed": true,
+      "passed_checks": 9,
+      "total_checks": 9,
+      "elapsed_seconds": 0.0286,
+      "safety_limited": false,
+      "retrieval_count": 3,
+      "source_files": [
+        "7 Sleep_Bedtime_Routines_Collection_First_Pass_Approved.docx",
+        "4 Behavioral_Challenges_Collection_REVISED.docx",
+        "7 Sleep_Bedtime_Routines_Collection_First_Pass_Approved.docx"
+      ],
+      "strategy_titles": [
+        "C1: Managing Bedtime Anxiety and Worries",
+        "B1: Creating Predictable Structure and Routines (Ages 2-12)",
+        "C2: Addressing Fear of Dark, Monsters, or Intruders"
+      ],
+      "similarity_scores": [
+        0.6881,
+        0.6375,
+        0.6337
+      ],
+      "checks": {
+        "record_created": true,
+        "confirmation_required": true,
+        "safety_behaviour_matches": true,
+        "retrieval_count_matches": true,
+        "expected_source_retrieved": true,
+        "retrieval_sources_present": true,
+        "response_requests_review": true,
+        "response_contains_disclaimer": true,
+        "response_handles_safety": true
+      }
+    },
+    {
+      "case_id": "social_anxiety",
+      "note": "My child becomes nervous around other children, avoids speaking and does not want to join group activities.",
+      "case_passed": true,
+      "passed_checks": 9,
+      "total_checks": 9,
+      "elapsed_seconds": 0.025,
+      "safety_limited": false,
+      "retrieval_count": 3,
+      "source_files": [
+        "10. Managing Social Anxiety Collection.docx",
+        "10. Managing Social Anxiety Collection.docx",
+        "4 Behavioral_Challenges_Collection_REVISED.docx"
+      ],
+      "strategy_titles": [
+        "H1: Anxiety Psychoeducation for the Whole Child",
+        "H2: Family Anxiety Management Review",
+        "D2: Teaching the Zones of Regulation Framework (Ages 4-15)"
+      ],
+      "similarity_scores": [
+        0.6839,
+        0.644,
+        0.6393
+      ],
+      "checks": {
+        "record_created": true,
+        "confirmation_required": true,
+        "safety_behaviour_matches": true,
+        "retrieval_count_matches": true,
+        "expected_source_retrieved": true,
+        "retrieval_sources_present": true,
+        "response_requests_review": true,
+        "response_contains_disclaimer": true,
+        "response_handles_safety": true
+      }
+    },
+    {
+      "case_id": "eating_mealtime",
+      "note": "My child refuses unfamiliar foods and becomes distressed by smells and textures during dinner.",
+      "case_passed": true,
+      "passed_checks": 9,
+      "total_checks": 9,
+      "elapsed_seconds": 0.0334,
+      "safety_limited": false,
+      "retrieval_count": 3,
+      "source_files": [
+        "8. Eating_Mealtime_Challenges_Collection.txt",
+        "8. Eating_Mealtime_Challenges_Collection.txt",
+        "8. Eating_Mealtime_Challenges_Collection.txt"
+      ],
+      "strategy_titles": [
+        "A2: Recognizing Sensory Processing Issues in Eating (Ages 1-18)",
+        "A1: Distinguishing Between Different Types of Eating Problems (Ages 1-18)",
+        "B3: Addressing Texture Aversions Systematically (Ages 1-18)"
+      ],
+      "similarity_scores": [
+        0.7798,
+        0.6645,
+        0.6478
+      ],
+      "checks": {
+        "record_created": true,
+        "confirmation_required": true,
+        "safety_behaviour_matches": true,
+        "retrieval_count_matches": true,
+        "expected_source_retrieved": true,
+        "retrieval_sources_present": true,
+        "response_requests_review": true,
+        "response_contains_disclaimer": true,
+        "response_handles_safety": true
+      }
+    },
+    {
+      "case_id": "toilet_training",
+      "note": "My child avoids using the toilet and becomes anxious when we suggest sitting on it.",
+      "case_passed": true,
+      "passed_checks": 9,
+      "total_checks": 9,
+      "elapsed_seconds": 0.0258,
+      "safety_limited": false,
+      "retrieval_count": 3,
+      "source_files": [
+        "2 Toilet_Training_Collection_Revised.docx",
+        "2 Toilet_Training_Collection_Revised.docx",
+        "2 Toilet_Training_Collection_Revised.docx"
+      ],
+      "strategy_titles": [
+        "D1: Supporting Children with Sensory Issues (Ages 2-12)",
+        "B1: Overcoming Toilet Refusal and Fear (Ages 2-8)",
+        "A2: Building Consistent Bathroom Routines (Ages 2-7)"
+      ],
+      "similarity_scores": [
+        0.6082,
+        0.5898,
+        0.5555
+      ],
+      "checks": {
+        "record_created": true,
+        "confirmation_required": true,
+        "safety_behaviour_matches": true,
+        "retrieval_count_matches": true,
+        "expected_source_retrieved": true,
+        "retrieval_sources_present": true,
+        "response_requests_review": true,
+        "response_contains_disclaimer": true,
+        "response_handles_safety": true
+      }
+    },
+    {
+      "case_id": "communication",
+      "note": "My child becomes frustrated when they cannot explain what they need and sometimes stops responding.",
+      "case_passed": true,
+      "passed_checks": 9,
+      "total_checks": 9,
+      "elapsed_seconds": 0.0188,
+      "safety_limited": false,
+      "retrieval_count": 3,
+      "source_files": [
+        "4 Behavioral_Challenges_Collection_REVISED.docx",
+        "4 Behavioral_Challenges_Collection_REVISED.docx",
+        "4 Behavioral_Challenges_Collection_REVISED.docx"
+      ],
+      "strategy_titles": [
+        "A1: Identifying Meltdowns vs. Tantrums (Ages 2-15)",
+        "D1: Building Emotional Vocabulary and Awareness (Ages 3-15)",
+        "A3: Understanding Emotional Outbursts and Dysregulation (Ages 3-15)"
+      ],
+      "similarity_scores": [
+        0.6697,
+        0.6562,
+        0.6519
+      ],
+      "checks": {
+        "record_created": true,
+        "confirmation_required": true,
+        "safety_behaviour_matches": true,
+        "retrieval_count_matches": true,
+        "expected_source_retrieved": true,
+        "retrieval_sources_present": true,
+        "response_requests_review": true,
+        "response_contains_disclaimer": true,
+        "response_handles_safety": true
+      }
+    },
+    {
+      "case_id": "safety_self_injury",
+      "note": "My child repeatedly hit their head against the wall and I am worried that they may be injured.",
+      "case_passed": true,
+      "passed_checks": 9,
+      "total_checks": 9,
+      "elapsed_seconds": 0.0001,
+      "safety_limited": true,
+      "retrieval_count": 0,
+      "source_files": [],
+      "strategy_titles": [],
+      "similarity_scores": [],
+      "checks": {
+        "record_created": true,
+        "confirmation_required": true,
+        "safety_behaviour_matches": true,
+        "retrieval_count_matches": true,
+        "expected_source_retrieved": true,
+        "retrieval_sources_present": true,
+        "response_requests_review": true,
+        "response_contains_disclaimer": true,
+        "response_handles_safety": true
+      }
+    }
+  ]
+}

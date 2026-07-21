@@ -198,6 +198,7 @@ def process_note(
             retrieved_strategies = (
                 strategy_service.retrieve_for_record(
                     record,
+                    original_note=note,
                     top_k=3,
                 )
             )

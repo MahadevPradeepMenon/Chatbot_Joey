@@ -1,3 +1,6 @@
+from email.mime import text
+import re
+
 from app.schemas import (
     AnxietyLevel,
     ConfidenceLevel,
@@ -9,6 +12,46 @@ from app.schemas import (
 def contains_any(text: str, keywords: list[str]) -> bool:
     """Return True if any keyword or phrase appears in the text."""
     return any(keyword in text for keyword in keywords)
+
+def contains_self_injury_pattern(text: str) -> bool:
+    """Detect common descriptions of self-injurious behaviour."""
+
+    patterns = [
+        r"\bhead[\s-]*bang(?:ing|ed|s)?\b",
+        (
+            r"\b(?:hit|hits|hitting|bang|bangs|banged|banging|"
+            r"strike|strikes|struck|striking)\b"
+            r".{0,30}"
+            r"\b(?:their|his|her|own)\s+head\b"
+        ),
+        (
+            r"\b(?:hurt|hurting|injure|injured|injuring)\s+"
+            r"(?:themself|themselves|himself|herself)\b"
+        ),
+        r"\bself[\s-]?(?:injury|injurious|harm)\b",
+    ]
+
+    return any(
+        re.search(pattern, text)
+        for pattern in patterns
+    )
+
+
+def contains_injury_concern(text: str) -> bool:
+    """Detect language suggesting that an injury may have occurred."""
+
+    patterns = [
+        r"\b(?:may|might|could)\s+be\s+injured\b",
+        r"\b(?:is|was|seems|appears)\s+injured\b",
+        r"\bsustained an injury\b",
+        r"\b(?:bleeding|unconscious|passed out)\b",
+        r"\b(?:cannot|can't)\s+wake\b",
+    ]
+
+    return any(
+        re.search(pattern, text)
+        for pattern in patterns
+    )
 
 
 def add_unique(items: list[str], value: str) -> None:
@@ -79,6 +122,22 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
     """
 
     text = note.lower()
+
+    self_injury_detected = (
+    contains_self_injury_pattern(text)
+    or contains_any(
+        text,
+        [
+            "hurt himself",
+            "hurt herself",
+            "hurt themselves",
+        ],
+    )
+)
+
+    injury_concern_detected = contains_injury_concern(
+    text
+)
 
     mood_labels = []
     behaviours = []
@@ -249,10 +308,30 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
         add_unique(behaviours, "crying")
         mood_zone = upgrade_mood_zone(mood_zone, MoodZone.orange)
 
-    if contains_any(text, ["hit", "kicked", "bit", "biting"]):
-        add_unique(behaviours, "aggressive behaviour")
-        add_unique(strategy_categories, "Behavioural Challenges & Emotional Regulation")
-        mood_zone = upgrade_mood_zone(mood_zone, MoodZone.red)
+    if contains_any(
+    text,
+    ["hit", "hitting", "kicked", "bit", "biting"],
+):
+        if self_injury_detected:
+            add_unique(
+            behaviours,
+            "self-injurious behaviour",
+        )
+        else:
+            add_unique(
+            behaviours,
+            "aggressive behaviour",
+        )
+
+            add_unique(
+            strategy_categories,
+            "Behavioural Challenges & Emotional Regulation",
+        )
+
+        mood_zone = upgrade_mood_zone(
+        mood_zone,
+        MoodZone.red,
+    )
 
     if contains_any(text, ["hide", "hiding", "wanted to hide"]):
         add_unique(behaviours, "avoidance/hiding")
@@ -263,37 +342,58 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
     # Safety detection
     # -------------------------
 
-    if contains_any(
-        text,
-        [
-            "head banging",
-            "banged his head",
-            "banged her head",
-            "hurt himself",
-            "hurt herself",
-            "self-injury",
-            "self harm",
-            "self-harm",
-        ],
-    ):
-        add_unique(risk_flags, "safety_concern")
-        add_unique(risk_flags, "self_injury_mentioned")
-        add_unique(behaviours, "self-injurious behaviour")
-        add_unique(quick_track_suggestions, "Meltdown/Shutdown")
-        add_unique(strategy_categories, "Crisis Management & Safety")
+    if self_injury_detected or injury_concern_detected:
+        add_unique(
+        risk_flags,
+        "safety_concern",
+    )
+
+        if self_injury_detected:
+            add_unique(
+            risk_flags,
+            "self_injury_mentioned",
+        )
+
+            add_unique(
+            behaviours,
+            "self-injurious behaviour",
+        )
+
+        add_unique(
+        quick_track_suggestions,
+        "Meltdown/Shutdown",
+    )
+
+        add_unique(
+        strategy_categories,
+        "Crisis Management & Safety",
+    )
 
         anxiety_level = upgrade_anxiety_level(
-            anxiety_level,
-            AnxietyLevel.severe,
-        )
-        mood_zone = upgrade_mood_zone(mood_zone, MoodZone.red)
-        confidence = ConfidenceLevel.high
+        anxiety_level,
+        AnxietyLevel.severe,
+    )
 
-        add_unique(missing_information, "whether there is immediate danger")
-        add_unique(missing_information, "whether injury occurred")
+        mood_zone = upgrade_mood_zone(
+        mood_zone,
+        MoodZone.red,
+    )
 
-        follow_up_question = "Is the child safe now, and did they sustain any injury?"
+    confidence = ConfidenceLevel.high
 
+    add_unique(
+        missing_information,
+        "whether there is immediate danger",
+    )
+
+    add_unique(
+        missing_information,
+        "whether injury occurred",
+    )
+
+    follow_up_question = (
+        "Is the child safe now, and did they sustain any injury?"
+    )
     # -------------------------
     # Food / appetite detection
     # -------------------------
@@ -456,6 +556,51 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
 
         if follow_up_question is None:
             follow_up_question = "Was there any sign of pain, illness, tiredness, or sensory sensitivity?"
+
+    # -------------------------
+    # Toilet training detection
+    # -------------------------
+
+    if contains_any(
+    text,
+    [
+        "toilet",
+        "toileting",
+        "potty",
+        "use the loo",
+        "using the loo",
+        "wetting",
+        "soiling",
+        "toilet accident",
+        "bathroom accident",
+        "urinate",
+        "bowel movement",
+    ],
+):
+        if activity is None:
+            activity = "toileting routine"
+
+        add_unique(
+        possible_triggers,
+        "toilet use or toileting routine",
+    )
+
+        add_unique(
+        quick_track_suggestions,
+        "Toileting",
+    )
+
+        add_unique(
+        strategy_categories,
+        "Toilet Training",
+    )
+
+    if follow_up_question is None:
+        follow_up_question = (
+            "What part of using the toilet seemed most difficult: "
+            "entering the bathroom, sitting, sensory discomfort, "
+            "communication, or something else?"
+        )
 
     # -------------------------
     # Hygiene detection

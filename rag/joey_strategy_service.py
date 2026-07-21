@@ -98,7 +98,10 @@ def add_query_field(
         )
 
 
-def build_retrieval_query(record: Any) -> str:
+def build_retrieval_query(
+    record: Any,
+    original_note: str | None = None,
+) -> str:
     """
     Convert Joey's structured record into a retrieval-focused query.
 
@@ -109,6 +112,16 @@ def build_retrieval_query(record: Any) -> str:
     data = record_to_dict(record)
 
     query_parts: list[str] = []
+
+    if original_note:
+        clean_note = " ".join(
+        original_note.split()
+    ).strip()
+
+    if clean_note:
+        query_parts.append(
+            f"Original parent note: {clean_note}"
+        )
 
     add_query_field(
         query_parts,
@@ -198,15 +211,17 @@ class JoeyStrategyService:
         return self._convert_results(results)
 
     def retrieve_for_record(
-        self,
-        record: Any,
-        top_k: int = 3,
-    ) -> list[JoeyStrategyEvidence]:
+    self,
+    record: Any,
+    original_note: str | None = None,
+    top_k: int = 3,
+) -> list[JoeyStrategyEvidence]:
         """Retrieve strategies from a Joey structured record."""
 
         retrieval_query = build_retrieval_query(
-            record
-        )
+            record,
+            original_note=original_note,
+)
 
         results = self.retriever.search(
             query=retrieval_query,
