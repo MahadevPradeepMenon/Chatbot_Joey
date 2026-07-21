@@ -3,4 +3,5 @@ pandas
 openpyxl
 python-docx
 pypdf
-
+sentence-transformers
+numpy 
