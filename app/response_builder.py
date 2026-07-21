@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from app.schemas import StructuredJoeyRecord
 from rag.joey_strategy_service import JoeyStrategyEvidence
@@ -100,7 +100,7 @@ def build_strategy_title(
 def build_parent_response(
     original_note: str,
     record: StructuredJoeyRecord,
-    retrieved_strategies: list[
+    retrieved_strategies: Sequence[
         JoeyStrategyEvidence | Mapping[str, Any]
     ],
 ) -> str:

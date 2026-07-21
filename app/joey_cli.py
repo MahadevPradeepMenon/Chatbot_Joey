@@ -1,18 +1,39 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from rag.strategy_retriever import retrieve_strategies, display_retrieved_strategies
-from app.response_builder import build_parent_response
 
 from app.extractor import extract_structured_record
+from app.response_builder import build_parent_response
+from app.schemas import StructuredJoeyRecord
+from rag.joey_strategy_service import (
+    JoeyStrategyEvidence,
+    JoeyStrategyService,
+    preview_text,
+)
+from safety.safety_guard import should_limit_strategy_suggestions
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 LOCAL_OUTPUT_DIR = PROJECT_ROOT / "data" / "local"
-CONFIRMED_RECORDS_FILE = LOCAL_OUTPUT_DIR / "confirmed_joey_records.jsonl"
+CONFIRMED_RECORDS_FILE = (
+    LOCAL_OUTPUT_DIR / "confirmed_joey_records.jsonl"
+)
 
 
-def display_record(record) -> None:
+def print_list(items: list[str]) -> None:
+    """Print a list neatly."""
+
+    if not items:
+        print("- None detected")
+        return
+
+    for item in items:
+        print(f"- {item}")
+
+
+def display_record(
+    record: StructuredJoeyRecord,
+) -> None:
     """Display Joey's structured output in a parent-friendly way."""
 
     print("\n" + "=" * 60)
@@ -56,68 +77,214 @@ def display_record(record) -> None:
     print_list(record.missing_information)
 
     print("\nJoey follow-up question:")
-    print(f"{record.follow_up_question}")
+    print(
+        record.follow_up_question
+        or "Would you like to add more detail?"
+    )
 
     print("\nParent/carer confirmation required:")
-    print(f"{record.requires_parent_confirmation}")
+    print(record.requires_parent_confirmation)
 
 
-def print_list(items: list[str]) -> None:
-    """Print a list neatly."""
-    if not items:
-        print("- None detected")
+def display_semantic_strategies(
+    strategies: list[JoeyStrategyEvidence],
+) -> None:
+    """Display source-backed semantic retrieval evidence."""
+
+    print("\n" + "=" * 60)
+    print("RETRIEVED STRATEGY EVIDENCE")
+    print("=" * 60)
+
+    if not strategies:
+        print("\nNo strategy evidence was retrieved.")
         return
 
-    for item in items:
-        print(f"- {item}")
+    for strategy in strategies:
+        if strategy.strategy_code and strategy.strategy_title:
+            title = (
+                f"{strategy.strategy_code}: "
+                f"{strategy.strategy_title}"
+            )
+        else:
+            title = (
+                strategy.strategy_title
+                or "Relevant support strategy"
+            )
+
+        print("\n" + "-" * 60)
+        print(
+            f"Rank {strategy.rank} "
+            f"| Similarity: {strategy.score:.4f}"
+        )
+        print(f"Strategy: {title}")
+        print(f"Collection: {strategy.collection_title}")
+        print(f"Source: {strategy.source_file}")
+
+        if strategy.theme:
+            print(f"Theme: {strategy.theme}")
+
+        print(
+            f"Passage: "
+            f"{preview_text(strategy.passage)}"
+        )
 
 
-def save_confirmed_record(original_note: str, record) -> None:
-    """Save confirmed record locally as JSONL."""
+def save_confirmed_record(
+    original_note: str,
+    record: StructuredJoeyRecord,
+) -> None:
+    """Save a parent-confirmed record locally as JSONL."""
 
-    LOCAL_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    LOCAL_OUTPUT_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
     saved_item = {
-        "saved_at": datetime.now().isoformat(timespec="seconds"),
+        "saved_at": datetime.now().isoformat(
+            timespec="seconds"
+        ),
         "original_note": original_note,
-        "structured_record": record.model_dump(mode="json"),
+        "structured_record": record.model_dump(
+            mode="json"
+        ),
     }
 
-    with open(CONFIRMED_RECORDS_FILE, "a", encoding="utf-8") as file:
-        file.write(json.dumps(saved_item, ensure_ascii=False) + "\n")
+    with CONFIRMED_RECORDS_FILE.open(
+        "a",
+        encoding="utf-8",
+    ) as file:
+        file.write(
+            json.dumps(
+                saved_item,
+                ensure_ascii=False,
+            )
+            + "\n"
+        )
+
+
+def process_note(
+    note: str,
+    strategy_service: JoeyStrategyService,
+) -> tuple[
+    StructuredJoeyRecord,
+    list[JoeyStrategyEvidence],
+]:
+    """
+    Run the complete Joey workflow for one parent observation.
+
+    The workflow performs extraction, safety checking, semantic
+    retrieval and parent-response generation without saving.
+    """
+
+    record = extract_structured_record(note)
+    display_record(record)
+
+    retrieved_strategies: list[
+        JoeyStrategyEvidence
+    ] = []
+
+    if should_limit_strategy_suggestions(record):
+        print("\n" + "=" * 60)
+        print("STRATEGY RETRIEVAL")
+        print("=" * 60)
+        print(
+            "\nStrategy retrieval was limited because "
+            "the record may involve a safety concern."
+        )
+
+    else:
+        try:
+            retrieved_strategies = (
+                strategy_service.retrieve_for_record(
+                    record,
+                    top_k=3,
+                )
+            )
+
+            display_semantic_strategies(
+                retrieved_strategies
+            )
+
+        except Exception as error:
+            print("\n" + "=" * 60)
+            print("STRATEGY RETRIEVAL")
+            print("=" * 60)
+
+            print(
+                "\nJoey could not retrieve strategy evidence "
+                f"for this note: {error}"
+            )
+
+            print(
+                "The structured record can still be reviewed "
+                "and saved."
+            )
+
+    parent_response = build_parent_response(
+        original_note=note,
+        record=record,
+        retrieved_strategies=retrieved_strategies,
+    )
+
+    print("\n" + parent_response)
+
+    return record, retrieved_strategies
 
 
 def run_joey_cli() -> None:
-    """Run Joey's simple command-line interface."""
+    """Run Joey's local command-line interface."""
 
     print("\nWelcome to Joey CLI")
-    print("Type a parent/carer observation and Joey will structure it.")
+    print(
+        "Type a parent/carer observation and Joey "
+        "will structure it."
+    )
     print("Type 'exit' to stop.\n")
 
-    while True:
-        note = input("Parent/carer note: ").strip()
+    print("Loading Joey's local strategy system...")
 
-        if note.lower() in ["exit", "quit", "q"]:
+    try:
+        strategy_service = JoeyStrategyService()
+    except Exception as error:
+        print(
+            "\nJoey could not load the local semantic index."
+        )
+        print(f"Reason: {error}")
+        print(
+            "\nRun this command before starting Joey:"
+        )
+        print(
+            "python -m rag.build_embedding_index"
+        )
+        return
+
+    print("Joey's local strategy system is ready.\n")
+
+    while True:
+        note = input(
+            "Parent/carer note: "
+        ).strip()
+
+        if note.lower() in {
+            "exit",
+            "quit",
+            "q",
+        }:
             print("\nExiting Joey CLI.")
             break
 
         if not note:
-            print("Please enter a note, or type 'exit' to stop.")
+            print(
+                "Please enter a note, or type "
+                "'exit' to stop."
+            )
             continue
 
-        record = extract_structured_record(note)
-        display_record(record)
-
-        retrieved_strategies = retrieve_strategies(record, original_note=note)
-        display_retrieved_strategies(retrieved_strategies)
-
-        parent_response = build_parent_response(
-            original_note=note,
-            record=record,
-            retrieved_strategies=retrieved_strategies,
+        record, _ = process_note(
+            note,
+            strategy_service,
         )
-
-        print("\n" + parent_response)
 
         print("\n" + "-" * 60)
         print("Confirmation")
@@ -126,36 +293,70 @@ def run_joey_cli() -> None:
         print("Choose:")
         print("1 = save this structured record")
         print("2 = do not save")
-        print("3 = rewrite the note and run Joey again")
+        print(
+            "3 = rewrite the note and run Joey again"
+        )
 
-        choice = input("Your choice: ").strip()
+        choice = input(
+            "Your choice: "
+        ).strip()
 
         if choice == "1":
-            save_confirmed_record(note, record)
-            print(f"\nSaved locally to: {CONFIRMED_RECORDS_FILE}")
+            save_confirmed_record(
+                note,
+                record,
+            )
+
+            print(
+                "\nSaved locally to: "
+                f"{CONFIRMED_RECORDS_FILE}"
+            )
 
         elif choice == "2":
             print("\nRecord was not saved.")
 
         elif choice == "3":
-            revised_note = input("\nRewrite the note: ").strip()
+            revised_note = input(
+                "\nRewrite the note: "
+            ).strip()
 
             if revised_note:
-                revised_record = extract_structured_record(revised_note)
-                display_record(revised_record)
+                revised_record, _ = process_note(
+                    revised_note,
+                    strategy_service,
+                )
 
-                confirm_revised = input("\nSave revised record? yes/no: ").strip().lower()
+                confirm_revised = input(
+                    "\nSave revised record? yes/no: "
+                ).strip().lower()
 
-                if confirm_revised in ["yes", "y"]:
-                    save_confirmed_record(revised_note, revised_record)
-                    print(f"\nSaved locally to: {CONFIRMED_RECORDS_FILE}")
+                if confirm_revised in {
+                    "yes",
+                    "y",
+                }:
+                    save_confirmed_record(
+                        revised_note,
+                        revised_record,
+                    )
+
+                    print(
+                        "\nSaved locally to: "
+                        f"{CONFIRMED_RECORDS_FILE}"
+                    )
                 else:
-                    print("\nRevised record was not saved.")
+                    print(
+                        "\nRevised record was not saved."
+                    )
             else:
-                print("\nNo revised note entered. Nothing saved.")
+                print(
+                    "\nNo revised note entered. "
+                    "Nothing was saved."
+                )
 
         else:
-            print("\nInvalid choice. Nothing was saved.")
+            print(
+                "\nInvalid choice. Nothing was saved."
+            )
 
 
 if __name__ == "__main__":
