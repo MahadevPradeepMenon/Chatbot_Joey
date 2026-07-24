@@ -2,9 +2,9 @@ from dataclasses import asdict, dataclass
 from enum import Enum
 from typing import Any, Mapping
 
-from rag.semantic_retriever import (
-    SemanticSearchResult,
-    SemanticStrategyRetriever,
+from rag.hybrid_retriever import (
+    HybridSearchResult,
+    HybridStrategyRetriever,
 )
 
 
@@ -64,9 +64,7 @@ def normalise_list(value: Any) -> list[str]:
 
 
 def record_to_dict(record: Any) -> dict[str, Any]:
-    """
-    Convert either a Pydantic record or dictionary into a dictionary.
-    """
+    """Convert either a Pydantic record or dictionary."""
 
     if isinstance(record, Mapping):
         return dict(record)
@@ -93,9 +91,7 @@ def add_query_field(
     values = normalise_list(value)
 
     if values:
-        parts.append(
-            f"{label}: {', '.join(values)}"
-        )
+        parts.append(f"{label}: {', '.join(values)}")
 
 
 def build_retrieval_query(
@@ -110,67 +106,58 @@ def build_retrieval_query(
     """
 
     data = record_to_dict(record)
-
     query_parts: list[str] = []
 
     if original_note:
         clean_note = " ".join(
-        original_note.split()
-    ).strip()
+            original_note.split()
+        ).strip()
 
-    if clean_note:
-        query_parts.append(
-            f"Original parent note: {clean_note}"
-        )
+        if clean_note:
+            query_parts.append(
+                f"Original parent note: {clean_note}"
+            )
 
     add_query_field(
         query_parts,
         "Parent observation",
         data.get("summary"),
     )
-
     add_query_field(
         query_parts,
         "Behaviours",
         data.get("behaviours"),
     )
-
     add_query_field(
         query_parts,
         "Possible triggers",
         data.get("possible_triggers"),
     )
-
     add_query_field(
         query_parts,
         "Mood",
         data.get("mood_labels"),
     )
-
     add_query_field(
         query_parts,
         "Mood zone",
         data.get("mood_zone"),
     )
-
     add_query_field(
         query_parts,
         "Anxiety level",
         data.get("anxiety_level"),
     )
-
     add_query_field(
         query_parts,
         "Activity",
         data.get("activity"),
     )
-
     add_query_field(
         query_parts,
         "Environment",
         data.get("environment"),
     )
-
     add_query_field(
         query_parts,
         "Relevant support categories",
@@ -188,11 +175,11 @@ def build_retrieval_query(
 
 class JoeyStrategyService:
     """
-    Connect Joey's structured records to the local semantic retriever.
+    Connect Joey's structured records to the local hybrid retriever.
     """
 
     def __init__(self) -> None:
-        self.retriever = SemanticStrategyRetriever()
+        self.retriever = HybridStrategyRetriever()
 
     def retrieve_for_text(
         self,
@@ -205,36 +192,34 @@ class JoeyStrategyService:
             query=text,
             top_k=top_k,
             strategy_only=True,
-            deduplicate_strategies=True,
         )
 
         return self._convert_results(results)
 
     def retrieve_for_record(
-    self,
-    record: Any,
-    original_note: str | None = None,
-    top_k: int = 3,
-) -> list[JoeyStrategyEvidence]:
+        self,
+        record: Any,
+        original_note: str | None = None,
+        top_k: int = 3,
+    ) -> list[JoeyStrategyEvidence]:
         """Retrieve strategies from a Joey structured record."""
 
         retrieval_query = build_retrieval_query(
             record,
             original_note=original_note,
-)
+        )
 
         results = self.retriever.search(
             query=retrieval_query,
             top_k=top_k,
             strategy_only=True,
-            deduplicate_strategies=True,
         )
 
         return self._convert_results(results)
 
     @staticmethod
     def _convert_results(
-        results: list[SemanticSearchResult],
+        results: list[HybridSearchResult],
     ) -> list[JoeyStrategyEvidence]:
         """Convert retriever results into integration-safe evidence."""
 
@@ -276,7 +261,7 @@ def preview_text(
 
 
 def main() -> None:
-    """Test structured-record retrieval before CLI integration."""
+    """Test structured-record hybrid retrieval."""
 
     sample_record = {
         "summary": (
@@ -304,9 +289,7 @@ def main() -> None:
         ],
     }
 
-    query = build_retrieval_query(
-        sample_record
-    )
+    query = build_retrieval_query(sample_record)
 
     print("\nSTRUCTURED RETRIEVAL QUERY")
     print("=" * 70)
@@ -319,7 +302,7 @@ def main() -> None:
         top_k=3,
     )
 
-    print("\nRETRIEVED STRATEGY EVIDENCE")
+    print("\nRETRIEVED HYBRID STRATEGY EVIDENCE")
     print("=" * 70)
 
     for result in evidence:
@@ -332,17 +315,13 @@ def main() -> None:
 
         print(
             f"\nRank {result.rank} "
-            f"| Score: {result.score:.4f}"
+            f"| Hybrid score: {result.score:.6f}"
         )
         print(f"Strategy: {title}")
-        print(
-            f"Collection: "
-            f"{result.collection_title}"
-        )
+        print(f"Collection: {result.collection_title}")
         print(f"Source: {result.source_file}")
         print(
-            f"Passage: "
-            f"{preview_text(result.passage)}"
+            f"Passage: {preview_text(result.passage)}"
         )
 
 
