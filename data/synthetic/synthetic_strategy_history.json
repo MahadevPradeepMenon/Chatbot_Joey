@@ -1,0 +1,31 @@
+{
+  "strategy_history": [
+    {
+      "strategy_code": "A2",
+      "strategy_title": "Recognizing Sensory Overload Before It Becomes a Meltdown (Ages 2-15)",
+      "collection_title": "Behavioral Challenges & Emotional Regulation Collection",
+      "source_file": "4 Behavioral_Challenges_Collection_REVISED.docx",
+      "lifecycle_status": "not_active",
+      "latest_outcome": "worked_somewhat",
+      "times_used": 2
+    },
+    {
+      "strategy_code": "B1",
+      "strategy_title": "Recognizing and Preventing Sensory Overload (Ages 2-15)",
+      "collection_title": "Sensory Processing & Environmental Support Collection",
+      "source_file": "3 Sensory_Processing_Collection_REVISED.docx",
+      "lifecycle_status": "active",
+      "latest_outcome": "not_recorded",
+      "times_used": 1
+    },
+    {
+      "strategy_code": "D2",
+      "strategy_title": "Teaching Your Child Sensory Self-Advocacy (Ages 4-15)",
+      "collection_title": "Sensory Processing & Environmental Support Collection",
+      "source_file": "3 Sensory_Processing_Collection_REVISED.docx",
+      "lifecycle_status": "paused",
+      "latest_outcome": "disaster",
+      "times_used": 1
+    }
+  ]
+}
