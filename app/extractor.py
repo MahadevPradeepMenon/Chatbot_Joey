@@ -1,4 +1,3 @@
-from email.mime import text
 import re
 
 from app.schemas import (
@@ -379,21 +378,21 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
         MoodZone.red,
     )
 
-    confidence = ConfidenceLevel.high
+        confidence = ConfidenceLevel.high
 
-    add_unique(
-        missing_information,
-        "whether there is immediate danger",
-    )
+        add_unique(
+            missing_information,
+            "whether there is immediate danger",
+        )
 
-    add_unique(
-        missing_information,
-        "whether injury occurred",
-    )
+        add_unique(
+            missing_information,
+            "whether injury occurred",
+        )
 
-    follow_up_question = (
-        "Is the child safe now, and did they sustain any injury?"
-    )
+        follow_up_question = (
+            "Is the child safe now, and did they sustain any injury?"
+        )
     # -------------------------
     # Food / appetite detection
     # -------------------------
@@ -595,12 +594,12 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
         "Toilet Training",
     )
 
-    if follow_up_question is None:
-        follow_up_question = (
-            "What part of using the toilet seemed most difficult: "
-            "entering the bathroom, sitting, sensory discomfort, "
-            "communication, or something else?"
-        )
+        if follow_up_question is None:
+            follow_up_question = (
+                "What part of using the toilet seemed most difficult: "
+                "entering the bathroom, sitting, sensory discomfort, "
+                "communication, or something else?"
+            )
 
     # -------------------------
     # Hygiene detection
