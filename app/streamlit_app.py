@@ -1,65 +1,169 @@
-import sys
-from enum import Enum
+from __future__ import annotations
+
+import html
+import json
+import re
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import streamlit as st
 
-
-# Ensure project-root imports work when Streamlit runs this file.
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-
+from app.conversation_manager import (
+    ConversationStatus,
+    JoeyConversationSession,
+)
 from app.extractor import extract_structured_record
-from app.joey_cli import (
-    CONFIRMED_RECORDS_FILE,
-    save_confirmed_record,
+from rag.history_aware_strategy_service import (
+    HistoryAwareStrategyService,
 )
-from app.response_builder import build_parent_response
-from app.schemas import StructuredJoeyRecord
-from rag.joey_strategy_service import (
-    JoeyStrategyEvidence,
-    JoeyStrategyService,
-)
-from safety.safety_guard import (
-    build_safety_notice,
-    should_limit_strategy_suggestions,
+from safety.safety_guard import should_limit_strategy_suggestions
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+LOCAL_OUTPUT_DIR = PROJECT_ROOT / "data" / "local"
+CONFIRMED_RECORDS_FILE = (
+    LOCAL_OUTPUT_DIR / "confirmed_joey_records.jsonl"
 )
 
 
 st.set_page_config(
     page_title="Hey Joey",
-    page_icon="💬",
-    layout="wide",
+    page_icon="🌿",
+    layout="centered",
+    initial_sidebar_state="collapsed",
 )
 
 
-@st.cache_resource
-def load_strategy_service() -> JoeyStrategyService:
+st.markdown(
     """
-    Load the embedding model and semantic index once.
+    <style>
+        .stApp {
+            background: #f6f7f3;
+        }
 
-    Streamlit reruns the page after interactions, so the service is
-    cached to avoid repeatedly loading the local model.
-    """
+        .block-container {
+            max-width: 820px;
+            padding-top: 2.2rem;
+            padding-bottom: 3rem;
+        }
 
-    return JoeyStrategyService()
+        [data-testid="stHeader"],
+        [data-testid="stToolbar"],
+        #MainMenu,
+        footer {
+            visibility: hidden;
+            height: 0;
+        }
+
+        div[role="radiogroup"] {
+            display: flex;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        div[role="radiogroup"] label {
+            background: white;
+            border: 1px solid #d9e1db;
+            border-radius: 999px;
+            padding: 0.65rem 1.05rem;
+        }
+
+        div[role="radiogroup"] label:has(input:checked) {
+            background: #126b57;
+            color: white;
+            border-color: #126b57;
+        }
+
+        div[data-baseweb="textarea"] textarea {
+            border-radius: 16px;
+            min-height: 130px;
+            background: white;
+        }
+
+        div.stButton > button {
+            width: 100%;
+            border-radius: 14px;
+            min-height: 2.9rem;
+            background: #126b57;
+            color: white;
+            border: 1px solid #126b57;
+            font-weight: 700;
+        }
+
+        div.stButton > button:hover {
+            background: #0b5747;
+            border-color: #0b5747;
+            color: white;
+        }
+
+        .joey-response {
+            background: white;
+            border: 1px solid #dfe5de;
+            border-radius: 20px;
+            padding: 1.25rem 1.35rem;
+            margin-top: 1rem;
+            line-height: 1.62;
+            box-shadow: 0 6px 20px rgba(20, 55, 43, 0.04);
+        }
+
+        .joey-response strong {
+            color: #0b5747;
+        }
+
+        .joey-strategy {
+            margin-top: 0.9rem;
+            padding-top: 0.9rem;
+            border-top: 1px solid #edf0ed;
+        }
+
+        .joey-source {
+            color: #68746e;
+            font-size: 0.88rem;
+            margin-top: 0.3rem;
+        }
+
+        .joey-heading {
+            text-align: center;
+            margin-bottom: 1.4rem;
+        }
+
+        .joey-heading h1 {
+            margin-bottom: 0.25rem;
+            color: #17211d;
+        }
+
+        .joey-heading p {
+            color: #68746e;
+            margin: 0;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 
-def initialise_session_state() -> None:
-    """Create the state used across Streamlit reruns."""
+@st.cache_resource(show_spinner=False)
+def get_strategy_service() -> HistoryAwareStrategyService:
+    """Load the local context-aware Hybrid RAG service once."""
 
+    return HistoryAwareStrategyService()
+
+
+def initialise_state() -> None:
     defaults: dict[str, Any] = {
-        "analysed_note": "",
-        "record": None,
-        "strategies": [],
-        "parent_response": "",
-        "retrieval_error": "",
-        "save_status": "",
-        "record_saved": False,
+        "record_session": None,
+        "record_response": (
+            "Tell me what happened in your own words. "
+            "I will turn it into a journal draft and ask only "
+            "for details that are still needed."
+        ),
+        "strategy_response": (
+            "Ask what support strategy may be relevant. "
+            "I will search the approved local Hey Joey strategy library."
+        ),
+        "last_mode": "Record what happened",
     }
 
     for key, value in defaults.items():
@@ -67,391 +171,460 @@ def initialise_session_state() -> None:
             st.session_state[key] = value
 
 
-def reset_analysis() -> None:
-    """
-    Remove the current analysis while leaving the note available
-    for the parent or carer to rewrite.
-    """
-
-    st.session_state.analysed_note = ""
-    st.session_state.record = None
-    st.session_state.strategies = []
-    st.session_state.parent_response = ""
-    st.session_state.retrieval_error = ""
-    st.session_state.save_status = ""
-    st.session_state.record_saved = False
-
-
-def clear_everything() -> None:
-    """Clear the note and all generated results."""
-
-    reset_analysis()
-    st.session_state.note_input = ""
-
-
-def display_value(value: Any) -> str:
-    """Convert schema enums and ordinary values into readable text."""
-
-    if isinstance(value, Enum):
-        return str(value.value)
-
-    if value is None or value == "":
-        return "Not detected"
-
-    return str(value)
-
-
-def display_list(items: list[str]) -> str:
-    """Format a record list for the interface."""
-
-    if not items:
-        return "None detected"
-
-    return ", ".join(items)
-
-
-def analyse_note(note: str) -> None:
-    """Run the complete Joey workflow without saving anything."""
-
-    clean_note = " ".join(note.split()).strip()
-
-    if not clean_note:
-        st.session_state.retrieval_error = (
-            "Please enter a parent or carer observation."
-        )
-        return
-
-    record = extract_structured_record(clean_note)
-
-    strategies: list[JoeyStrategyEvidence] = []
-    retrieval_error = ""
-
-    if not should_limit_strategy_suggestions(record):
-        try:
-            strategy_service = load_strategy_service()
-
-            strategies = strategy_service.retrieve_for_record(
-                record,
-                original_note=clean_note,
-                top_k=3,
-            )
-
-        except Exception as error:
-            retrieval_error = (
-                "Joey created the structured record, but the local "
-                f"strategy system could not be loaded: {error}"
-            )
-
-    parent_response = build_parent_response(
-        original_note=clean_note,
-        record=record,
-        retrieved_strategies=strategies,
-    )
-
-    st.session_state.analysed_note = clean_note
-    st.session_state.record = record
-    st.session_state.strategies = strategies
-    st.session_state.parent_response = parent_response
-    st.session_state.retrieval_error = retrieval_error
-    st.session_state.save_status = ""
-    st.session_state.record_saved = False
-
-
-def display_structured_record(
-    record: StructuredJoeyRecord,
+def save_confirmed_session(
+    session: JoeyConversationSession,
 ) -> None:
-    """Display the extracted Joey record in parent-friendly sections."""
+    """Write a confirmed record locally in the background."""
 
-    st.subheader("Structured observation")
+    if session.status != ConversationStatus.confirmed:
+        raise ValueError("The draft has not been confirmed.")
 
-    left_column, right_column = st.columns(2)
+    LOCAL_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    with left_column:
-        st.markdown("**Summary**")
-        st.write(record.summary)
+    saved_item = {
+        "saved_at": datetime.now().isoformat(
+            timespec="seconds"
+        ),
+        "source": "minimal_streamlit_interface",
+        "original_note": session.original_note,
+        "conversation_history": [
+            {
+                "question": turn.question,
+                "answer": turn.answer,
+                "field_name": turn.field_name,
+            }
+            for turn in session.history
+        ],
+        "structured_record": (
+            session.current_record.model_dump(mode="json")
+        ),
+    }
 
-        st.markdown("**Mood and anxiety**")
-        st.write(
-            f"Mood zone: {display_value(record.mood_zone)}"
-        )
-        st.write(
-            f"Anxiety level: "
-            f"{display_value(record.anxiety_level)}"
-        )
-
-        st.markdown("**Behaviours and signals**")
-        st.write(
-            display_list(
-                record.behaviours + record.mood_labels
+    with CONFIRMED_RECORDS_FILE.open(
+        "a",
+        encoding="utf-8",
+    ) as file:
+        file.write(
+            json.dumps(
+                saved_item,
+                ensure_ascii=False,
             )
+            + "\n"
         )
 
-    with right_column:
-        st.markdown("**Possible triggers**")
-        st.write(
-            display_list(record.possible_triggers)
-        )
 
-        st.markdown("**Activity**")
-        st.write(display_value(record.activity))
-
-        st.markdown("**Environment**")
-        st.write(display_value(record.environment))
-
-        st.markdown("**Quick Track suggestions**")
-        st.write(
-            display_list(
-                record.quick_track_suggestions
-            )
-        )
-
-    st.markdown("**Joey's follow-up question**")
-
-    st.info(
-        record.follow_up_question
-        or "Would you like to add more detail?"
-    )
-
-    with st.expander("View the complete structured record"):
-        st.json(record.model_dump(mode="json"))
+def clean_text(value: str | None) -> str:
+    return " ".join((value or "").split()).strip()
 
 
-def strategy_heading(
-    strategy: JoeyStrategyEvidence,
-) -> str:
-    """Build a strategy heading for the evidence panel."""
+def readable_list(values: list[str]) -> str:
+    clean_values = [clean_text(value) for value in values]
+    clean_values = [value for value in clean_values if value]
 
-    if strategy.strategy_code and strategy.strategy_title:
-        return (
-            f"{strategy.rank}. "
-            f"{strategy.strategy_code}: "
-            f"{strategy.strategy_title}"
-        )
+    if not clean_values:
+        return ""
+
+    if len(clean_values) == 1:
+        return clean_values[0]
+
+    if len(clean_values) == 2:
+        return f"{clean_values[0]} and {clean_values[1]}"
 
     return (
-        f"{strategy.rank}. "
-        f"{strategy.strategy_title or 'Relevant support strategy'}"
+        ", ".join(clean_values[:-1])
+        + f", and {clean_values[-1]}"
     )
 
 
-def display_strategy_evidence(
-    strategies: list[JoeyStrategyEvidence],
-) -> None:
-    """Display retrieved passages and their source provenance."""
+def build_record_summary(
+    session: JoeyConversationSession,
+) -> str:
+    """Create a concise parent-facing summary of the hidden draft."""
 
-    st.subheader("Relevant source-backed strategies")
+    record = session.current_record
+    details: list[str] = []
 
-    if not strategies:
-        st.info(
-            "No ordinary strategy evidence was retrieved "
-            "for this observation."
+    if record.anxiety_level.value != "Unknown":
+        details.append(
+            f"anxiety was recorded as {record.anxiety_level.value.lower()}"
         )
-        return
 
-    for strategy in strategies:
-        with st.expander(
-            strategy_heading(strategy)
+    if record.mood_zone.value != "Unknown":
+        details.append(
+            f"the mood zone was recorded as {record.mood_zone.value}"
+        )
+
+    if record.environment:
+        details.append(
+            f"the setting was {record.environment}"
+        )
+
+    if record.possible_triggers:
+        details.append(
+            "possible triggers included "
+            + readable_list(record.possible_triggers)
+        )
+
+    if details:
+        understood = (
+            "I have updated the same journal draft: "
+            + "; ".join(details)
+            + "."
+        )
+    else:
+        understood = (
+            "I have started a journal draft from what you described."
+        )
+
+    return understood
+
+
+def build_ready_for_review_response(
+    session: JoeyConversationSession,
+) -> str:
+    record = session.current_record
+    parts = [
+        build_record_summary(session),
+    ]
+
+    if record.summary:
+        parts.append(
+            f"My summary is: {record.summary}"
+        )
+
+    if record.risk_flags:
+        parts.append(
+            "I also noticed information that may need safety-aware review."
+        )
+
+    parts.append(
+        "Reply <strong>yes</strong> to confirm and save it, "
+        "or <strong>no</strong> to discard it."
+    )
+
+    return " ".join(parts)
+
+
+def handle_record_input(user_text: str) -> str:
+    """Run the entire multi-turn record workflow behind one text box."""
+
+    command = clean_text(user_text)
+    session: JoeyConversationSession | None = (
+        st.session_state.record_session
+    )
+
+    if command.lower() in {"start over", "restart", "reset"}:
+        st.session_state.record_session = None
+        return (
+            "Started over. Tell me what happened in your own words."
+        )
+
+    if session is None:
+        session = JoeyConversationSession.start(command)
+        st.session_state.record_session = session
+
+        response = build_record_summary(session)
+
+        if should_limit_strategy_suggestions(
+            session.current_record
         ):
-            st.markdown(
-                f"**Collection:** "
-                f"{strategy.collection_title}"
+            response += (
+                " I noticed a possible safety concern. "
+                "Please make sure the child is safe and seek appropriate "
+                "urgent or professional support when needed."
             )
 
-            if strategy.theme:
-                st.markdown(
-                    f"**Theme:** {strategy.theme}"
-                )
-
-            st.markdown(
-                f"**Source document:** "
-                f"`{strategy.source_file}`"
+        if (
+            session.status
+            == ConversationStatus.collecting_information
+        ):
+            response += (
+                " " + str(session.follow_up_question)
+            )
+        else:
+            response += (
+                " " + build_ready_for_review_response(session)
             )
 
-            st.markdown("**Relevant passage**")
-            st.write(strategy.passage)
+        return response
 
-            st.caption(
-                "Technical similarity score: "
-                f"{strategy.score:.4f}. "
-                "This is a ranking signal, not a probability "
-                "or clinical confidence value."
+    if session.status == ConversationStatus.collecting_information:
+        session.submit_answer(command)
+        st.session_state.record_session = session
+
+        if (
+            session.status
+            == ConversationStatus.collecting_information
+        ):
+            return (
+                build_record_summary(session)
+                + " "
+                + str(session.follow_up_question)
             )
 
+        return build_ready_for_review_response(session)
 
-def display_confirmation_controls(
-    note: str,
-    record: StructuredJoeyRecord,
-) -> None:
-    """Display save, reject and rewrite controls."""
+    if session.status == ConversationStatus.ready_for_review:
+        answer = command.lower()
 
-    st.subheader("Review and confirmation")
+        if answer in {"yes", "y", "confirm", "save"}:
+            session.confirm()
+            save_confirmed_session(session)
+            st.session_state.record_session = None
+            return (
+                "The journal entry has been confirmed and recorded. "
+                "Its structured fields are now available in the background "
+                "for the Journal Entries and Insights integration layer. "
+                "You can describe another event whenever you are ready."
+            )
 
-    st.write(
-        "Joey has not saved this observation automatically. "
-        "Review the information before deciding what to do."
+        if answer in {"no", "n", "discard", "reject"}:
+            session.reject()
+            st.session_state.record_session = None
+            return (
+                "The draft was discarded and nothing was saved. "
+                "You can describe another event whenever you are ready."
+            )
+
+        return (
+            "Please reply <strong>yes</strong> to confirm and save the "
+            "draft, or <strong>no</strong> to discard it."
+        )
+
+    st.session_state.record_session = None
+    return "Tell me what happened and I will start a new journal draft."
+
+
+def clean_strategy_title(title: str | None) -> str:
+    title = clean_text(title)
+
+    return re.sub(
+        r"\s*\(Ages?[^)]*\)\s*$",
+        "",
+        title,
+        flags=re.IGNORECASE,
+    ).strip()
+
+
+def build_strategy_response(question: str) -> str:
+    """Return only a readable answer and strategy options."""
+
+    screening_record = extract_structured_record(question)
+
+    if should_limit_strategy_suggestions(screening_record):
+        return (
+            "What you described may involve an immediate safety or injury "
+            "concern. I will not provide ordinary strategy suggestions for "
+            "that situation. Please make sure the child is safe and seek "
+            "appropriate urgent or professional support."
+        )
+
+    service = get_strategy_service()
+    result = service.retrieve(
+        question=question,
+        top_k=3,
+        candidate_pool=6,
     )
 
-    save_column, reject_column, rewrite_column = st.columns(3)
-
-    with save_column:
-        save_clicked = st.button(
-            "Save confirmed record",
-            type="primary",
-            use_container_width=True,
-            disabled=st.session_state.record_saved,
+    if not result.evidence:
+        return (
+            "I could not find a sufficiently relevant strategy in the "
+            "current approved local collection."
         )
 
-        if save_clicked:
-            save_confirmed_record(
-                note,
-                record,
-            )
+    titles = [
+        clean_strategy_title(item.strategy_title)
+        for item in result.evidence
+    ]
 
-            st.session_state.record_saved = True
-            st.session_state.save_status = (
-                f"Saved locally to {CONFIRMED_RECORDS_FILE}"
-            )
+    response_parts = [
+        (
+            "Based on what you asked and the relevant confirmed "
+            "background available to this prototype, the strongest "
+            "source-backed options focus on "
+            f"{readable_list(titles)}."
+        )
+    ]
 
-    with reject_column:
-        reject_clicked = st.button(
-            "Do not save",
-            use_container_width=True,
+    if any(
+        "already recorded as active"
+        in item.history_note.lower()
+        for item in result.evidence
+    ):
+        response_parts.append(
+            "One of these options is already recorded as active, "
+            "so reviewing how it is currently being used may be useful."
         )
 
-        if reject_clicked:
-            st.session_state.save_status = (
-                "The record was not saved."
-            )
-
-    with rewrite_column:
-        st.button(
-            "Rewrite note",
-            use_container_width=True,
-            on_click=reset_analysis,
+    if any(
+        (
+            "helped somewhat" in item.history_note.lower()
+            or "worked well" in item.history_note.lower()
+        )
+        for item in result.evidence
+    ):
+        response_parts.append(
+            "Previous confirmed feedback also indicates that at least "
+            "one related approach was reported to help."
         )
 
-    if st.session_state.save_status:
-        if st.session_state.record_saved:
-            st.success(st.session_state.save_status)
-        else:
-            st.info(st.session_state.save_status)
+    strategy_html: list[str] = []
+
+    for index, item in enumerate(
+        result.evidence,
+        start=1,
+    ):
+        title = (
+            f"{item.strategy_code}: "
+            f"{item.strategy_title}"
+            if item.strategy_code
+            else (
+                item.strategy_title
+                or "Relevant support strategy"
+            )
+        )
+
+        passage = clean_text(item.passage)
+        passage_preview = (
+            passage
+            if len(passage) <= 360
+            else (
+                passage[:360].rsplit(" ", maxsplit=1)[0]
+                + "..."
+            )
+        )
+
+        history_sentence = ""
+        if "new strategy option" not in item.history_note.lower():
+            history_sentence = (
+                f"<br><em>{html.escape(item.history_note)}</em>"
+            )
+
+        strategy_html.append(
+            '<div class="joey-strategy">'
+            f"<strong>{index}. {html.escape(title)}</strong><br>"
+            f"{html.escape(passage_preview)}"
+            f"{history_sentence}"
+            '<div class="joey-source">'
+            f"Source: {html.escape(item.collection_title)}"
+            "</div>"
+            "</div>"
+        )
+
+    response_parts.append(
+        "These are support options for parent or carer review, "
+        "not a diagnosis or medical recommendation."
+    )
+
+    return (
+        "<p>"
+        + " ".join(
+            html.escape(part)
+            for part in response_parts
+        )
+        + "</p>"
+        + "".join(strategy_html)
+    )
+
+
+def render_response(response: str) -> None:
+    st.markdown(
+        f'<div class="joey-response">{response}</div>',
+        unsafe_allow_html=True,
+    )
 
 
 def main() -> None:
-    """Render the Hey Joey Streamlit interface."""
+    initialise_state()
 
-    initialise_session_state()
-
-    st.title("Hey Joey")
-    st.caption(
-        "Local conversational data input and "
-        "source-backed strategy retrieval"
+    st.markdown(
+        """
+        <div class="joey-heading">
+            <h1>🌿 Hey Joey</h1>
+            <p>Record an observation or ask for a support strategy.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
-    st.warning(
-        "Joey is a support tool. It does not diagnose, provide "
-        "medical treatment or replace professional advice."
+    mode = st.radio(
+        "Choose a workflow",
+        [
+            "Record what happened",
+            "Ask for a strategy",
+        ],
+        horizontal=True,
+        label_visibility="collapsed",
     )
 
-    with st.sidebar:
-        st.header("System status")
+    if mode != st.session_state.last_mode:
+        st.session_state.last_mode = mode
 
-        st.write("Local processing")
-        st.write("10 approved strategy documents")
-        st.write("359 searchable passages")
-        st.write("No paid language-model API")
-
-        st.divider()
-
-        st.button(
-            "Clear current session",
-            on_click=clear_everything,
-            use_container_width=True,
-        )
-
-    st.subheader("Parent or carer observation")
-
-    note = st.text_area(
-        "Describe what happened",
-        key="note_input",
-        height=170,
-        placeholder=(
-            "Example: My child covered their ears and wanted "
-            "to leave when the classroom became noisy."
-        ),
-        help=(
-            "Joey will structure the observation and retrieve "
-            "relevant local strategy evidence."
-        ),
+    current_response = (
+        st.session_state.record_response
+        if mode == "Record what happened"
+        else st.session_state.strategy_response
     )
 
-    analyse_clicked = st.button(
-        "Analyse observation",
-        type="primary",
-        use_container_width=True,
-    )
+    render_response(current_response)
 
-    if analyse_clicked:
-        with st.spinner(
-            "Analysing the observation and searching "
-            "the local strategy library..."
-        ):
-            analyse_note(note)
-
-    if (
-        st.session_state.retrieval_error
-        and st.session_state.record is None
+    with st.form(
+        f"minimal_input_form_{mode}",
+        clear_on_submit=True,
     ):
-        st.error(st.session_state.retrieval_error)
-
-    record = st.session_state.record
-
-    if record is None:
-        return
-
-    st.divider()
-
-    safety_notice = build_safety_notice(record)
-
-    if safety_notice:
-        st.error(safety_notice)
-
-    display_structured_record(record)
-
-    st.divider()
-
-    if should_limit_strategy_suggestions(record):
-        st.warning(
-            "Ordinary strategy retrieval was limited because "
-            "this observation may involve a safety concern."
-        )
-    else:
-        if st.session_state.retrieval_error:
-            st.warning(
-                st.session_state.retrieval_error
-            )
-
-        display_strategy_evidence(
-            st.session_state.strategies
+        user_text = st.text_area(
+            "Message",
+            placeholder=(
+                "Describe what happened..."
+                if mode == "Record what happened"
+                else "Ask which strategy may help..."
+            ),
+            label_visibility="collapsed",
         )
 
-    st.divider()
+        submitted = st.form_submit_button(
+            "Send",
+            type="primary",
+            width="stretch",
+        )
 
-    st.subheader("Joey response")
+    if submitted:
+        clean_input = clean_text(
+            str(user_text or "")
+        )
 
-    st.text_area(
-        "Generated parent-facing response",
-        value=st.session_state.parent_response,
-        height=430,
-        disabled=True,
-    )
+        if not clean_input:
+            st.warning("Please type a message.")
+            return
 
-    st.divider()
+        try:
+            if mode == "Record what happened":
+                st.session_state.record_response = (
+                    handle_record_input(clean_input)
+                )
+            else:
+                with st.spinner(
+                    "Searching the approved local strategy library..."
+                ):
+                    st.session_state.strategy_response = (
+                        build_strategy_response(clean_input)
+                    )
 
-    display_confirmation_controls(
-        st.session_state.analysed_note,
-        record,
-    )
+            st.rerun()
+
+        except (ValueError, RuntimeError) as error:
+            if mode == "Record what happened":
+                st.session_state.record_response = (
+                    f"I could not use that answer yet: "
+                    f"{html.escape(str(error))}"
+                )
+            else:
+                st.session_state.strategy_response = (
+                    "I could not complete the strategy search: "
+                    f"{html.escape(str(error))}"
+                )
+
+            st.rerun()
 
 
 if __name__ == "__main__":
