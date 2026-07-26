@@ -1,340 +1,562 @@
-# Hey Joey — Local Conversational Support and Semantic Retrieval System
+# Hey Joey: Context-Aware Hybrid RAG Assistant
 
-Hey Joey is a local-first conversational support prototype designed to
-help parents and carers record observations about neurodivergent
-children.
+A local-first, safety-aware conversational support system designed for future integration with the Hey Joey application.
 
-The system converts natural-language notes into structured records,
-checks for safety-sensitive content and retrieves relevant,
-source-backed strategies from an approved local Hey Joey document
-corpus.
+The prototype helps parents and carers:
 
-No OpenAI, Claude or other paid language-model API is required.
+1. turn natural-language observations into structured journal data;
+2. answer follow-up questions when important information is missing;
+3. review and confirm records before saving;
+4. retrieve relevant, source-backed strategies from an approved local strategy corpus;
+5. demonstrate privacy-safe personalisation using synthetic profile, journal and strategy-history data.
 
-## Project Motivation
+The project was developed as an MSc artificial intelligence project. It does not require paid OpenAI, Anthropic or other commercial AI APIs.
 
-Parents and carers often record meaningful observations in natural
-language:
+---
 
-> My child covered their ears and wanted to leave when the classroom
-> became noisy.
+## Project purpose
 
-Important information may be present in that note, including:
+Hey Joey already includes structured areas such as Journal Entries, Weekly Insights, Quick Track, Active Strategies, Strategy Feedback, Medicine, Notes and supported-person profiles.
 
-- behaviour or signal;
-- possible trigger;
-- environment;
-- mood;
-- anxiety;
-- support category;
-- missing context;
-- safety concerns.
+The central problem is that parents and carers may find it time-consuming to enter the same information manually across several screens. This project introduces Joey as an intelligent layer that supports two connected workflows.
 
-Hey Joey turns that free-text observation into a reviewable structured
-record and retrieves relevant support passages from the local strategy
-library.
+### 1. Conversational data input
 
-## Core Workflow
+A parent describes what happened in their own words:
 
 ```text
 Parent observation
-→ structured extraction
-→ safety check
-→ local semantic retrieval
-→ source-backed response
-→ parent confirmation
-→ optional local save
+    ↓
+Deterministic structured extraction
+    ↓
+Missing-information detection
+    ↓
+Follow-up question
+    ↓
+Same draft record updated
+    ↓
+Parent review and confirmation
 ```
 
-## Key Features
+Example:
 
-- Local rule-based structured extraction
-- Pydantic-validated Joey records
-- Safety and self-injury detection
-- Medication-sensitive response rules
-- Parent confirmation before saving
-- DOCX and TXT strategy-document processing
-- Strategy-aware chunking with source provenance
-- Local Sentence Transformers embeddings
-- Semantic search across real Hey Joey strategy documents
-- Source-backed parent responses
-- Rule-based retrieval baseline
-- Formal functional and retrieval evaluations
-- No paid AI API dependency
+> The classroom was loud and she covered her ears.
 
-## System Architecture
+Joey can prepare a draft containing anxiety level, mood zone, mood labels, behaviour, activity, environment, possible triggers, relevant support categories, safety flags and missing information.
+
+Joey can then ask a focused follow-up question, such as:
+
+> Was the sound too loud, unexpected, or difficult to escape from?
+
+The answer updates the same draft rather than creating a new entry.
+
+### 2. Context-aware strategy support
+
+A parent can ask:
+
+> What could help my child cope with loud classroom noise?
+
+The system then performs:
+
+```text
+Current question
+    +
+Relevant confirmed context
+    ↓
+Privacy filtering
+    ↓
+BM25 lexical retrieval
+    +
+Semantic retrieval
+    ↓
+Reciprocal Rank Fusion
+    ↓
+History-aware re-ranking
+    ↓
+Source-backed strategy evidence
+```
+
+The result includes the strategy code, title, collection, source file, evidence passage and cautious history wording such as:
+
+- already active;
+- helped somewhat;
+- previously reported as unsuccessful;
+- appears to be a new option.
+
+---
+
+## Key features
+
+### Structured journal extraction
+
+The local extractor produces a `StructuredJoeyRecord` with:
+
+- entry type;
+- summary;
+- date;
+- time of day;
+- anxiety level;
+- mood zone;
+- mood labels;
+- behaviours;
+- activity;
+- environment;
+- possible triggers;
+- Quick Track suggestions;
+- strategy categories;
+- risk flags;
+- missing information;
+- follow-up question;
+- confidence;
+- parent-confirmation requirement.
+
+### Multi-turn follow-up workflow
+
+The conversation manager keeps one draft throughout the interaction.
+
+Supported states:
+
+```text
+collecting_information
+ready_for_review
+confirmed
+rejected
+```
+
+Nothing is saved automatically.
+
+### Genuine Hybrid RAG
+
+The final retrieval pipeline combines:
+
+- local BM25 lexical retrieval;
+- local semantic retrieval using `sentence-transformers/all-MiniLM-L6-v2`;
+- Reciprocal Rank Fusion;
+- strategy-level deduplication;
+- metadata and source preservation.
+
+The original rule-based retriever remains in the repository as a baseline.
+
+### Privacy-safe context selection
+
+Synthetic context records demonstrate how future application data could be selected without exposing unnecessary personal information.
+
+The retrieval context deliberately excludes fields such as:
+
+- names;
+- email addresses;
+- dates of birth;
+- addresses;
+- medication names;
+- dosage details.
+
+Only relevant confirmed context is selected.
+
+### History-aware personalisation
+
+Synthetic active-strategy and feedback records demonstrate how Joey could distinguish between:
+
+- an active strategy;
+- a previously helpful strategy;
+- a previously unsuccessful strategy;
+- an unseen strategy.
+
+History applies only a small, transparent score adjustment. Retrieval relevance remains the main ranking signal.
+
+### Safety-aware handling
+
+The system is designed to avoid:
+
+- diagnosis;
+- treatment claims;
+- medication recommendations;
+- dosage advice;
+- unsupported causal conclusions;
+- automatic saving;
+- ordinary strategy suggestions during urgent safety situations.
+
+---
+
+## System architecture
 
 ```mermaid
 flowchart TD
-    A[Parent or carer note] --> B[Rule-based extractor]
-    B --> C[StructuredJoeyRecord]
-    C --> D{Safety concern?}
+    A[Parent or carer input] --> B{Intent}
 
-    D -->|Yes| E[Safety-first response]
-    E --> F[Ordinary strategy retrieval blocked]
+    B -->|Record what happened| C[Deterministic extractor]
+    C --> D[Structured Joey draft]
+    D --> E[Missing-information detection]
+    E --> F[Follow-up question]
+    F --> G[Update same draft]
+    G --> H[Parent review]
+    H --> I{Confirm?}
+    I -->|Yes| J[Local confirmed record]
+    I -->|No| K[Reject or revise]
 
-    D -->|No| G[Structured semantic query]
-    G --> H[Local MiniLM embedding model]
-    H --> I[Local embedding index]
-    I --> J[Ranked strategy evidence]
-    J --> K[Source-backed parent response]
+    B -->|Ask for a strategy| L[Privacy-safe context builder]
+    L --> M[Question plus relevant context]
+    M --> N[BM25 retriever]
+    M --> O[Semantic retriever]
+    N --> P[Reciprocal Rank Fusion]
+    O --> P
+    P --> Q[History-aware re-ranking]
+    Q --> R[Source-backed evidence]
 
-    C --> K
-    K --> L[Parent review]
-    L --> M{Save?}
-    M -->|Yes| N[Local JSONL storage]
-    M -->|No| O[Discard or rewrite]
+    D --> S[Safety guard]
+    M --> S
+    S -->|Safety concern| T[Limit ordinary strategy suggestions]
 ```
 
-Detailed architecture:
+---
 
-`docs/final_system_architecture.md`
+## Strategy corpus
 
-## Strategy Corpus
+The current local corpus contains:
 
-The final local corpus contains:
+- 10 approved strategy documents;
+- 359 searchable chunks;
+- 257 strategy chunks;
+- 102 context chunks;
+- 384-dimensional local embeddings;
+- source, collection, theme and strategy metadata.
 
-- 10 approved strategy documents
-- 9 DOCX files
-- 1 TXT file
-- 359 searchable chunks
-- 257 strategy chunks
-- 102 contextual chunks
+The corpus covers areas including sensory processing, behavioural challenges, emotional regulation, communication, social anxiety, sleep, eating and mealtimes, hygiene, toilet training, crisis management and friendship support.
 
-The documents cover areas including:
+The private strategy documents, extracted text, chunks and indexes are excluded from Git.
 
-- friendship
-- toilet training
-- sensory processing
-- behavioural and emotional regulation
-- crisis management
-- hygiene
-- sleep and bedtime
-- eating and mealtime
-- communication
-- social anxiety
+---
 
-The proprietary source documents and generated index are not included
-in Git.
+## Evaluation
 
-## Local Embedding Model
+### Retrieval comparison
 
-The semantic retriever uses:
+The original rule-based baseline and semantic retriever were evaluated on the same 10 synthetic strategy queries.
+
+| Retriever | Hit@1 | Hit@3 | MRR | Average latency |
+|---|---:|---:|---:|---:|
+| Rule-based baseline | 3/10 | 5/10 | 0.4000 | 0.000493 s |
+| Semantic retrieval | 8/10 | 9/10 | 0.8333 | 0.029215 s |
+
+These results apply only to the designed synthetic evaluation set. They do not represent universal, clinical or production performance.
+
+### Integrated workflow
+
+The integrated Joey MVP passed:
+
+- 7/7 predefined synthetic end-to-end cases;
+- 63/63 functional checks.
+
+Additional component tests pass:
+
+- 3/3 multi-turn conversation tests;
+- 4/4 synthetic context-builder tests;
+- 4/4 history-aware personalisation tests.
+
+### Hybrid evaluation status
+
+The BM25 plus semantic hybrid pipeline is implemented and functioning.
+
+A final three-way comparison still needs to be completed using the same evaluation set:
 
 ```text
-sentence-transformers/all-MiniLM-L6-v2
+Rule-based baseline
+vs
+Semantic-only retrieval
+vs
+Hybrid retrieval
 ```
 
-The model generates 384-dimensional unit-normalised embeddings.
+The final comparison should report Hit@1, Hit@3, Mean Reciprocal Rank and average latency.
 
-The embedding index is built and searched locally.
+---
 
-## Evaluation Results
-
-### Integrated Functional Evaluation
-
-The final integrated MVP passed:
+## Project structure
 
 ```text
-7/7 predefined synthetic cases
-63/63 functional checks
+Chatbot_Joey/
+├── app/
+│   ├── schemas.py
+│   ├── extractor.py
+│   ├── conversation_manager.py
+│   ├── joey_cli.py
+│   ├── joey_conversation_demo.py
+│   ├── context_builder.py
+│   ├── context_builder_demo.py
+│   ├── history_aware_strategy_demo.py
+│   ├── response_builder.py
+│   └── streamlit_app.py
+│
+├── rag/
+│   ├── document_loader.py
+│   ├── strategy_chunker.py
+│   ├── build_embedding_index.py
+│   ├── strategy_retriever.py
+│   ├── semantic_retriever.py
+│   ├── bm25_retriever.py
+│   ├── hybrid_retriever.py
+│   ├── joey_strategy_service.py
+│   ├── context_aware_strategy_service.py
+│   ├── strategy_history_ranker.py
+│   └── history_aware_strategy_service.py
+│
+├── safety/
+│   └── safety_guard.py
+│
+├── evaluation/
+│   ├── run_end_to_end_evaluation.py
+│   ├── run_retrieval_comparison.py
+│   ├── run_semantic_end_to_end_evaluation.py
+│   ├── test_multi_turn_conversation.py
+│   ├── test_context_builder.py
+│   └── test_history_aware_strategy.py
+│
+├── data/
+│   ├── synthetic/
+│   ├── raw/
+│   ├── processed/
+│   ├── indexes/
+│   └── local/
+│
+├── docs/
+├── requirements.txt
+└── README.md
 ```
 
-The evaluation covered:
-
-- structured record creation;
-- confirmation requirements;
-- semantic strategy retrieval;
-- source provenance;
-- response disclaimers;
-- safety-sensitive behaviour;
-- self-injury handling.
-
-This means the MVP passed its designed functional test suite. It does
-not mean the system is universally or clinically 100% accurate.
-
-### Rule-Based versus Semantic Retrieval
-
-| Metric | Rule-based baseline | Semantic retriever |
-|---|---:|---:|
-| Hit@1 | 3/10 | 8/10 |
-| Hit@3 | 5/10 | 9/10 |
-| Mean Reciprocal Rank | 0.4000 | 0.8333 |
-| Average latency | 0.000493 s | 0.029215 s |
-
-On the ten-query comparison set, semantic retrieval substantially
-improved relevant-result ranking and coverage.
-
-The rule-based baseline remained faster, while the semantic retriever
-provided stronger retrieval quality with an average post-warm-up search
-time of approximately 29 milliseconds.
-
-## Repository Structure
-
-```text
-app/
-├── extractor.py
-├── joey_cli.py
-├── response_builder.py
-└── schemas.py
-
-data/
-├── indexes/                    # Local generated index, ignored by Git
-├── local/                      # Confirmed records, ignored by Git
-├── processed/                  # Generated text and chunks
-└── raw/
-    └── strategies/             # Approved source documents, ignored by Git
-
-docs/
-├── final_system_architecture.md
-├── local_embedding_index.md
-├── project_limitations.md
-├── semantic_strategy_retrieval.md
-└── strategy_document_chunking.md
-
-evaluation/
-├── run_semantic_end_to_end_evaluation.py
-├── run_retrieval_comparison.py
-├── semantic_end_to_end_test_cases.json
-└── retrieval_comparison_cases.json
-
-rag/
-├── build_embedding_index.py
-├── document_loader.py
-├── joey_strategy_service.py
-├── semantic_retriever.py
-├── strategy_chunker.py
-└── strategy_retriever.py
-
-safety/
-└── safety_guard.py
-```
+---
 
 ## Installation
 
-Create or activate a Python environment, then run:
+### 1. Clone the repository
 
 ```powershell
-python -m pip install -r requirements.txt
+git clone <repository-url>
+cd Chatbot_Joey
 ```
 
-The first semantic-model run downloads the embedding model.
+### 2. Create and activate a virtual environment
 
-## Build the Local Strategy Pipeline
-
-Place approved source documents in:
-
-```text
-data/raw/strategies/
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
 ```
 
-Process the documents:
+### 3. Install dependencies
+
+```powershell
+pip install -r requirements.txt
+```
+
+Main dependencies include Pydantic, pandas, openpyxl, python-docx, pypdf, sentence-transformers, NumPy and Streamlit.
+
+---
+
+## Preparing the local strategy index
+
+Place the approved private strategy documents in the ignored local strategy folder, then run:
 
 ```powershell
 python -m rag.document_loader
-```
-
-Create strategy chunks:
-
-```powershell
 python -m rag.strategy_chunker
-```
-
-Build the local semantic index:
-
-```powershell
 python -m rag.build_embedding_index
 ```
 
-## Run Joey
+The generated index should not be committed.
+
+---
+
+## Running the system
+
+### Joey command-line workflow
 
 ```powershell
 python -m app.joey_cli
 ```
 
-Joey will:
-
-1. ask for a parent or carer observation;
-2. generate a structured record;
-3. check for safety-sensitive content;
-4. retrieve local strategy evidence where appropriate;
-5. produce a cautious parent-facing response;
-6. ask for confirmation before saving.
-
-## Run the Evaluations
-
-Integrated evaluation:
+### Multi-turn data-input demonstration
 
 ```powershell
-python -m evaluation.run_semantic_end_to_end_evaluation
+python -m app.joey_conversation_demo
 ```
 
-Retrieval comparison:
+Suggested input:
+
+```text
+The classroom was loud and she covered her ears.
+```
+
+### BM25 retrieval demonstration
 
 ```powershell
+python -m rag.bm25_retriever
+```
+
+### Hybrid retrieval demonstration
+
+```powershell
+python -m rag.hybrid_retriever
+```
+
+### Context-aware retrieval demonstration
+
+```powershell
+python -m app.context_builder_demo
+```
+
+### History-aware strategy demonstration
+
+```powershell
+python -m app.history_aware_strategy_demo
+```
+
+Suggested question:
+
+```text
+What could help my child cope with loud classroom noise?
+```
+
+### Streamlit prototype
+
+```powershell
+streamlit run app/streamlit_app.py
+```
+
+The Streamlit interface is currently a technical prototype rather than a recreation of the full production Hey Joey application.
+
+---
+
+## Running tests
+
+```powershell
+python -m evaluation.test_multi_turn_conversation
+python -m evaluation.test_context_builder
+python -m evaluation.test_history_aware_strategy
+python -m evaluation.run_semantic_end_to_end_evaluation
 python -m evaluation.run_retrieval_comparison
 ```
 
-## Safety Principles
+---
 
-Hey Joey:
+## Data and privacy
 
-- does not diagnose;
-- does not provide medical treatment;
-- does not recommend medication changes;
-- does not treat similarity scores as clinical confidence;
-- prioritises safety signposting for risk-sensitive entries;
-- blocks ordinary strategy retrieval for recognised safety concerns;
-- requires parent or carer confirmation before saving.
-
-## Privacy
-
-The following remain local and are excluded from Git:
+Ignored private folders include:
 
 ```text
+data/local/
 data/raw/strategies/
 data/processed/strategies_text/
 data/processed/strategy_chunks/
 data/indexes/
-data/local/
 ```
 
-This prevents proprietary strategy content, embeddings and confirmed
-parent observations from being uploaded to the repository.
+Files under `data/synthetic/` contain invented demonstration data only.
 
-## Limitations
+Real parent, child or carer data must not be committed.
 
-The current system is a local research prototype.
+---
 
-It has not been clinically validated, deployed into production or tested
-at scale with real families.
+## Important limitations
 
-Further limitations are documented in:
+- The prototype is not connected to the live Hey Joey Bubble application or production database.
+- Live profiles, Journal Entries, Quick Track records and strategy feedback are not accessed.
+- Synthetic records demonstrate the proposed integration contract.
+- The system does not provide clinical advice, diagnosis or medication guidance.
+- The current response layer is mainly deterministic and retrieval-based rather than a free-form generative LLM.
+- The full dashboard, onboarding, Notes, Medicine, Quick Track and Insights interfaces have not been recreated.
+- Retrieval evaluation uses a small synthetic test set.
+- History-aware adjustments are prototype rules and require stakeholder validation.
+- Context selection currently relies on rule-based topic matching.
+- The system has not been evaluated with real families or deployed in production.
 
-`docs/project_limitations.md`
+---
 
-## Future Work
+## Future integration
 
-Potential future extensions include:
+A future production integration could replace the synthetic adapters with secure application services:
 
-- multi-turn follow-up answers that update individual fields;
-- Bubble or web-application integration;
-- hybrid keyword and semantic retrieval;
-- expert-labelled retrieval evaluation;
-- longitudinal weekly insight generation;
-- encrypted production storage;
-- authentication and access controls;
-- audit logging and monitoring;
-- Docker and FastAPI deployment;
-- user testing with appropriate consent and governance.
+```text
+Bubble or application database
+    ↓
+Profile adapter
+Journal adapter
+Quick Track adapter
+Active Strategy adapter
+Strategy Feedback adapter
+    ↓
+Privacy-safe context builder
+    ↓
+Hybrid and history-aware retrieval
+```
 
-## Final Project Status
+Possible future work includes:
 
-The completed project is:
+- final hybrid comparative evaluation;
+- one unified Streamlit demonstration;
+- SQLite persistence;
+- FastAPI service layer;
+- Docker packaging;
+- deployment;
+- stakeholder usability testing;
+- retrieval threshold calibration;
+- audit logging;
+- role-based access control.
 
-> A local-first, safety-aware conversational data-input and semantic
-> retrieval prototype that transforms parent observations into
-> structured records and retrieves source-backed support strategies
-> from an approved local document corpus.
+---
 
-The core MVP is complete.
+## Responsible-use statement
+
+Hey Joey is a decision-support and information-retrieval prototype.
+
+It is not intended to:
+
+- diagnose a condition;
+- replace professional support;
+- recommend medication;
+- change a dosage;
+- determine the cause of a behaviour;
+- provide emergency or crisis care.
+
+Parents and carers remain in control of all records and decisions. Joey-generated structures and retrieved strategies must be reviewed before use.
+
+---
+
+## Current project status
+
+| Area | Status |
+|---|---|
+| Deterministic structured extraction | Complete |
+| Safety and confirmation layer | Complete |
+| Local semantic retrieval | Complete |
+| BM25 lexical retrieval | Complete |
+| Reciprocal Rank Fusion | Complete |
+| Multi-turn follow-up updating | Complete |
+| Synthetic privacy-safe context builder | Complete |
+| Synthetic history-aware personalisation | Complete |
+| Component testing | Complete |
+| Final hybrid comparative evaluation | Pending |
+| Unified polished demonstration | Pending |
+| Live Hey Joey integration | Not available |
+| Production deployment | Future work |
+
+---
+
+## Summary
+
+The project demonstrates a complete local AI subsystem for Hey Joey:
+
+```text
+Conversational structured-data input
++
+Safety and parent confirmation
++
+Privacy-safe context selection
++
+BM25 and semantic retrieval
++
+Reciprocal Rank Fusion
++
+History-aware personalisation
++
+Source-backed strategy evidence
+```
+
+The core AI and retrieval objectives are implemented. The remaining work focuses on final evaluation, documentation and presentation rather than another major AI feature.
