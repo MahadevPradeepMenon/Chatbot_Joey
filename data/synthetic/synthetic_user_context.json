@@ -1,0 +1,152 @@
+{
+  "profile": {
+    "name": "Alex Carter",
+    "email": "parent@example.com",
+    "date_of_birth": "2014-05-12",
+    "address": "27 Example Street",
+    "strengths": [
+      {
+        "summary": "responds well to visual preparation and clear routines",
+        "topics": [
+          "communication",
+          "school"
+        ]
+      },
+      {
+        "summary": "enjoys drawing and uses pictures to communicate preferences",
+        "topics": [
+          "communication"
+        ]
+      }
+    ],
+    "support_needs": [
+      {
+        "summary": "may need support with unexpected transitions at school",
+        "topics": [
+          "school",
+          "behaviour"
+        ]
+      },
+      {
+        "summary": "may become overwhelmed by unexpected or sustained noise",
+        "topics": [
+          "sensory",
+          "school"
+        ]
+      }
+    ],
+    "sensory_preferences": [
+      {
+        "summary": "often seeks a quieter space when background noise increases",
+        "topics": [
+          "sensory",
+          "school"
+        ]
+      }
+    ],
+    "communication_preferences": [
+      {
+        "summary": "benefits from short instructions paired with visual choices",
+        "topics": [
+          "communication",
+          "school"
+        ]
+      }
+    ]
+  },
+  "journal_entries": [
+    {
+      "confirmed": true,
+      "summary": "During a noisy classroom activity, the child covered their ears, appeared highly anxious and wanted to leave. Moving to a quieter room was reported to help them settle.",
+      "topics": [
+        "sensory",
+        "school",
+        "behaviour"
+      ]
+    },
+    {
+      "confirmed": true,
+      "summary": "At a school assembly, sudden amplified sound was followed by restlessness and covering ears. Advance warning was not available.",
+      "topics": [
+        "sensory",
+        "school"
+      ]
+    },
+    {
+      "confirmed": true,
+      "summary": "Bedtime took longer than usual after a short night of sleep, and the child appeared tired the following morning.",
+      "topics": [
+        "sleep"
+      ]
+    },
+    {
+      "confirmed": false,
+      "summary": "Unconfirmed draft mentioning a crowded shopping centre.",
+      "topics": [
+        "sensory"
+      ]
+    }
+  ],
+  "quick_track_entries": [
+    {
+      "confirmed": true,
+      "summary": "Recent Sleep Quality & Duration tracking recorded shorter sleep duration and poor sleep quality.",
+      "topics": [
+        "sleep"
+      ]
+    },
+    {
+      "confirmed": true,
+      "summary": "Recent energy-level tracking recorded lower energy after poor sleep.",
+      "topics": [
+        "sleep"
+      ]
+    }
+  ],
+  "active_strategies": [
+    {
+      "title": "Planned quiet-space routine",
+      "status": "active",
+      "summary": "A quiet-space plan is currently active for school sensory overload.",
+      "topics": [
+        "sensory",
+        "school"
+      ]
+    },
+    {
+      "title": "Visual morning routine",
+      "status": "active",
+      "summary": "A visual morning routine is currently active for school transitions.",
+      "topics": [
+        "school",
+        "communication"
+      ]
+    },
+    {
+      "title": "Old bedtime checklist",
+      "status": "paused",
+      "summary": "A bedtime checklist is currently paused.",
+      "topics": [
+        "sleep"
+      ]
+    }
+  ],
+  "strategy_feedback": [
+    {
+      "strategy_title": "Planned quiet-space routine",
+      "outcome": "worked somewhat",
+      "confirmed": true,
+      "topics": [
+        "sensory",
+        "school"
+      ]
+    }
+  ],
+  "medicine_logs": [
+    {
+      "medication_name": "Synthetic medicine",
+      "dosage": "10 mg",
+      "status": "taken"
+    }
+  ]
+}
