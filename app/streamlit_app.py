@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import html
 import json
 import re
@@ -28,6 +29,16 @@ CONFIRMED_RECORDS_FILE = (
 )
 
 
+def logo_data_uri() -> str:
+    """Return the local logo as an embeddable data URI."""
+
+    encoded = base64.b64encode(
+        LOGO_PATH.read_bytes()
+    ).decode("ascii")
+
+    return f"data:image/png;base64,{encoded}"
+
+
 st.set_page_config(
     page_title="Hey Joey",
     page_icon=str(LOGO_PATH),
@@ -39,17 +50,24 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-        .stApp {
-            background: #ffffff;
+        :root {
+            --joey-green: #126b57;
+            --joey-green-dark: #0b5747;
+            --joey-green-soft: #f4faf6;
+            --joey-text: #17211d;
+            --joey-muted: #68746e;
+            --joey-border: #d9e1db;
+            --joey-input: #f2f5f8;
         }
 
+        .stApp,
         [data-testid="stAppViewContainer"],
         [data-testid="stMain"] {
             background: #ffffff;
         }
 
         .block-container {
-            max-width: 820px;
+            max-width: 900px;
             padding-top: 2.2rem;
             padding-bottom: 3rem;
         }
@@ -62,92 +80,258 @@ st.markdown(
             height: 0;
         }
 
-        div[role="radiogroup"] {
+        /* ---------------------------------------------------------
+           Header
+        --------------------------------------------------------- */
+
+        .joey-header {
+            width: 100%;
             display: flex;
             justify-content: center;
-            gap: 0.75rem;
-            margin-bottom: 1rem;
+            align-items: center;
+            gap: 18px;
+            margin: 0 auto 0.6rem auto;
         }
 
-        div[role="radiogroup"] label {
-            background: white;
-            border: 1px solid #d9e1db;
-            border-radius: 999px;
-            padding: 0.65rem 1.05rem;
+        .joey-header img {
+            width: 96px;
+            height: 96px;
+            object-fit: contain;
+            border-radius: 20px;
+            display: block;
         }
 
-        div[role="radiogroup"] label:has(input:checked) {
-            background: #126b57;
-            border-color: #126b57;
+        .joey-header h1 {
+            margin: 0;
+            color: var(--joey-green);
+            font-size: 3rem;
+            line-height: 1;
+            font-weight: 760;
         }
 
-        div[role="radiogroup"] label:has(input:checked),
-        div[role="radiogroup"] label:has(input:checked) p,
-        div[role="radiogroup"] label:has(input:checked) span {
+        .joey-subtitle {
+            text-align: center;
+            color: var(--joey-muted);
+            margin-top: 0.2rem;
+            margin-bottom: 1.4rem;
+            font-size: 1rem;
+        }
+
+        /* ---------------------------------------------------------
+           Segmented workflow selector
+        --------------------------------------------------------- */
+
+        .stButtonGroup {
+            width: min(620px, 100%) !important;
+            margin: 0 auto 1.7rem auto !important;
+        }
+
+        .stButtonGroup > div {
+            display: flex !important;
+            width: 100% !important;
+            gap: 0 !important;
+            padding: 4px !important;
+            background: #ffffff !important;
+            border: 1px solid var(--joey-border) !important;
+            border-radius: 999px !important;
+            box-shadow: 0 10px 24px rgba(20, 55, 43, 0.10) !important;
+            overflow: hidden !important;
+        }
+
+        .stButtonGroup button {
+            flex: 1 1 50% !important;
+            justify-content: center !important;
+            min-height: 52px !important;
+            padding: 0.7rem 1rem !important;
+            border: 0 !important;
+            border-radius: 999px !important;
+            background: #ffffff !important;
+            color: var(--joey-text) !important;
+            font-size: 1rem !important;
+            font-weight: 650 !important;
+            box-shadow: none !important;
+            transition:
+                background-color 0.18s ease,
+                color 0.18s ease !important;
+        }
+
+        .stButtonGroup button:hover {
+            background: #f2f7f4 !important;
+            color: var(--joey-green) !important;
+        }
+
+        .stButtonGroup button[aria-pressed="true"],
+        .stButtonGroup button[aria-checked="true"],
+        .stButtonGroup button[data-selected="true"] {
+            background: var(--joey-green) !important;
             color: #ffffff !important;
         }
-        
-        div[data-baseweb="textarea"] textarea {
-            border-radius: 16px;
-            min-height: 130px;
-            background: white;
+
+        .stButtonGroup button[aria-pressed="true"] *,
+        .stButtonGroup button[aria-checked="true"] *,
+        .stButtonGroup button[data-selected="true"] * {
+            color: #ffffff !important;
         }
 
-        div.stButton > button {
+        .stButtonGroup button:focus-visible {
+            outline: 3px solid rgba(18, 107, 87, 0.22) !important;
+            outline-offset: 2px !important;
+        }
+
+        /* ---------------------------------------------------------
+           Hey Joey speech bubble
+        --------------------------------------------------------- */
+
+        .joey-bubble-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.95rem;
             width: 100%;
-            border-radius: 14px;
-            min-height: 2.9rem;
-            background: #126b57;
-            color: white;
-            border: 1px solid #126b57;
-            font-weight: 700;
+            margin: 0.9rem 0 1rem 0;
         }
 
-        div.stButton > button:hover {
-            background: #0b5747;
-            border-color: #0b5747;
-            color: white;
+        .joey-bubble-avatar {
+            flex: 0 0 62px;
+            width: 62px;
+            height: 62px;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 5px 14px rgba(20, 55, 43, 0.10);
+            background: var(--joey-green);
         }
 
-        .joey-response {
-            background: white;
-            border: 1px solid #dfe5de;
-            border-radius: 20px;
-            padding: 1.25rem 1.35rem;
-            margin-top: 1rem;
-            line-height: 1.62;
-            box-shadow: 0 6px 20px rgba(20, 55, 43, 0.04);
+        .joey-bubble-avatar img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover;
         }
 
-        .joey-response strong {
-            color: #0b5747;
+        .joey-bubble {
+            position: relative;
+            flex: 1 1 auto;
+            min-width: 0;
+            background: var(--joey-green-soft);
+            border: 1px solid var(--joey-border);
+            border-radius: 24px;
+            padding: 1.15rem 1.3rem;
+            color: #23313f;
+            font-size: 1.02rem;
+            line-height: 1.65;
+            box-shadow: 0 7px 20px rgba(20, 55, 43, 0.05);
+        }
+
+        .joey-bubble::before {
+            content: "";
+            position: absolute;
+            left: -11px;
+            top: 21px;
+            width: 20px;
+            height: 20px;
+            background: var(--joey-green-soft);
+            border-left: 1px solid var(--joey-border);
+            border-bottom: 1px solid var(--joey-border);
+            transform: rotate(45deg);
+        }
+
+        .joey-bubble strong {
+            color: var(--joey-green-dark);
+        }
+
+        .joey-bubble p:first-child {
+            margin-top: 0;
+        }
+
+        .joey-bubble p:last-child {
+            margin-bottom: 0;
         }
 
         .joey-strategy {
-            margin-top: 0.9rem;
-            padding-top: 0.9rem;
-            border-top: 1px solid #edf0ed;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #dce8e0;
         }
 
         .joey-source {
-            color: #68746e;
+            color: var(--joey-muted);
             font-size: 0.88rem;
-            margin-top: 0.3rem;
+            margin-top: 0.4rem;
         }
 
-        .joey-heading {
-            text-align: center;
-            margin-bottom: 1.4rem;
+        /* ---------------------------------------------------------
+           Input and send button
+        --------------------------------------------------------- */
+
+        div[data-testid="stForm"] {
+            border: 1px solid var(--joey-border);
+            border-radius: 18px;
+            padding: 1rem;
+            background: #ffffff;
         }
 
-        .joey-heading h1 {
-            margin-bottom: 0.25rem;
-            color: #17211d;
+        div[data-baseweb="textarea"] textarea {
+            border-radius: 14px;
+            min-height: 130px;
+            background: var(--joey-input);
+            border-color: transparent;
         }
 
-        .joey-heading p {
-            color: #68746e;
-            margin: 0;
+        div[data-baseweb="textarea"] textarea:focus {
+            border-color: var(--joey-green) !important;
+            box-shadow: 0 0 0 1px var(--joey-green) !important;
+        }
+
+        div.stButton > button,
+        div[data-testid="stFormSubmitButton"] > button {
+            width: 100%;
+            border-radius: 14px;
+            min-height: 2.95rem;
+            background: var(--joey-green);
+            color: #ffffff;
+            border: 1px solid var(--joey-green);
+            font-weight: 700;
+        }
+
+        div.stButton > button:hover,
+        div[data-testid="stFormSubmitButton"] > button:hover {
+            background: var(--joey-green-dark);
+            border-color: var(--joey-green-dark);
+            color: #ffffff;
+        }
+
+        @media (max-width: 650px) {
+            .block-container {
+                padding-top: 1.4rem;
+            }
+
+            .joey-header {
+                gap: 12px;
+            }
+
+            .joey-header img {
+                width: 76px;
+                height: 76px;
+            }
+
+            .joey-header h1 {
+                font-size: 2.25rem;
+            }
+
+            .joey-bubble-avatar {
+                flex-basis: 50px;
+                width: 50px;
+                height: 50px;
+                border-radius: 15px;
+            }
+
+            .joey-bubble {
+                padding: 1rem;
+                font-size: 0.96rem;
+            }
+
+            .joey-bubble::before {
+                top: 16px;
+            }
         }
     </style>
     """,
@@ -175,6 +359,7 @@ def initialise_state() -> None:
             "I will search the approved local Hey Joey strategy library."
         ),
         "last_mode": "Record what happened",
+        "workflow_mode": "Record what happened",
     }
 
     for key, value in defaults.items():
@@ -190,13 +375,16 @@ def save_confirmed_session(
     if session.status != ConversationStatus.confirmed:
         raise ValueError("The draft has not been confirmed.")
 
-    LOCAL_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    LOCAL_OUTPUT_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
     saved_item = {
         "saved_at": datetime.now().isoformat(
             timespec="seconds"
         ),
-        "source": "minimal_streamlit_interface",
+        "source": "streamlit_speech_bubble_interface",
         "original_note": session.original_note,
         "conversation_history": [
             {
@@ -207,7 +395,9 @@ def save_confirmed_session(
             for turn in session.history
         ],
         "structured_record": (
-            session.current_record.model_dump(mode="json")
+            session.current_record.model_dump(
+                mode="json"
+            )
         ),
     }
 
@@ -224,13 +414,40 @@ def save_confirmed_session(
         )
 
 
-def clean_text(value: str | None) -> str:
-    return " ".join((value or "").split()).strip()
+def clean_text(
+    value: str | None,
+) -> str:
+    """Normalise user-facing text."""
+
+    return " ".join(
+        (value or "").split()
+    ).strip()
 
 
-def readable_list(values: list[str]) -> str:
-    clean_values = [clean_text(value) for value in values]
-    clean_values = [value for value in clean_values if value]
+def safe_text(
+    value: str | None,
+) -> str:
+    """Normalise and escape dynamic text for HTML rendering."""
+
+    return html.escape(
+        clean_text(value)
+    )
+
+
+def readable_list(
+    values: list[str],
+) -> str:
+    """Join values into readable parent-facing prose."""
+
+    clean_values = [
+        safe_text(value)
+        for value in values
+    ]
+    clean_values = [
+        value
+        for value in clean_values
+        if value
+    ]
 
     if not clean_values:
         return ""
@@ -239,7 +456,10 @@ def readable_list(values: list[str]) -> str:
         return clean_values[0]
 
     if len(clean_values) == 2:
-        return f"{clean_values[0]} and {clean_values[1]}"
+        return (
+            f"{clean_values[0]} "
+            f"and {clean_values[1]}"
+        )
 
     return (
         ", ".join(clean_values[:-1])
@@ -257,42 +477,45 @@ def build_record_summary(
 
     if record.anxiety_level.value != "Unknown":
         details.append(
-            f"anxiety was recorded as {record.anxiety_level.value.lower()}"
+            "anxiety was recorded as "
+            f"{safe_text(record.anxiety_level.value.lower())}"
         )
 
     if record.mood_zone.value != "Unknown":
         details.append(
-            f"the mood zone was recorded as {record.mood_zone.value}"
+            "the mood zone was recorded as "
+            f"{safe_text(record.mood_zone.value)}"
         )
 
     if record.environment:
         details.append(
-            f"the setting was {record.environment}"
+            "the setting was "
+            f"{safe_text(record.environment)}"
         )
 
     if record.possible_triggers:
         details.append(
             "possible triggers included "
-            + readable_list(record.possible_triggers)
+            + readable_list(
+                record.possible_triggers
+            )
         )
 
     if details:
-        understood = (
+        return (
             "I have updated the same journal draft: "
             + "; ".join(details)
             + "."
         )
-    else:
-        understood = (
-            "I have started a journal draft from what you described."
-        )
 
-    return understood
-
-
+    return (
+        "I have started a journal draft from what you described."
+    )
 def build_ready_for_review_response(
     session: JoeyConversationSession,
 ) -> str:
+    """Build the final review prompt before saving."""
+
     record = session.current_record
     parts = [
         build_record_summary(session),
@@ -300,12 +523,14 @@ def build_ready_for_review_response(
 
     if record.summary:
         parts.append(
-            f"My summary is: {record.summary}"
+            "My summary is: "
+            f"{safe_text(record.summary)}"
         )
 
     if record.risk_flags:
         parts.append(
-            "I also noticed information that may need safety-aware review."
+            "I also noticed information that may need "
+            "safety-aware review."
         )
 
     parts.append(
@@ -316,33 +541,44 @@ def build_ready_for_review_response(
     return " ".join(parts)
 
 
-def handle_record_input(user_text: str) -> str:
-    """Run the entire multi-turn record workflow behind one text box."""
+def handle_record_input(
+    user_text: str,
+) -> str:
+    """Run the multi-turn journal workflow behind one text box."""
 
     command = clean_text(user_text)
     session: JoeyConversationSession | None = (
         st.session_state.record_session
     )
 
-    if command.lower() in {"start over", "restart", "reset"}:
+    if command.lower() in {
+        "start over",
+        "restart",
+        "reset",
+    }:
         st.session_state.record_session = None
         return (
             "Started over. Tell me what happened in your own words."
         )
 
     if session is None:
-        session = JoeyConversationSession.start(command)
+        session = JoeyConversationSession.start(
+            command
+        )
         st.session_state.record_session = session
 
-        response = build_record_summary(session)
+        response = build_record_summary(
+            session
+        )
 
         if should_limit_strategy_suggestions(
             session.current_record
         ):
             response += (
                 " I noticed a possible safety concern. "
-                "Please make sure the child is safe and seek appropriate "
-                "urgent or professional support when needed."
+                "Please make sure the child is safe and seek "
+                "appropriate urgent or professional support "
+                "when needed."
             )
 
         if (
@@ -350,16 +586,25 @@ def handle_record_input(user_text: str) -> str:
             == ConversationStatus.collecting_information
         ):
             response += (
-                " " + str(session.follow_up_question)
+                " "
+                + safe_text(
+                    session.follow_up_question
+                )
             )
         else:
             response += (
-                " " + build_ready_for_review_response(session)
+                " "
+                + build_ready_for_review_response(
+                    session
+                )
             )
 
         return response
 
-    if session.status == ConversationStatus.collecting_information:
+    if (
+        session.status
+        == ConversationStatus.collecting_information
+    ):
         session.submit_answer(command)
         st.session_state.record_session = session
 
@@ -370,43 +615,70 @@ def handle_record_input(user_text: str) -> str:
             return (
                 build_record_summary(session)
                 + " "
-                + str(session.follow_up_question)
+                + safe_text(
+                    session.follow_up_question
+                )
             )
 
-        return build_ready_for_review_response(session)
+        return build_ready_for_review_response(
+            session
+        )
 
-    if session.status == ConversationStatus.ready_for_review:
+    if (
+        session.status
+        == ConversationStatus.ready_for_review
+    ):
         answer = command.lower()
 
-        if answer in {"yes", "y", "confirm", "save"}:
+        if answer in {
+            "yes",
+            "y",
+            "confirm",
+            "save",
+        }:
             session.confirm()
             save_confirmed_session(session)
             st.session_state.record_session = None
+
             return (
                 "The journal entry has been confirmed and recorded. "
-                "Its structured fields are now available in the background "
-                "for the Journal Entries and Insights integration layer. "
-                "You can describe another event whenever you are ready."
+                "Its structured fields are now available in the "
+                "background for the Journal Entries and Insights "
+                "integration layer. You can describe another event "
+                "whenever you are ready."
             )
 
-        if answer in {"no", "n", "discard", "reject"}:
+        if answer in {
+            "no",
+            "n",
+            "discard",
+            "reject",
+        }:
             session.reject()
             st.session_state.record_session = None
+
             return (
                 "The draft was discarded and nothing was saved. "
                 "You can describe another event whenever you are ready."
             )
 
         return (
-            "Please reply <strong>yes</strong> to confirm and save the "
-            "draft, or <strong>no</strong> to discard it."
+            "Please reply <strong>yes</strong> to confirm and save "
+            "the draft, or <strong>no</strong> to discard it."
         )
 
     st.session_state.record_session = None
-    return "Tell me what happened and I will start a new journal draft."
+
+    return (
+        "Tell me what happened and I will start a new journal draft."
+    )
 
 
-def clean_strategy_title(title: str | None) -> str:
+def clean_strategy_title(
+    title: str | None,
+) -> str:
+    """Remove trailing age information from summary prose."""
+
     title = clean_text(title)
 
     return re.sub(
@@ -417,17 +689,24 @@ def clean_strategy_title(title: str | None) -> str:
     ).strip()
 
 
-def build_strategy_response(question: str) -> str:
-    """Return only a readable answer and strategy options."""
+def build_strategy_response(
+    question: str,
+) -> str:
+    """Return a readable answer and source-backed strategies."""
 
-    screening_record = extract_structured_record(question)
+    screening_record = extract_structured_record(
+        question
+    )
 
-    if should_limit_strategy_suggestions(screening_record):
+    if should_limit_strategy_suggestions(
+        screening_record
+    ):
         return (
-            "What you described may involve an immediate safety or injury "
-            "concern. I will not provide ordinary strategy suggestions for "
-            "that situation. Please make sure the child is safe and seek "
-            "appropriate urgent or professional support."
+            "What you described may involve an immediate safety "
+            "or injury concern. I will not provide ordinary strategy "
+            "suggestions for that situation. Please make sure the "
+            "child is safe and seek appropriate urgent or "
+            "professional support."
         )
 
     service = get_strategy_service()
@@ -439,12 +718,14 @@ def build_strategy_response(question: str) -> str:
 
     if not result.evidence:
         return (
-            "I could not find a sufficiently relevant strategy in the "
-            "current approved local collection."
+            "I could not find a sufficiently relevant strategy "
+            "in the current approved local collection."
         )
 
     titles = [
-        clean_strategy_title(item.strategy_title)
+        clean_strategy_title(
+            item.strategy_title
+        )
         for item in result.evidence
     ]
 
@@ -469,14 +750,16 @@ def build_strategy_response(question: str) -> str:
 
     if any(
         (
-            "helped somewhat" in item.history_note.lower()
-            or "worked well" in item.history_note.lower()
+            "helped somewhat"
+            in item.history_note.lower()
+            or "worked well"
+            in item.history_note.lower()
         )
         for item in result.evidence
     ):
         response_parts.append(
-            "Previous confirmed feedback also indicates that at least "
-            "one related approach was reported to help."
+            "Previous confirmed feedback also indicates that at "
+            "least one related approach was reported to help."
         )
 
     strategy_html: list[str] = []
@@ -495,20 +778,30 @@ def build_strategy_response(question: str) -> str:
             )
         )
 
-        passage = clean_text(item.passage)
+        passage = clean_text(
+            item.passage
+        )
+
         passage_preview = (
             passage
             if len(passage) <= 360
             else (
-                passage[:360].rsplit(" ", maxsplit=1)[0]
+                passage[:360]
+                .rsplit(" ", maxsplit=1)[0]
                 + "..."
             )
         )
 
         history_sentence = ""
-        if "new strategy option" not in item.history_note.lower():
+
+        if (
+            "new strategy option"
+            not in item.history_note.lower()
+        ):
             history_sentence = (
-                f"<br><em>{html.escape(item.history_note)}</em>"
+                "<br><em>"
+                f"{html.escape(item.history_note)}"
+                "</em>"
             )
 
         strategy_html.append(
@@ -517,7 +810,8 @@ def build_strategy_response(question: str) -> str:
             f"{html.escape(passage_preview)}"
             f"{history_sentence}"
             '<div class="joey-source">'
-            f"Source: {html.escape(item.collection_title)}"
+            "Source: "
+            f"{html.escape(item.collection_title)}"
             "</div>"
             "</div>"
         )
@@ -538,64 +832,92 @@ def build_strategy_response(question: str) -> str:
     )
 
 
-def render_response(response: str) -> None:
+def render_joey_bubble(
+    message: str,
+) -> None:
+    """Render Joey's response inside a branded speech bubble."""
+
     st.markdown(
-        f'<div class="joey-response">{response}</div>',
+        f"""
+        <div class="joey-bubble-row">
+            <div class="joey-bubble-avatar">
+                <img
+                    src="{logo_data_uri()}"
+                    alt="Hey Joey"
+                >
+            </div>
+            <div class="joey-bubble">
+                <strong>Joey</strong><br>
+                {message}
+            </div>
+        </div>
+        """,
         unsafe_allow_html=True,
     )
 
 
 def main() -> None:
+    """Run the minimal Hey Joey Streamlit interface."""
+
     initialise_state()
 
-    left_space, logo_column, title_column, right_space = st.columns(
-    [1.5, 0.7, 2.4, 1.5]
-)
-
-    with logo_column:
-        st.image(
-        str(LOGO_PATH),
-        width=82,
-    )
-
-    with title_column:
-        st.markdown(
-        """
-        <div style="padding-top: 8px;">
-            <h1 style="
-                margin: 0;
-                color: #116b57;
-            ">
-                Hey Joey
-            </h1>
+    st.markdown(
+        f"""
+        <div class="joey-header">
+            <img
+                src="{logo_data_uri()}"
+                alt="Hey Joey logo"
+            >
+            <h1>Hey Joey</h1>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
     st.markdown(
-    """
-    <p style="
-        text-align: center;
-        color: #68746e;
-        margin-top: 0.2rem;
-        margin-bottom: 1.4rem;
-    ">
-        Record an observation or ask for a support strategy.
-    </p>
-    """,
-    unsafe_allow_html=True,
-)
-
-    mode = st.radio(
-        "Choose a workflow",
-        [
-            "Record what happened",
-            "Ask for a strategy",
-        ],
-        horizontal=True,
-        label_visibility="collapsed",
+        """
+        <p class="joey-subtitle">
+            An AI prototype for the Hey Joey app.
+        </p>
+        """,
+        unsafe_allow_html=True,
     )
+
+    if not hasattr(
+        st,
+        "segmented_control",
+    ):
+        st.error(
+            "This interface needs a newer Streamlit version. "
+            "Run: python -m pip install --upgrade streamlit"
+        )
+        st.stop()
+
+    selector_left, selector_column, selector_right = (
+        st.columns(
+            [0.45, 5.1, 0.45]
+        )
+    )
+
+    with selector_column:
+        mode = st.segmented_control(
+            "Choose a workflow",
+            options=[
+                "Record what happened",
+                "Ask for a strategy",
+            ],
+            default=st.session_state.get(
+                "workflow_mode",
+                "Record what happened",
+            ),
+            selection_mode="single",
+            key="workflow_mode",
+            label_visibility="collapsed",
+            width="stretch",
+        )
+
+    if mode is None:
+        mode = "Record what happened"
 
     if mode != st.session_state.last_mode:
         st.session_state.last_mode = mode
@@ -606,7 +928,9 @@ def main() -> None:
         else st.session_state.strategy_response
     )
 
-    render_response(current_response)
+    render_joey_bubble(
+        current_response
+    )
 
     with st.form(
         f"minimal_input_form_{mode}",
@@ -634,28 +958,37 @@ def main() -> None:
         )
 
         if not clean_input:
-            st.warning("Please type a message.")
+            st.warning(
+                "Please type a message."
+            )
             return
 
         try:
             if mode == "Record what happened":
                 st.session_state.record_response = (
-                    handle_record_input(clean_input)
+                    handle_record_input(
+                        clean_input
+                    )
                 )
             else:
                 with st.spinner(
                     "Searching the approved local strategy library..."
                 ):
                     st.session_state.strategy_response = (
-                        build_strategy_response(clean_input)
+                        build_strategy_response(
+                            clean_input
+                        )
                     )
 
             st.rerun()
 
-        except (ValueError, RuntimeError) as error:
+        except (
+            ValueError,
+            RuntimeError,
+        ) as error:
             if mode == "Record what happened":
                 st.session_state.record_response = (
-                    f"I could not use that answer yet: "
+                    "I could not use that answer yet: "
                     f"{html.escape(str(error))}"
                 )
             else:
