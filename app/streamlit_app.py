@@ -40,7 +40,12 @@ st.markdown(
     """
     <style>
         .stApp {
-            background: #f6f7f3;
+            background: #ffffff;
+        }
+
+        [data-testid="stAppViewContainer"],
+        [data-testid="stMain"] {
+            background: #ffffff;
         }
 
         .block-container {
@@ -73,10 +78,15 @@ st.markdown(
 
         div[role="radiogroup"] label:has(input:checked) {
             background: #126b57;
-            color: white;
             border-color: #126b57;
         }
 
+        div[role="radiogroup"] label:has(input:checked),
+        div[role="radiogroup"] label:has(input:checked) p,
+        div[role="radiogroup"] label:has(input:checked) span {
+            color: #ffffff !important;
+        }
+        
         div[data-baseweb="textarea"] textarea {
             border-radius: 16px;
             min-height: 130px;
@@ -552,7 +562,12 @@ def main() -> None:
         st.markdown(
         """
         <div style="padding-top: 8px;">
-            <h1 style="margin: 0;">Hey Joey</h1>
+            <h1 style="
+                margin: 0;
+                color: #116b57;
+            ">
+                Hey Joey
+            </h1>
         </div>
         """,
         unsafe_allow_html=True,
