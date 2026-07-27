@@ -21,6 +21,7 @@ from safety.safety_guard import should_limit_strategy_suggestions
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+LOGO_PATH = PROJECT_ROOT / "assets" / "hey_joey_logo.png"
 LOCAL_OUTPUT_DIR = PROJECT_ROOT / "data" / "local"
 CONFIRMED_RECORDS_FILE = (
     LOCAL_OUTPUT_DIR / "confirmed_joey_records.jsonl"
@@ -29,7 +30,7 @@ CONFIRMED_RECORDS_FILE = (
 
 st.set_page_config(
     page_title="Hey Joey",
-    page_icon="🌿",
+    page_icon=str(LOGO_PATH),
     layout="centered",
     initial_sidebar_state="collapsed",
 )
@@ -537,15 +538,39 @@ def render_response(response: str) -> None:
 def main() -> None:
     initialise_state()
 
-    st.markdown(
+    left_space, logo_column, title_column, right_space = st.columns(
+    [1.5, 0.7, 2.4, 1.5]
+)
+
+    with logo_column:
+        st.image(
+        str(LOGO_PATH),
+        width=82,
+    )
+
+    with title_column:
+        st.markdown(
         """
-        <div class="joey-heading">
-            <h1>🌿 Hey Joey</h1>
-            <p>Record an observation or ask for a support strategy.</p>
+        <div style="padding-top: 8px;">
+            <h1 style="margin: 0;">Hey Joey</h1>
         </div>
         """,
         unsafe_allow_html=True,
     )
+
+    st.markdown(
+    """
+    <p style="
+        text-align: center;
+        color: #68746e;
+        margin-top: 0.2rem;
+        margin-bottom: 1.4rem;
+    ">
+        Record an observation or ask for a support strategy.
+    </p>
+    """,
+    unsafe_allow_html=True,
+)
 
     mode = st.radio(
         "Choose a workflow",
