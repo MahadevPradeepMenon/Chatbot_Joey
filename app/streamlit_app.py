@@ -179,81 +179,173 @@ st.markdown(
         }
 
         /* ---------------------------------------------------------
-           Hey Joey speech bubble
+           Scrollable chat history
         --------------------------------------------------------- */
 
-        .joey-bubble-row {
-            display: flex;
-            align-items: flex-start;
-            gap: 0.95rem;
+        /*
+        One continuous chat shell: scrollable messages above,
+        composer attached directly underneath.
+        */
+        .st-key-chat_shell {
             width: 100%;
-            margin: 0.9rem 0 1rem 0;
+            overflow: visible;
+            background: transparent;
+            border: none;
+            border-radius: 0;
+            box-shadow: none;
         }
 
-        .joey-bubble-avatar {
-            flex: 0 0 62px;
-            width: 62px;
-            height: 62px;
-            border-radius: 18px;
+        .st-key-chat_shell > div,
+        .st-key-chat_shell > div > div[data-testid="stVerticalBlock"],
+        .st-key-chat_shell div[data-testid="stVerticalBlock"] {
+            gap: 0 !important;
+        }
+
+        .st-key-chat_history {
+            height: 500px;
+            overflow-y: auto;
+            padding: 0.6rem 0.4rem 1rem 0.4rem;
+            margin: 0 !important;
+            background: transparent;
+            border: none !important;
+            border-radius: 0 !important;
+            scroll-behavior: smooth;
+        }
+
+        .st-key-chat_history::-webkit-scrollbar {
+            width: 9px;
+        }
+
+        .st-key-chat_history::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .st-key-chat_history::-webkit-scrollbar-thumb {
+            background: #c9d7d0;
+            border-radius: 999px;
+        }
+
+        .chat-row {
+            display: flex;
+            width: 100%;
+            margin: 0.7rem 0;
+        }
+
+        .chat-row.assistant {
+            justify-content: flex-start;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .chat-row.user {
+            justify-content: flex-end;
+        }
+
+        .chat-avatar {
+            flex: 0 0 48px;
+            width: 48px;
+            height: 48px;
+            border-radius: 15px;
             overflow: hidden;
-            box-shadow: 0 5px 14px rgba(20, 55, 43, 0.10);
             background: var(--joey-green);
+            box-shadow: 0 4px 12px rgba(20, 55, 43, 0.12);
         }
 
-        .joey-bubble-avatar img {
+        .chat-avatar img {
             width: 100%;
             height: 100%;
-            display: block;
             object-fit: cover;
+            display: block;
         }
 
-        .joey-bubble {
+        .chat-bubble {
             position: relative;
-            flex: 1 1 auto;
-            min-width: 0;
-            background: var(--joey-green-soft);
-            border: 1px solid var(--joey-border);
-            border-radius: 24px;
-            padding: 1.15rem 1.3rem;
-            color: #23313f;
-            font-size: 1.02rem;
-            line-height: 1.65;
-            box-shadow: 0 7px 20px rgba(20, 55, 43, 0.05);
+            max-width: 78%;
+            padding: 0.9rem 1.05rem;
+            border-radius: 20px;
+            font-size: 1rem;
+            line-height: 1.58;
+            overflow-wrap: anywhere;
         }
 
-        .joey-bubble::before {
+        .chat-bubble.assistant {
+            background: var(--joey-green);
+            color: #ffffff;
+            border-top-left-radius: 7px;
+            box-shadow: 0 6px 16px rgba(18, 107, 87, 0.16);
+        }
+
+        .chat-bubble.assistant::before {
             content: "";
             position: absolute;
-            left: -11px;
-            top: 21px;
-            width: 20px;
-            height: 20px;
-            background: var(--joey-green-soft);
-            border-left: 1px solid var(--joey-border);
-            border-bottom: 1px solid var(--joey-border);
+            left: -8px;
+            top: 15px;
+            width: 16px;
+            height: 16px;
+            background: var(--joey-green);
             transform: rotate(45deg);
         }
 
-        .joey-bubble strong {
-            color: var(--joey-green-dark);
+        .chat-bubble.user {
+            background: #ffffff;
+            color: var(--joey-text);
+            border: 1px solid var(--joey-border);
+            border-top-right-radius: 7px;
+            box-shadow: 0 5px 14px rgba(20, 55, 43, 0.06);
         }
 
-        .joey-bubble p:first-child {
+        .chat-bubble.user::after {
+            content: "";
+            position: absolute;
+            right: -8px;
+            top: 15px;
+            width: 16px;
+            height: 16px;
+            background: #ffffff;
+            border-top: 1px solid var(--joey-border);
+            border-right: 1px solid var(--joey-border);
+            transform: rotate(45deg);
+        }
+
+        .chat-name {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-size: 0.82rem;
+            font-weight: 750;
+        }
+
+        .chat-bubble.assistant .chat-name {
+            color: #ffffff;
+        }
+
+        .chat-bubble.user .chat-name {
+            color: var(--joey-green-dark);
+            text-align: right;
+        }
+
+        .chat-bubble.assistant strong,
+        .chat-bubble.assistant em,
+        .chat-bubble.assistant p,
+        .chat-bubble.assistant div {
+            color: #ffffff;
+        }
+
+        .chat-bubble.assistant p:first-child {
             margin-top: 0;
         }
 
-        .joey-bubble p:last-child {
+        .chat-bubble.assistant p:last-child {
             margin-bottom: 0;
         }
 
         .joey-strategy {
             margin-top: 1rem;
             padding-top: 1rem;
-            border-top: 1px solid #dce8e0;
+            border-top: 1px solid rgba(255, 255, 255, 0.30);
         }
 
         .joey-source {
-            color: var(--joey-muted);
+            color: rgba(255, 255, 255, 0.82) !important;
             font-size: 0.88rem;
             margin-top: 0.4rem;
         }
@@ -262,18 +354,26 @@ st.markdown(
            Input and send button
         --------------------------------------------------------- */
 
-        div[data-testid="stForm"] {
-            border: 1px solid var(--joey-border);
-            border-radius: 18px;
-            padding: 1rem;
-            background: #ffffff;
+        /*
+        The form is attached to the bottom of the chat shell rather
+        than appearing as a separate card.
+        */
+        .st-key-chat_shell div[data-testid="stForm"] {
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0.75rem 0.4rem 0 0.4rem !important;
+            background: transparent;
+            border: none !important;
+            border-radius: 0 !important;
         }
 
         div[data-baseweb="textarea"] textarea {
-            border-radius: 14px;
-            min-height: 130px;
+            border-radius: 22px;
+            min-height: 110px;
             background: var(--joey-input);
-            border-color: transparent;
+            border: 1px solid var(--joey-border);
+            padding: 1rem;
         }
 
         div[data-baseweb="textarea"] textarea:focus {
@@ -317,20 +417,31 @@ st.markdown(
                 font-size: 2.25rem;
             }
 
-            .joey-bubble-avatar {
-                flex-basis: 50px;
-                width: 50px;
-                height: 50px;
-                border-radius: 15px;
+            .st-key-chat_shell {
+                border-radius: 18px;
             }
 
-            .joey-bubble {
-                padding: 1rem;
-                font-size: 0.96rem;
+            .st-key-chat_history {
+                height: 430px;
+                padding: 0.4rem 0.45rem 0.8rem 0.45rem;
             }
 
-            .joey-bubble::before {
-                top: 16px;
+            .st-key-chat_shell div[data-testid="stForm"] {
+                width: 100% !important;
+                padding: 0.75rem 0 0 0 !important;
+            }
+
+            .chat-avatar {
+                flex-basis: 40px;
+                width: 40px;
+                height: 40px;
+                border-radius: 13px;
+            }
+
+            .chat-bubble {
+                max-width: 82%;
+                padding: 0.8rem 0.9rem;
+                font-size: 0.95rem;
             }
         }
     </style>
@@ -347,17 +458,21 @@ def get_strategy_service() -> HistoryAwareStrategyService:
 
 
 def initialise_state() -> None:
+    """Create separate persistent chat histories for both workflows."""
+
+    record_greeting = (
+        "Tell me what happened in your own words. "
+        "I will turn it into a journal draft and ask only "
+        "for details that are still needed."
+    )
+
+    strategy_greeting = (
+        "Ask what support strategy may be relevant. "
+        "I will search the approved local Hey Joey strategy library."
+    )
+
     defaults: dict[str, Any] = {
         "record_session": None,
-        "record_response": (
-            "Tell me what happened in your own words. "
-            "I will turn it into a journal draft and ask only "
-            "for details that are still needed."
-        ),
-        "strategy_response": (
-            "Ask what support strategy may be relevant. "
-            "I will search the approved local Hey Joey strategy library."
-        ),
         "last_mode": "Record what happened",
         "workflow_mode": "Record what happened",
     }
@@ -365,6 +480,41 @@ def initialise_state() -> None:
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
+
+    # Migrate older response-only state when the app hot-reloads.
+    if "record_chat_history" not in st.session_state:
+        old_record = st.session_state.get(
+            "record_response",
+            [record_greeting],
+        )
+
+        if isinstance(old_record, str):
+            old_record = [old_record]
+
+        st.session_state.record_chat_history = [
+            {
+                "role": "assistant",
+                "content": message,
+            }
+            for message in old_record
+        ]
+
+    if "strategy_chat_history" not in st.session_state:
+        old_strategy = st.session_state.get(
+            "strategy_response",
+            [strategy_greeting],
+        )
+
+        if isinstance(old_strategy, str):
+            old_strategy = [old_strategy]
+
+        st.session_state.strategy_chat_history = [
+            {
+                "role": "assistant",
+                "content": message,
+            }
+            for message in old_strategy
+        ]
 
 
 def save_confirmed_session(
@@ -467,23 +617,28 @@ def readable_list(
     )
 
 
-def build_record_summary(
+def build_initial_record_summary(
     session: JoeyConversationSession,
 ) -> str:
-    """Create a concise parent-facing summary of the hidden draft."""
+    """
+    Summarise only the information extracted from the initial note.
+
+    This appears once after the first observation and is not repeated
+    after later follow-up answers.
+    """
 
     record = session.current_record
     details: list[str] = []
 
     if record.anxiety_level.value != "Unknown":
         details.append(
-            "anxiety was recorded as "
+            "anxiety was initially understood as "
             f"{safe_text(record.anxiety_level.value.lower())}"
         )
 
     if record.mood_zone.value != "Unknown":
         details.append(
-            "the mood zone was recorded as "
+            "the mood zone was initially understood as "
             f"{safe_text(record.mood_zone.value)}"
         )
 
@@ -501,52 +656,139 @@ def build_record_summary(
             )
         )
 
-    if details:
+    if not details:
         return (
-            "I have updated the same journal draft: "
-            + "; ".join(details)
-            + "."
+            "I have created a journal draft from what you described."
         )
 
     return (
-        "I have started a journal draft from what you described."
+        "I have created a journal draft: "
+        + "; ".join(details)
+        + "."
     )
-def build_ready_for_review_response(
+
+
+def build_answer_acknowledgement(
+    field_name: str | None,
+    answer: str,
     session: JoeyConversationSession,
 ) -> str:
-    """Build the final review prompt before saving."""
+    """
+    Acknowledge only the latest answer.
+
+    Previously collected information is deliberately not repeated.
+    """
+
+    clean_answer = clean_text(answer)
+    record = session.current_record
+
+    skipped_answers = {
+        "i don't know",
+        "i do not know",
+        "don't know",
+        "do not know",
+        "not sure",
+        "unsure",
+        "skip",
+        "unknown",
+    }
+
+    if clean_answer.lower() in skipped_answers:
+        return (
+            "I have left that detail as unknown in the journal draft."
+        )
+
+    if field_name == "possible_triggers":
+        return (
+            "I have added this possible trigger to the draft: "
+            f"{safe_text(clean_answer)}"
+        )
+
+    if field_name == "anxiety_level":
+        return (
+            "I have recorded the anxiety level as "
+            f"{safe_text(record.anxiety_level.value)}."
+        )
+
+    if field_name == "mood":
+        mood_text = safe_text(
+            record.mood_zone.value
+        )
+
+        if record.mood_labels:
+            mood_text += (
+                ", with "
+                + readable_list(
+                    record.mood_labels
+                )
+            )
+
+        return (
+            "I have updated the mood information to "
+            f"{mood_text}."
+        )
+
+    if field_name == "environment":
+        return (
+            "I have recorded the setting as "
+            f"{safe_text(record.environment)}."
+        )
+
+    if field_name == "safety_status":
+        return (
+            "I have added the safety information you provided "
+            "to the draft."
+        )
+
+    if field_name == "medication_context":
+        return (
+            "I have added the medication context to the draft. "
+            "Joey does not provide medication or dosage advice."
+        )
+
+    return (
+        "I have added that detail to the same journal draft."
+    )
+
+
+def build_final_summary(
+    session: JoeyConversationSession,
+) -> str:
+    """Create the final summary as its own speech bubble."""
 
     record = session.current_record
-    parts = [
-        build_record_summary(session),
-    ]
 
     if record.summary:
-        parts.append(
+        return (
             "My summary is: "
             f"{safe_text(record.summary)}"
         )
 
-    if record.risk_flags:
-        parts.append(
-            "I also noticed information that may need "
-            "safety-aware review."
-        )
-
-    parts.append(
-        "Reply <strong>yes</strong> to confirm and save it, "
-        "or <strong>no</strong> to discard it."
+    return (
+        "The journal draft is now ready for your review."
     )
 
-    return " ".join(parts)
+
+def build_confirmation_prompt() -> str:
+    """Create the confirmation request as its own speech bubble."""
+
+    return (
+        "Reply <strong>yes</strong> to confirm and save the "
+        "journal entry, or <strong>no</strong> to discard it."
+    )
 
 
 def handle_record_input(
     user_text: str,
-) -> str:
-    """Run the multi-turn journal workflow behind one text box."""
+) -> list[str]:
+    """
+    Run the multi-turn journal workflow.
+
+    Each returned list item is rendered as a separate Joey bubble.
+    """
 
     command = clean_text(user_text)
+
     session: JoeyConversationSession | None = (
         st.session_state.record_session
     )
@@ -557,73 +799,108 @@ def handle_record_input(
         "reset",
     }:
         st.session_state.record_session = None
-        return (
-            "Started over. Tell me what happened in your own words."
-        )
 
+        return [
+            (
+                "Started over. Tell me what happened "
+                "in your own words."
+            )
+        ]
+
+    # First parent observation.
     if session is None:
         session = JoeyConversationSession.start(
             command
         )
+
         st.session_state.record_session = session
 
-        response = build_record_summary(
-            session
-        )
+        messages: list[str] = [
+            build_initial_record_summary(
+                session
+            )
+        ]
 
         if should_limit_strategy_suggestions(
             session.current_record
         ):
-            response += (
-                " I noticed a possible safety concern. "
-                "Please make sure the child is safe and seek "
-                "appropriate urgent or professional support "
-                "when needed."
+            messages.append(
+                (
+                    "I noticed a possible safety concern. "
+                    "Please make sure the child is safe and seek "
+                    "appropriate urgent or professional support "
+                    "when needed."
+                )
             )
 
         if (
             session.status
             == ConversationStatus.collecting_information
         ):
-            response += (
-                " "
-                + safe_text(
+            # The follow-up question has its own bubble.
+            messages.append(
+                safe_text(
                     session.follow_up_question
                 )
             )
         else:
-            response += (
-                " "
-                + build_ready_for_review_response(
-                    session
-                )
+            messages.extend(
+                [
+                    build_final_summary(
+                        session
+                    ),
+                    build_confirmation_prompt(),
+                ]
             )
 
-        return response
+        return messages
 
+    # Parent answers a follow-up question.
     if (
         session.status
         == ConversationStatus.collecting_information
     ):
-        session.submit_answer(command)
+        # Capture the field before the session advances to the next one.
+        answered_field = session.pending_field
+
+        session.submit_answer(
+            command
+        )
+
         st.session_state.record_session = session
+
+        messages = [
+            build_answer_acknowledgement(
+                field_name=answered_field,
+                answer=command,
+                session=session,
+            )
+        ]
 
         if (
             session.status
             == ConversationStatus.collecting_information
         ):
-            return (
-                build_record_summary(session)
-                + " "
-                + safe_text(
+            # The next follow-up question has its own bubble.
+            messages.append(
+                safe_text(
                     session.follow_up_question
                 )
             )
+        else:
+            # Summary and confirmation each have their own bubble.
+            messages.extend(
+                [
+                    build_final_summary(
+                        session
+                    ),
+                    build_confirmation_prompt(),
+                ]
+            )
 
-        return build_ready_for_review_response(
-            session
-        )
+        return messages
 
+    # Parent confirms or rejects the completed draft.
     if (
         session.status
         == ConversationStatus.ready_for_review
@@ -637,16 +914,23 @@ def handle_record_input(
             "save",
         }:
             session.confirm()
-            save_confirmed_session(session)
+
+            save_confirmed_session(
+                session
+            )
+
             st.session_state.record_session = None
 
-            return (
-                "The journal entry has been confirmed and recorded. "
-                "Its structured fields are now available in the "
-                "background for the Journal Entries and Insights "
-                "integration layer. You can describe another event "
-                "whenever you are ready."
-            )
+            return [
+                (
+                    "The journal entry has been confirmed and recorded."
+                ),
+                (
+                    "Its structured information is now available "
+                    "in the background for the Journal Entries and "
+                    "Insights integration layer."
+                ),
+            ]
 
         if answer in {
             "no",
@@ -657,21 +941,27 @@ def handle_record_input(
             session.reject()
             st.session_state.record_session = None
 
-            return (
-                "The draft was discarded and nothing was saved. "
-                "You can describe another event whenever you are ready."
-            )
+            return [
+                (
+                    "The draft was discarded and nothing was saved."
+                )
+            ]
 
-        return (
-            "Please reply <strong>yes</strong> to confirm and save "
-            "the draft, or <strong>no</strong> to discard it."
-        )
+        return [
+            (
+                "Please reply <strong>yes</strong> to confirm and "
+                "save the draft, or <strong>no</strong> to discard it."
+            )
+        ]
 
     st.session_state.record_session = None
 
-    return (
-        "Tell me what happened and I will start a new journal draft."
-    )
+    return [
+        (
+            "Tell me what happened and I will start "
+            "a new journal draft."
+        )
+    ]
 
 
 def clean_strategy_title(
@@ -832,32 +1122,72 @@ def build_strategy_response(
     )
 
 
-def render_joey_bubble(
-    message: str,
+def render_chat_message(
+    role: str,
+    content: str,
 ) -> None:
-    """Render Joey's response inside a branded speech bubble."""
+    """Render one Joey or sender message as a chat bubble."""
 
-    st.markdown(
-        f"""
-        <div class="joey-bubble-row">
-            <div class="joey-bubble-avatar">
-                <img
-                    src="{logo_data_uri()}"
-                    alt="Hey Joey"
-                >
-            </div>
-            <div class="joey-bubble">
-                <strong>Joey</strong><br>
-                {message}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    if role == "user":
+        safe_content = html.escape(
+            content
+        ).replace(
+            "\n",
+            "<br>",
+        )
+
+        message_html = (
+            '<div class="chat-row user">'
+            '<div class="chat-bubble user">'
+            '<span class="chat-name">You</span>'
+            f'{safe_content}'
+            '</div>'
+            '</div>'
+        )
+
+    else:
+        # Assistant content is generated internally. Dynamic values
+        # inside it are escaped by the response-building functions.
+        message_html = (
+            '<div class="chat-row assistant">'
+            '<div class="chat-avatar">'
+            f'<img src="{logo_data_uri()}" alt="Joey">'
+            '</div>'
+            '<div class="chat-bubble assistant">'
+            '<span class="chat-name">Joey</span>'
+            f'{content}'
+            '</div>'
+            '</div>'
+        )
+
+    if hasattr(st, "html"):
+        st.html(message_html)
+    else:
+        st.markdown(
+            message_html,
+            unsafe_allow_html=True,
+        )
+
+
+def render_chat_history(
+    history: list[dict[str, str]],
+) -> None:
+    """Render the selected workflow's scrollable message history."""
+
+    with st.container(
+        height=500,
+        border=False,
+        key="chat_history",
+    ):
+        for message in history:
+            render_chat_message(
+                role=message["role"],
+                content=message["content"],
+            )
 
 
 def main() -> None:
-    """Run the minimal Hey Joey Streamlit interface."""
+    """Run the Hey Joey chat-style Streamlit interface."""
 
     initialise_state()
 
@@ -877,7 +1207,7 @@ def main() -> None:
     st.markdown(
         """
         <p class="joey-subtitle">
-            An AI prototype for the Hey Joey app.
+            An AI chatbot prototype for the Hey Joey app.
         </p>
         """,
         unsafe_allow_html=True,
@@ -922,35 +1252,42 @@ def main() -> None:
     if mode != st.session_state.last_mode:
         st.session_state.last_mode = mode
 
-    current_response = (
-        st.session_state.record_response
+    history_key = (
+        "record_chat_history"
         if mode == "Record what happened"
-        else st.session_state.strategy_response
+        else "strategy_chat_history"
     )
 
-    render_joey_bubble(
-        current_response
+    history: list[dict[str, str]] = (
+        st.session_state[history_key]
     )
 
-    with st.form(
-        f"minimal_input_form_{mode}",
-        clear_on_submit=True,
+    with st.container(
+        key="chat_shell",
     ):
-        user_text = st.text_area(
-            "Message",
-            placeholder=(
-                "Describe what happened..."
-                if mode == "Record what happened"
-                else "Ask which strategy may help..."
-            ),
-            label_visibility="collapsed",
+        render_chat_history(
+            history
         )
 
-        submitted = st.form_submit_button(
-            "Send",
-            type="primary",
-            width="stretch",
-        )
+        with st.form(
+            f"chat_input_form_{mode}",
+            clear_on_submit=True,
+        ):
+            user_text = st.text_area(
+                "Message",
+                placeholder=(
+                    "Describe what happened..."
+                    if mode == "Record what happened"
+                    else "Ask which strategy may help..."
+                ),
+                label_visibility="collapsed",
+            )
+
+            submitted = st.form_submit_button(
+                "Send",
+                type="primary",
+                width="stretch",
+            )
 
     if submitted:
         clean_input = clean_text(
@@ -963,41 +1300,61 @@ def main() -> None:
             )
             return
 
+        # Keep the sender's message in the visible conversation.
+        history.append(
+            {
+                "role": "user",
+                "content": clean_input,
+            }
+        )
+
         try:
             if mode == "Record what happened":
-                st.session_state.record_response = (
-                    handle_record_input(
-                        clean_input
-                    )
+                assistant_messages = handle_record_input(
+                    clean_input
                 )
             else:
                 with st.spinner(
                     "Searching the approved local strategy library..."
                 ):
-                    st.session_state.strategy_response = (
+                    assistant_messages = [
                         build_strategy_response(
                             clean_input
                         )
-                    )
+                    ]
 
-            st.rerun()
+            for message in assistant_messages:
+                history.append(
+                    {
+                        "role": "assistant",
+                        "content": message,
+                    }
+                )
 
         except (
             ValueError,
             RuntimeError,
         ) as error:
             if mode == "Record what happened":
-                st.session_state.record_response = (
+                error_message = (
                     "I could not use that answer yet: "
                     f"{html.escape(str(error))}"
                 )
             else:
-                st.session_state.strategy_response = (
+                error_message = (
                     "I could not complete the strategy search: "
                     f"{html.escape(str(error))}"
                 )
 
-            st.rerun()
+            history.append(
+                {
+                    "role": "assistant",
+                    "content": error_message,
+                }
+            )
+
+        st.session_state[history_key] = history
+        st.rerun()
 
 
 if __name__ == "__main__":
