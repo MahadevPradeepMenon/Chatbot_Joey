@@ -1,6 +1,47 @@
 {
-  "evaluation_name": "Hey Joey rule-based versus semantic retrieval comparison",
+  "evaluation_name": "Hey Joey rule-based versus semantic versus hybrid retrieval comparison",
   "top_k": 3,
+  "case_count": 10,
+  "method_notes": {
+    "baseline": "Local deterministic rule-based strategy retrieval.",
+    "semantic": "Local sentence-embedding retrieval only.",
+    "hybrid": "Local semantic and BM25 retrieval combined with Reciprocal Rank Fusion."
+  },
+  "summaries": {
+    "baseline": {
+      "query_count": 10,
+      "hit_at_1": 3,
+      "hit_at_1_rate": 0.3,
+      "hit_at_3": 5,
+      "hit_at_3_rate": 0.5,
+      "mean_reciprocal_rank": 0.4,
+      "average_latency_seconds": 0.000938,
+      "average_results_returned": 1.9,
+      "errors": 0
+    },
+    "semantic": {
+      "query_count": 10,
+      "hit_at_1": 8,
+      "hit_at_1_rate": 0.8,
+      "hit_at_3": 9,
+      "hit_at_3_rate": 0.9,
+      "mean_reciprocal_rank": 0.8333,
+      "average_latency_seconds": 0.065338,
+      "average_results_returned": 3,
+      "errors": 0
+    },
+    "hybrid": {
+      "query_count": 10,
+      "hit_at_1": 7,
+      "hit_at_1_rate": 0.7,
+      "hit_at_3": 9,
+      "hit_at_3_rate": 0.9,
+      "mean_reciprocal_rank": 0.8,
+      "average_latency_seconds": 0.064551,
+      "average_results_returned": 3,
+      "errors": 0
+    }
+  },
   "baseline_summary": {
     "query_count": 10,
     "hit_at_1": 3,
@@ -8,7 +49,7 @@
     "hit_at_3": 5,
     "hit_at_3_rate": 0.5,
     "mean_reciprocal_rank": 0.4,
-    "average_latency_seconds": 0.000413,
+    "average_latency_seconds": 0.000938,
     "average_results_returned": 1.9,
     "errors": 0
   },
@@ -19,7 +60,18 @@
     "hit_at_3": 9,
     "hit_at_3_rate": 0.9,
     "mean_reciprocal_rank": 0.8333,
-    "average_latency_seconds": 0.026191,
+    "average_latency_seconds": 0.065338,
+    "average_results_returned": 3,
+    "errors": 0
+  },
+  "hybrid_summary": {
+    "query_count": 10,
+    "hit_at_1": 7,
+    "hit_at_1_rate": 0.7,
+    "hit_at_3": 9,
+    "hit_at_3_rate": 0.9,
+    "mean_reciprocal_rank": 0.8,
+    "average_latency_seconds": 0.064551,
     "average_results_returned": 3,
     "errors": 0
   },
@@ -27,6 +79,7 @@
     {
       "case_id": "friendship",
       "query": "My child wants friends but struggles to join games and keep conversations going with other children.",
+      "retrieval_query": "Original parent note: My child wants friends but struggles to join games and keep conversations going with other children.\nParent observation: Parent/carer observation recorded with limited structured detail.\nMood zone: Unknown\nAnxiety level: Unknown",
       "expected_keywords": [
         "friendship",
         "social skills",
@@ -34,31 +87,48 @@
       ],
       "baseline_first_relevant_rank": null,
       "semantic_first_relevant_rank": 3,
+      "hybrid_first_relevant_rank": 2,
       "baseline_hit_at_1": false,
       "semantic_hit_at_1": false,
+      "hybrid_hit_at_1": false,
       "baseline_hit_at_3": false,
       "semantic_hit_at_3": true,
-      "baseline_latency_seconds": 0.000538,
-      "semantic_latency_seconds": 0.03031,
+      "hybrid_hit_at_3": true,
+      "baseline_latency_seconds": 0.001285,
+      "semantic_latency_seconds": 0.052933,
+      "hybrid_latency_seconds": 0.051828,
       "baseline_result_count": 0,
       "semantic_result_count": 3,
+      "hybrid_result_count": 3,
       "baseline_titles": [],
       "semantic_titles": [
         "E2: Scaffolded Playdate Structure",
         "D1: Strength Spotting Daily Practice",
         "G2: Learning to Read and Respond to Disinterest Cues"
       ],
+      "hybrid_titles": [
+        "E2: Scaffolded Playdate Structure",
+        "G2: Learning to Read and Respond to Disinterest Cues",
+        "A3: Coaching Playground Entry Skills"
+      ],
       "semantic_sources": [
         "10. Managing Social Anxiety Collection.docx",
         "10. Managing Social Anxiety Collection.docx",
         "1 Complete_Friendship_Strategies_Collection_Revised.docx"
       ],
+      "hybrid_sources": [
+        "10. Managing Social Anxiety Collection.docx",
+        "1 Complete_Friendship_Strategies_Collection_Revised.docx",
+        "1 Complete_Friendship_Strategies_Collection_Revised.docx"
+      ],
       "baseline_error": null,
-      "semantic_error": null
+      "semantic_error": null,
+      "hybrid_error": null
     },
     {
       "case_id": "toilet_training",
       "query": "My child avoids using the toilet and becomes anxious when asked to sit on it.",
+      "retrieval_query": "Original parent note: My child avoids using the toilet and becomes anxious when asked to sit on it.\nParent observation: mood/signals: Anxious; possible triggers: toilet use or toileting routine.\nPossible triggers: toilet use or toileting routine\nMood: Anxious\nMood zone: Orange\nAnxiety level: Moderate\nActivity: toileting routine\nRelevant support categories: Behavioural Challenges & Emotional Regulation, Toilet Training",
       "expected_keywords": [
         "toilet training",
         "toileting",
@@ -66,14 +136,19 @@
       ],
       "baseline_first_relevant_rank": null,
       "semantic_first_relevant_rank": 1,
+      "hybrid_first_relevant_rank": 1,
       "baseline_hit_at_1": false,
       "semantic_hit_at_1": true,
+      "hybrid_hit_at_1": true,
       "baseline_hit_at_3": false,
       "semantic_hit_at_3": true,
-      "baseline_latency_seconds": 0.0004,
-      "semantic_latency_seconds": 0.0322,
+      "hybrid_hit_at_3": true,
+      "baseline_latency_seconds": 0.000724,
+      "semantic_latency_seconds": 0.052617,
+      "hybrid_latency_seconds": 0.0597,
       "baseline_result_count": 2,
       "semantic_result_count": 3,
+      "hybrid_result_count": 3,
       "baseline_titles": [
         "Emotional Regulation Support",
         "Transition and Routine Support"
@@ -83,31 +158,48 @@
         "B1: Overcoming Toilet Refusal and Fear (Ages 2-8)",
         "A2: Building Consistent Bathroom Routines (Ages 2-7)"
       ],
+      "hybrid_titles": [
+        "A2: Building Consistent Bathroom Routines (Ages 2-7)",
+        "D2: Handling Toilet Training During Life Changes (Ages 2-10)",
+        "B1: Overcoming Toilet Refusal and Fear (Ages 2-8)"
+      ],
       "semantic_sources": [
         "2 Toilet_Training_Collection_Revised.docx",
         "2 Toilet_Training_Collection_Revised.docx",
         "2 Toilet_Training_Collection_Revised.docx"
       ],
+      "hybrid_sources": [
+        "2 Toilet_Training_Collection_Revised.docx",
+        "2 Toilet_Training_Collection_Revised.docx",
+        "2 Toilet_Training_Collection_Revised.docx"
+      ],
       "baseline_error": null,
-      "semantic_error": null
+      "semantic_error": null,
+      "hybrid_error": null
     },
     {
       "case_id": "sensory_processing",
       "query": "My child covers their ears and becomes overwhelmed when the classroom is noisy.",
+      "retrieval_query": "Original parent note: My child covers their ears and becomes overwhelmed when the classroom is noisy.\nParent observation: mood/signals: Sensory discomfort; possible triggers: school transition or school-related demand, noise sensitivity.\nPossible triggers: school transition or school-related demand, noise sensitivity\nMood: Sensory discomfort\nMood zone: Orange\nAnxiety level: Moderate\nActivity: school-related routine\nEnvironment: school\nRelevant support categories: School Success & Academic Collaboration, Sensory Processing & Environmental Support",
       "expected_keywords": [
         "sensory processing",
         "sensory"
       ],
       "baseline_first_relevant_rank": 2,
       "semantic_first_relevant_rank": 1,
+      "hybrid_first_relevant_rank": 1,
       "baseline_hit_at_1": false,
       "semantic_hit_at_1": true,
+      "hybrid_hit_at_1": true,
       "baseline_hit_at_3": true,
       "semantic_hit_at_3": true,
-      "baseline_latency_seconds": 0.000387,
-      "semantic_latency_seconds": 0.030654,
+      "hybrid_hit_at_3": true,
+      "baseline_latency_seconds": 0.000901,
+      "semantic_latency_seconds": 0.068202,
+      "hybrid_latency_seconds": 0.101261,
       "baseline_result_count": 3,
       "semantic_result_count": 3,
+      "hybrid_result_count": 3,
       "baseline_titles": [
         "School Routine Support",
         "Sensory Processing Support",
@@ -118,17 +210,29 @@
         "B2: Managing Sensory Environment Proactively (Ages 2-15)",
         "D1: Learning Your Child's Unique Sensory Profile (Ages 2-15)"
       ],
+      "hybrid_titles": [
+        "A2: Recognizing Sensory Overload Before It Becomes a Meltdown (Ages 2-15)",
+        "D2: Teaching Your Child Sensory Self-Advocacy (Ages 4-15)",
+        "B1: Recognizing and Preventing Sensory Overload (Ages 2-15)"
+      ],
       "semantic_sources": [
         "4 Behavioral_Challenges_Collection_REVISED.docx",
         "4 Behavioral_Challenges_Collection_REVISED.docx",
         "3 Sensory_Processing_Collection_REVISED.docx"
       ],
+      "hybrid_sources": [
+        "4 Behavioral_Challenges_Collection_REVISED.docx",
+        "3 Sensory_Processing_Collection_REVISED.docx",
+        "3 Sensory_Processing_Collection_REVISED.docx"
+      ],
       "baseline_error": null,
-      "semantic_error": null
+      "semantic_error": null,
+      "hybrid_error": null
     },
     {
       "case_id": "behavioural_regulation",
       "query": "Small changes can lead to a major meltdown and my child finds it difficult to calm down.",
+      "retrieval_query": "Original parent note: Small changes can lead to a major meltdown and my child finds it difficult to calm down.\nParent observation: mood/signals: Meltdown, Calm/Positive; behaviours: meltdown; possible triggers: transition or unexpected change.\nBehaviours: meltdown\nPossible triggers: transition or unexpected change\nMood: Meltdown, Calm/Positive\nMood zone: Red\nAnxiety level: High\nRelevant support categories: Behavioural Challenges & Emotional Regulation, Executive Function & Organisation",
       "expected_keywords": [
         "behavioral challenges",
         "behavioural challenges",
@@ -137,14 +241,19 @@
       ],
       "baseline_first_relevant_rank": 1,
       "semantic_first_relevant_rank": 1,
+      "hybrid_first_relevant_rank": 1,
       "baseline_hit_at_1": true,
       "semantic_hit_at_1": true,
+      "hybrid_hit_at_1": true,
       "baseline_hit_at_3": true,
       "semantic_hit_at_3": true,
-      "baseline_latency_seconds": 0.000388,
-      "semantic_latency_seconds": 0.02886,
+      "hybrid_hit_at_3": true,
+      "baseline_latency_seconds": 0.000677,
+      "semantic_latency_seconds": 0.16717,
+      "hybrid_latency_seconds": 0.082787,
       "baseline_result_count": 2,
       "semantic_result_count": 3,
+      "hybrid_result_count": 3,
       "baseline_titles": [
         "Emotional Regulation Support",
         "Transition and Routine Support"
@@ -154,17 +263,29 @@
         "A3: Understanding Emotional Outbursts and Dysregulation (Ages 3-15)",
         "B1: Creating Predictable Structure and Routines (Ages 2-12)"
       ],
+      "hybrid_titles": [
+        "A3: Understanding Emotional Outbursts and Dysregulation (Ages 3-15)",
+        "B1: Creating Predictable Structure and Routines (Ages 2-12)",
+        "G2: Teaching Children About Their Own Emotional Patterns (Ages 5-15)"
+      ],
       "semantic_sources": [
         "4 Behavioral_Challenges_Collection_REVISED.docx",
         "4 Behavioral_Challenges_Collection_REVISED.docx",
         "4 Behavioral_Challenges_Collection_REVISED.docx"
       ],
+      "hybrid_sources": [
+        "4 Behavioral_Challenges_Collection_REVISED.docx",
+        "4 Behavioral_Challenges_Collection_REVISED.docx",
+        "4 Behavioral_Challenges_Collection_REVISED.docx"
+      ],
       "baseline_error": null,
-      "semantic_error": null
+      "semantic_error": null,
+      "hybrid_error": null
     },
     {
       "case_id": "crisis_management",
       "query": "My child is escalating quickly during a meltdown and I need a calm safety plan for what to do in the moment.",
+      "retrieval_query": "Original parent note: My child is escalating quickly during a meltdown and I need a calm safety plan for what to do in the moment.\nParent observation: mood/signals: Meltdown, Calm/Positive; behaviours: meltdown.\nBehaviours: meltdown\nMood: Meltdown, Calm/Positive\nMood zone: Red\nAnxiety level: High\nRelevant support categories: Behavioural Challenges & Emotional Regulation",
       "expected_keywords": [
         "crisis management",
         "immediate response",
@@ -173,14 +294,19 @@
       ],
       "baseline_first_relevant_rank": 2,
       "semantic_first_relevant_rank": 1,
+      "hybrid_first_relevant_rank": 1,
       "baseline_hit_at_1": false,
       "semantic_hit_at_1": true,
+      "hybrid_hit_at_1": true,
       "baseline_hit_at_3": true,
       "semantic_hit_at_3": true,
-      "baseline_latency_seconds": 0.00049,
-      "semantic_latency_seconds": 0.025486,
+      "hybrid_hit_at_3": true,
+      "baseline_latency_seconds": 0.000618,
+      "semantic_latency_seconds": 0.059239,
+      "hybrid_latency_seconds": 0.071375,
       "baseline_result_count": 2,
       "semantic_result_count": 3,
+      "hybrid_result_count": 3,
       "baseline_titles": [
         "Emotional Regulation Support",
         "Crisis and Safety Support"
@@ -190,17 +316,29 @@
         "C1: Immediate Response to Meltdowns (Ages 2-15)",
         "B2: Implementing the Crisis Prevention Window (Ages 3-18)"
       ],
+      "hybrid_titles": [
+        "C1: Immediate Response to Meltdowns (Ages 2-15)",
+        "B3: Using Crisis Alert Levels to Guide Response (Ages 3-18)",
+        "A1: Identifying Meltdowns vs. Tantrums (Ages 2-15)"
+      ],
       "semantic_sources": [
         "5 Crisis_Management_Collection_REVISED.docx",
         "4 Behavioral_Challenges_Collection_REVISED.docx",
         "5 Crisis_Management_Collection_REVISED.docx"
       ],
+      "hybrid_sources": [
+        "4 Behavioral_Challenges_Collection_REVISED.docx",
+        "5 Crisis_Management_Collection_REVISED.docx",
+        "4 Behavioral_Challenges_Collection_REVISED.docx"
+      ],
       "baseline_error": null,
-      "semantic_error": null
+      "semantic_error": null,
+      "hybrid_error": null
     },
     {
       "case_id": "hygiene",
       "query": "Brushing teeth and washing hair cause distress and resistance every day.",
+      "retrieval_query": "Original parent note: Brushing teeth and washing hair cause distress and resistance every day.\nParent observation: mood/signals: Distressed; possible triggers: hygiene or self-care difficulty.\nPossible triggers: hygiene or self-care difficulty\nMood: Distressed\nMood zone: Orange\nAnxiety level: High\nActivity: hygiene routine\nRelevant support categories: Behavioural Challenges & Emotional Regulation, Personal Hygiene & Self-Care",
       "expected_keywords": [
         "hygiene",
         "brushing teeth",
@@ -208,14 +346,19 @@
       ],
       "baseline_first_relevant_rank": null,
       "semantic_first_relevant_rank": 1,
+      "hybrid_first_relevant_rank": 1,
       "baseline_hit_at_1": false,
       "semantic_hit_at_1": true,
+      "hybrid_hit_at_1": true,
       "baseline_hit_at_3": false,
       "semantic_hit_at_3": true,
-      "baseline_latency_seconds": 0.000401,
-      "semantic_latency_seconds": 0.025799,
+      "hybrid_hit_at_3": true,
+      "baseline_latency_seconds": 0.000948,
+      "semantic_latency_seconds": 0.058777,
+      "hybrid_latency_seconds": 0.047961,
       "baseline_result_count": 2,
       "semantic_result_count": 3,
+      "hybrid_result_count": 3,
       "baseline_titles": [
         "Emotional Regulation Support",
         "Transition and Routine Support"
@@ -225,31 +368,48 @@
         "A1: Identifying the Root Cause of Hygiene Resistance (Ages 2-18)",
         "A3: Understanding Executive Function Barriers to Hygiene (Ages 5-18)"
       ],
+      "hybrid_titles": [
+        "A2: Recognizing Sensory Processing Issues in Hygiene (Ages 2-18)",
+        "A1: Identifying the Root Cause of Hygiene Resistance (Ages 2-18)",
+        "B2: Solving Hair Washing and Hair Care Resistance (Ages 2-18)"
+      ],
       "semantic_sources": [
         "6 Hygiene_Collection_REVISED.docx",
         "6 Hygiene_Collection_REVISED.docx",
         "6 Hygiene_Collection_REVISED.docx"
       ],
+      "hybrid_sources": [
+        "6 Hygiene_Collection_REVISED.docx",
+        "6 Hygiene_Collection_REVISED.docx",
+        "6 Hygiene_Collection_REVISED.docx"
+      ],
       "baseline_error": null,
-      "semantic_error": null
+      "semantic_error": null,
+      "hybrid_error": null
     },
     {
       "case_id": "sleep_bedtime",
       "query": "Bedtime takes a long time and my child repeatedly leaves the bedroom instead of settling to sleep.",
+      "retrieval_query": "Original parent note: Bedtime takes a long time and my child repeatedly leaves the bedroom instead of settling to sleep.\nParent observation: Evening entry; mood/signals: Tired.\nMood: Tired\nMood zone: Blue\nAnxiety level: Unknown\nActivity: mealtime\nEnvironment: home\nRelevant support categories: Sleep & Bedtime Routines, Eating & Mealtime Challenges",
       "expected_keywords": [
         "sleep",
         "bedtime"
       ],
       "baseline_first_relevant_rank": 1,
       "semantic_first_relevant_rank": 1,
+      "hybrid_first_relevant_rank": 1,
       "baseline_hit_at_1": true,
       "semantic_hit_at_1": true,
+      "hybrid_hit_at_1": true,
       "baseline_hit_at_3": true,
       "semantic_hit_at_3": true,
-      "baseline_latency_seconds": 0.000368,
-      "semantic_latency_seconds": 0.024186,
+      "hybrid_hit_at_3": true,
+      "baseline_latency_seconds": 0.00061,
+      "semantic_latency_seconds": 0.046056,
+      "hybrid_latency_seconds": 0.072429,
       "baseline_result_count": 3,
       "semantic_result_count": 3,
+      "hybrid_result_count": 3,
       "baseline_titles": [
         "Sleep and Bedtime Routine Support",
         "Eating and Mealtime Support",
@@ -260,17 +420,29 @@
         "A3: Managing Routine Disruptions and Transitions",
         "D2: Supporting Children Who \"Can't\" Fall Asleep"
       ],
+      "hybrid_titles": [
+        "A1: Establishing a Predictable Bedtime Routine",
+        "D1: Managing Sleep Resistance and Bedtime Battles",
+        "E1: Managing Night Wakings and Difficulty Returning to Sleep"
+      ],
       "semantic_sources": [
         "7 Sleep_Bedtime_Routines_Collection_First_Pass_Approved.docx",
         "7 Sleep_Bedtime_Routines_Collection_First_Pass_Approved.docx",
         "7 Sleep_Bedtime_Routines_Collection_First_Pass_Approved.docx"
       ],
+      "hybrid_sources": [
+        "7 Sleep_Bedtime_Routines_Collection_First_Pass_Approved.docx",
+        "7 Sleep_Bedtime_Routines_Collection_First_Pass_Approved.docx",
+        "7 Sleep_Bedtime_Routines_Collection_First_Pass_Approved.docx"
+      ],
       "baseline_error": null,
-      "semantic_error": null
+      "semantic_error": null,
+      "hybrid_error": null
     },
     {
       "case_id": "eating_mealtime",
       "query": "My child refuses unfamiliar foods and becomes distressed by food smells and textures.",
+      "retrieval_query": "Original parent note: My child refuses unfamiliar foods and becomes distressed by food smells and textures.\nParent observation: mood/signals: Distressed, Overwhelmed; possible triggers: food texture or mealtime difficulty, smell sensitivity or sensory overwhelm.\nPossible triggers: food texture or mealtime difficulty, smell sensitivity or sensory overwhelm\nMood: Distressed, Overwhelmed\nMood zone: Orange\nAnxiety level: High\nActivity: mealtime\nRelevant support categories: Behavioural Challenges & Emotional Regulation, Eating & Mealtime Challenges, Sensory Processing & Environmental Support",
       "expected_keywords": [
         "eating",
         "mealtime",
@@ -278,14 +450,19 @@
       ],
       "baseline_first_relevant_rank": 1,
       "semantic_first_relevant_rank": 1,
+      "hybrid_first_relevant_rank": 1,
       "baseline_hit_at_1": true,
       "semantic_hit_at_1": true,
+      "hybrid_hit_at_1": true,
       "baseline_hit_at_3": true,
       "semantic_hit_at_3": true,
-      "baseline_latency_seconds": 0.000391,
-      "semantic_latency_seconds": 0.027896,
+      "hybrid_hit_at_3": true,
+      "baseline_latency_seconds": 0.002103,
+      "semantic_latency_seconds": 0.07922,
+      "hybrid_latency_seconds": 0.08267,
       "baseline_result_count": 3,
       "semantic_result_count": 3,
+      "hybrid_result_count": 3,
       "baseline_titles": [
         "Eating and Mealtime Support",
         "Sensory Processing Support",
@@ -296,17 +473,29 @@
         "A1: Distinguishing Between Different Types of Eating Problems (Ages 1-18)",
         "B3: Addressing Texture Aversions Systematically (Ages 1-18)"
       ],
+      "hybrid_titles": [
+        "A2: Recognizing Sensory Processing Issues in Eating (Ages 1-18)",
+        "A1: Distinguishing Between Different Types of Eating Problems (Ages 1-18)",
+        "B3: Addressing Texture Aversions Systematically (Ages 1-18)"
+      ],
       "semantic_sources": [
         "8. Eating_Mealtime_Challenges_Collection.txt",
         "8. Eating_Mealtime_Challenges_Collection.txt",
         "8. Eating_Mealtime_Challenges_Collection.txt"
       ],
+      "hybrid_sources": [
+        "8. Eating_Mealtime_Challenges_Collection.txt",
+        "8. Eating_Mealtime_Challenges_Collection.txt",
+        "8. Eating_Mealtime_Challenges_Collection.txt"
+      ],
       "baseline_error": null,
-      "semantic_error": null
+      "semantic_error": null,
+      "hybrid_error": null
     },
     {
       "case_id": "communication",
       "query": "My child becomes frustrated because they cannot explain what they need and sometimes stops responding.",
+      "retrieval_query": "Original parent note: My child becomes frustrated because they cannot explain what they need and sometimes stops responding.\nParent observation: mood/signals: Frustrated/Upset.\nMood: Frustrated/Upset\nMood zone: Orange\nAnxiety level: Moderate",
       "expected_keywords": [
         "communication",
         "expressive language",
@@ -314,14 +503,19 @@
       ],
       "baseline_first_relevant_rank": null,
       "semantic_first_relevant_rank": null,
+      "hybrid_first_relevant_rank": null,
       "baseline_hit_at_1": false,
       "semantic_hit_at_1": false,
+      "hybrid_hit_at_1": false,
       "baseline_hit_at_3": false,
       "semantic_hit_at_3": false,
-      "baseline_latency_seconds": 0.000412,
-      "semantic_latency_seconds": 0.018534,
+      "hybrid_hit_at_3": false,
+      "baseline_latency_seconds": 0.000884,
+      "semantic_latency_seconds": 0.035883,
+      "hybrid_latency_seconds": 0.036263,
       "baseline_result_count": 1,
       "semantic_result_count": 3,
+      "hybrid_result_count": 3,
       "baseline_titles": [
         "Emotional Regulation Support"
       ],
@@ -330,17 +524,29 @@
         "D1: Building Emotional Vocabulary and Awareness (Ages 3-15)",
         "A3: Understanding Emotional Outbursts and Dysregulation (Ages 3-15)"
       ],
+      "hybrid_titles": [
+        "D2: Teaching the Zones of Regulation Framework (Ages 4-15)",
+        "A2: Recognizing Sensory Overload Before It Becomes a Meltdown (Ages 2-15)",
+        "G2: Teaching Children About Their Own Emotional Patterns (Ages 5-15)"
+      ],
       "semantic_sources": [
         "4 Behavioral_Challenges_Collection_REVISED.docx",
         "4 Behavioral_Challenges_Collection_REVISED.docx",
         "4 Behavioral_Challenges_Collection_REVISED.docx"
       ],
+      "hybrid_sources": [
+        "4 Behavioral_Challenges_Collection_REVISED.docx",
+        "4 Behavioral_Challenges_Collection_REVISED.docx",
+        "4 Behavioral_Challenges_Collection_REVISED.docx"
+      ],
       "baseline_error": null,
-      "semantic_error": null
+      "semantic_error": null,
+      "hybrid_error": null
     },
     {
       "case_id": "social_anxiety",
       "query": "My child becomes very nervous around other children and avoids joining social activities.",
+      "retrieval_query": "Original parent note: My child becomes very nervous around other children and avoids joining social activities.\nParent observation: mood/signals: Anxious.\nMood: Anxious\nMood zone: Orange\nAnxiety level: Moderate\nRelevant support categories: Behavioural Challenges & Emotional Regulation",
       "expected_keywords": [
         "social anxiety",
         "social situations",
@@ -348,14 +554,19 @@
       ],
       "baseline_first_relevant_rank": null,
       "semantic_first_relevant_rank": 1,
+      "hybrid_first_relevant_rank": 2,
       "baseline_hit_at_1": false,
       "semantic_hit_at_1": true,
+      "hybrid_hit_at_1": false,
       "baseline_hit_at_3": false,
       "semantic_hit_at_3": true,
-      "baseline_latency_seconds": 0.000351,
-      "semantic_latency_seconds": 0.017983,
+      "hybrid_hit_at_3": true,
+      "baseline_latency_seconds": 0.000633,
+      "semantic_latency_seconds": 0.033288,
+      "hybrid_latency_seconds": 0.039235,
       "baseline_result_count": 1,
       "semantic_result_count": 3,
+      "hybrid_result_count": 3,
       "baseline_titles": [
         "Emotional Regulation Support"
       ],
@@ -364,13 +575,24 @@
         "H2: Family Anxiety Management Review",
         "D2: Teaching the Zones of Regulation Framework (Ages 4-15)"
       ],
+      "hybrid_titles": [
+        "D2: Teaching the Zones of Regulation Framework (Ages 4-15)",
+        "D2: Graduated Social Challenges Ladder",
+        "E3: Community Exposure with Safety Net"
+      ],
       "semantic_sources": [
         "10. Managing Social Anxiety Collection.docx",
         "10. Managing Social Anxiety Collection.docx",
         "4 Behavioral_Challenges_Collection_REVISED.docx"
       ],
+      "hybrid_sources": [
+        "4 Behavioral_Challenges_Collection_REVISED.docx",
+        "10. Managing Social Anxiety Collection.docx",
+        "10. Managing Social Anxiety Collection.docx"
+      ],
       "baseline_error": null,
-      "semantic_error": null
+      "semantic_error": null,
+      "hybrid_error": null
     }
   ]
 }

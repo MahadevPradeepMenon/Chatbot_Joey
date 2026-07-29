@@ -62,7 +62,7 @@
       ],
       "required_risk_flags": [],
       "response_contains": [
-        "Relevant support areas"
+        "Relevant source-backed support strategies"
       ]
     }
   },
@@ -105,7 +105,7 @@
       "response_contains": [
         "risk of harm or injury",
         "seek urgent help",
-        "not treating this as an ordinary strategy recommendation"
+        "not treating it as an ordinary strategy request"
       ]
     }
   },

@@ -2,85 +2,243 @@
 
 ## Evaluation Purpose
 
-The purpose of this evaluation is to test the complete Joey MVP pipeline rather than evaluating only the extraction component.
+This evaluation assesses the completed Joey MVP as an integrated local decision-support system rather than evaluating only one component.
 
 The evaluated workflow is:
 
-`free-text observation → structured extraction → strategy retrieval → safety-aware response → parent/carer confirmation`
+`free-text observation → deterministic structured extraction → safety screening → context selection → local strategy retrieval → source-backed response → parent/carer confirmation → optional local save`
+
+The evaluation also covers the separate strategy-question workflow, multi-turn follow-up behaviour, synthetic context selection, history-aware ranking and the final Streamlit chatbot interface.
+
+---
+
+## System Scope
+
+Joey is a local prototype designed to support parents and carers of neurodivergent children.
+
+The MVP can:
+
+- accept a natural-language observation;
+- extract a structured journal draft;
+- identify missing information;
+- ask follow-up questions;
+- require parent/carer confirmation before saving;
+- search an approved local Hey Joey strategy library;
+- return source-backed support options;
+- apply safety restrictions when a note may involve harm or injury;
+- use synthetic profile, journal and strategy-history context;
+- modestly adjust close retrieval rankings using previous strategy feedback;
+- provide a browser-based Streamlit chatbot interface.
+
+Joey does not diagnose, prescribe treatment, replace professional advice or make final care decisions.
 
 ---
 
 ## Evaluation Data
 
-The end-to-end evaluation uses synthetic parent/carer-style observations.
+All evaluation cases used synthetic parent/carer-style observations and support questions.
 
-No real child or family records were used in these tests.
+No real child, parent, carer or family records were used.
 
-The cases cover:
+The evaluation datasets covered:
 
-- school-related anxiety
-- mealtime difficulty
-- sensory discomfort
-- sleep and tiredness
-- medication mentions
-- potential safety concerns
-- positive observations
+- school-related anxiety;
+- mealtime difficulty;
+- sensory discomfort;
+- sleep and tiredness;
+- friendship and social participation;
+- communication difficulty;
+- toilet training;
+- hygiene;
+- medication mentions;
+- potential safety concerns;
+- positive observations;
+- multi-turn follow-up and confirmation;
+- synthetic context selection;
+- history-aware strategy ranking.
 
 ---
 
 ## Components Evaluated
 
-The evaluation checks whether Joey:
+The evaluation tested whether Joey could:
 
-1. assigns the expected mood zone
-2. assigns a reasonable anxiety level
-3. identifies relevant strategy categories
-4. suggests relevant Quick Track fields
-5. detects medication and safety-sensitive wording
-6. produces the expected safety wording
-7. retrieves relevant strategy support
-8. requires parent/carer confirmation
+1. assign an expected mood zone;
+2. assign a reasonable anxiety level;
+3. identify relevant strategy categories;
+4. suggest relevant Quick Track fields;
+5. detect medication and safety-sensitive wording;
+6. block ordinary strategy retrieval when a safety concern is detected;
+7. retrieve relevant source-backed strategy evidence;
+8. require parent/carer confirmation before saving;
+9. update the same structured draft across multiple turns;
+10. exclude sensitive fields from synthetic retrieval context;
+11. use synthetic recent history and feedback without overwhelming the base retrieval ranking;
+12. maintain separate chat histories for the two Streamlit workflows.
 
 ---
 
-## Results
+## Regression Results
 
-Complete this section using the terminal results.
+### Python Compilation
 
-- Test cases passed: `__/6`
-- Individual checks passed: `__/__`
+The following command completed without compilation errors:
+
+`python -m compileall app rag safety evaluation`
+
+### Original End-to-End Evaluation
+
+- Test cases passed: **6/6**
+- Individual checks passed: **54/54**
+
+The six cases covered:
+
+- school and mealtime sensory difficulty;
+- sleep and school context;
+- noise sensitivity;
+- medication mention;
+- safety concern;
+- positive observation.
 
 Generated result files:
 
 - `evaluation/end_to_end_results.csv`
 - `evaluation/end_to_end_results.json`
 
+### Integrated Semantic Evaluation
+
+- Test cases passed: **7/7**
+- Individual checks passed: **63/63**
+
+The seven cases covered:
+
+- sensory noise;
+- sleep and bedtime;
+- social anxiety;
+- eating and mealtime;
+- toilet training;
+- communication;
+- self-injury safety handling.
+
+The self-injury case returned no ordinary strategy results and correctly activated safety-limited behaviour.
+
+Generated result files:
+
+- `evaluation/semantic_end_to_end_results.csv`
+- `evaluation/semantic_end_to_end_results.json`
+
+### Multi-Turn Conversation Evaluation
+
+- Tests passed: **3/3**
+
+Verified behaviours:
+
+- sensory follow-up handling;
+- environment and trigger follow-up handling;
+- confirmation-state handling.
+
+### Synthetic Context-Builder Evaluation
+
+- Tests passed: **4/4**
+
+Verified behaviours:
+
+- sensitive fields were excluded;
+- sensory questions selected relevant context;
+- sleep questions selected sleep-related context;
+- the final retrieval query contained both the current question and selected context.
+
+### History-Aware Personalisation Evaluation
+
+- Tests passed: **4/4**
+
+Verified behaviours:
+
+- an active strategy received a modest positive adjustment;
+- positive feedback could break a close ranking tie;
+- negative feedback reduced a strategy score;
+- an unseen strategy was described as new.
+
+---
+
+## Retrieval Comparison
+
+A shared ten-case synthetic dataset compared:
+
+1. the original deterministic rule-based retriever;
+2. local semantic-only retrieval;
+3. Hybrid semantic and BM25 retrieval using Reciprocal Rank Fusion.
+
+All three methods used the same queries, expected keywords and `top_k = 3` setting.
+
+| Retriever | Hit@1 | Hit@3 | Mean Reciprocal Rank | Average latency | Errors |
+|---|---:|---:|---:|---:|---:|
+| Rule-based | 3/10 | 5/10 | 0.4000 | 0.000938 seconds | 0 |
+| Semantic | 8/10 | 9/10 | 0.8333 | 0.065338 seconds | 0 |
+| Hybrid | 7/10 | 9/10 | 0.8000 | 0.064551 seconds | 0 |
+
+### Interpretation
+
+Both embedding-based approaches substantially outperformed the original rule-based baseline on the designed ten-case evaluation set.
+
+Semantic-only retrieval achieved the strongest rank-one performance and the highest Mean Reciprocal Rank.
+
+Hybrid retrieval matched semantic retrieval for top-three coverage but was slightly weaker at rank one on this dataset.
+
+This result shows that Hybrid RAG should be evaluated rather than assumed to be superior. Reciprocal Rank Fusion can promote results that perform strongly in both semantic and lexical retrieval, but this may also move an expected semantic result from first to second position.
+
+The application retains Hybrid retrieval because it combines semantic similarity with direct lexical evidence. However, the evaluation does not claim that Hybrid retrieval was empirically best on this particular synthetic test set.
+
+Detailed retrieval results are stored in:
+
+- `evaluation/retrieval_comparison_results.csv`
+- `evaluation/retrieval_comparison_results.json`
+- `evaluation/retrieval_comparison_evaluation.md`
+
 ---
 
 ## Successful Behaviours
 
-Complete this section after reviewing the results.
+The completed MVP demonstrated the following behaviours:
 
-Examples may include:
-
-- safety-sensitive entries were distinguished from ordinary observations
-- medication mentions triggered restricted medication wording
-- parent/carer confirmation was required in every case
-- sensory and emotional-regulation support areas were retrieved
-- structured records were generated consistently
+- structured records were generated consistently from natural-language observations;
+- the same draft could be updated across several follow-up turns;
+- parent/carer confirmation was required before saving;
+- medication mentions were recorded without giving dosage or medication-change advice;
+- safety-sensitive entries were distinguished from ordinary observations;
+- ordinary strategy retrieval was blocked when a safety concern was detected;
+- sensory, sleep, communication, social, eating and toileting strategy evidence could be retrieved from the approved local corpus;
+- source information was shown with strategy responses;
+- synthetic context excluded identifiers and medication details;
+- strategy-history feedback produced only modest ranking adjustments;
+- the final browser interface supported both observation recording and strategy questions;
+- Joey and sender messages were visually separated using chat-style speech bubbles;
+- each workflow maintained its own scrollable conversation history during the active Streamlit session.
 
 ---
 
-## Failed or Incomplete Behaviours
+## Final Streamlit Interface
 
-Complete this section honestly after reviewing failed checks.
+The final prototype presents only the user-facing controls required for the chatbot workflow:
 
-Possible examples include:
+1. **Record what happened**
+2. **Ask for a strategy**
+3. one message composer;
+4. the scrollable conversation;
+5. Joey’s source-backed or safety-limited response.
 
-- environment may be inferred incorrectly from contextual words
-- some mild entries may be classified too strongly
-- keyword matches may occur without full contextual understanding
-- the follow-up question may not always target the most important missing detail
+The interface includes:
+
+- the official Hey Joey logo;
+- a segmented workflow selector;
+- green Joey bubbles with white text;
+- white sender bubbles with dark text;
+- separate bubbles for follow-up questions and confirmation prompts;
+- a scrollable message history;
+- separate histories for both workflows;
+- a full-width message composer and Send button.
+
+The broader extraction, safety, context-selection, retrieval, ranking and save logic runs behind the interface.
 
 ---
 
@@ -88,34 +246,100 @@ Possible examples include:
 
 Joey is designed to:
 
-- avoid diagnosis
-- avoid medication recommendations
-- avoid claiming a certain cause
-- prioritise safety wording when risk is detected
-- require parent/carer confirmation before saving
+- avoid diagnosis;
+- avoid medication recommendations;
+- avoid dosage guidance;
+- avoid advising medication changes;
+- avoid claiming a certain cause;
+- use cautious support language;
+- prioritise safety wording when risk is detected;
+- suppress ordinary strategy retrieval for safety-sensitive entries;
+- require parent/carer confirmation before saving.
 
-Safety detection remains rule-based and cannot guarantee that every indirect risk phrase will be recognised.
+Safety detection remains deterministic and rule-based. It cannot guarantee that every indirect, unusual or ambiguous risk phrase will be recognised.
+
+The system should therefore be treated as a support-management prototype rather than an emergency, medical or safeguarding service.
+
+---
+
+## Privacy and Data Handling
+
+The prototype was developed and evaluated using synthetic data.
+
+The local context builder excludes:
+
+- names and direct identifiers;
+- medication details;
+- other fields not required for strategy retrieval.
+
+Confirmed records are currently saved locally rather than transmitted to a live Hey Joey database.
+
+Private runtime folders remain outside source control, including local records, processed strategy text, strategy chunks and generated indexes.
+
+---
+
+## Limitations
+
+The main limitations are:
+
+- evaluation datasets are small and synthetic;
+- relevance is assessed through predefined keyword matching rather than independent domain-expert judgements;
+- the deterministic extractor may miss unusual wording, negation or indirect context;
+- follow-up questions may not always target the most important missing detail;
+- the local safety rules cannot guarantee recognition of every risk expression;
+- retrieval latency depends on the local computer and model-loading state;
+- source-backed retrieval does not establish clinical effectiveness;
+- history-aware ranking is based on synthetic context rather than long-term real-world use;
+- chat history is retained in Streamlit session state and is not yet persistently stored;
+- confirmed records are saved locally as JSONL rather than through a production database;
+- no live Bubble, mobile-app or production Hey Joey integration was available;
+- no usability study with real parents, carers or professionals has yet been completed;
+- the prototype has not undergone production security, load, privacy-impact or deployment testing.
+
+---
+
+## Local Prototype and Future Product Integration
+
+The current system demonstrates the intended integration contract but is not connected to the live Hey Joey product.
+
+In a future product implementation:
+
+- confirmed structured records could feed Journal Entries;
+- mood, anxiety, behaviour and trigger fields could feed Weekly Insights;
+- approved Quick Track suggestions could populate tracking workflows;
+- strategy searches could use the supported person’s recent journal context;
+- strategy feedback could update future history-aware ranking;
+- confirmed data could be stored through a production database and permission model.
+
+The current synthetic context provider and local save process demonstrate how these components could connect without requiring access to live family data.
 
 ---
 
 ## Overall Interpretation
 
-The MVP demonstrates that a local, explainable pipeline can transform free-text parent/carer observations into structured records, retrieve relevant support areas, produce safety-aware wording, and preserve human confirmation.
+The completed MVP demonstrates that a local, explainable and safety-aware system can transform parent/carer observations into structured journal drafts, ask targeted follow-up questions, retrieve source-backed support strategies, incorporate limited synthetic context and preserve human confirmation.
 
-The system remains a prototype and should not be presented as a clinical, diagnostic, or production-ready tool.
+The final regression results show that the implemented workflows operate consistently across the predefined synthetic tests.
+
+The retrieval comparison also shows that semantic and Hybrid retrieval substantially improve top-three coverage over the original rule-based baseline. Semantic-only retrieval performed best on the current ten-case ranking test, while Hybrid retrieval remains the selected architecture because it combines semantic and lexical evidence.
+
+These results support the technical feasibility of Joey as a local support-management subsystem. They do not establish clinical effectiveness, universal retrieval accuracy or production readiness.
 
 ---
 
 ## Future Work
 
-Future improvements should include:
+Recommended future work includes:
 
-- field-by-field parent editing
-- better context and negation handling
-- evaluation by domain experts
-- a larger and more varied synthetic test set
-- use of approved Hey Joey strategy documents
-- embedding-based semantic retrieval
-- a web interface
-- logging and monitoring
-- privacy and deployment testing
+1. replacing or supplementing JSONL storage with a local SQLite integration;
+2. feeding confirmed fields into local Weekly Insights calculations;
+3. adding a retrieval-confidence threshold and a clear “no sufficiently relevant source found” response;
+4. collecting structured strategy feedback through the chatbot;
+5. storing chat sessions persistently;
+6. implementing a formal profile and journal-context adapter for future Hey Joey integration;
+7. expanding the synthetic datasets and obtaining domain-expert relevance judgements;
+8. conducting an approved usability evaluation;
+9. adding FastAPI, Docker, structured logging and deployment health checks;
+10. completing production privacy, security and monitoring assessments.
+
+A local generative model could later be tested as a controlled response-rewriting component, but the deterministic and source-backed system should remain responsible for safety, retrieval evidence and final validation.
