@@ -19,6 +19,9 @@ from rag.history_aware_strategy_service import (
     HistoryAwareStrategyService,
 )
 from safety.safety_guard import should_limit_strategy_suggestions
+from storage.database import (
+    save_confirmed_record as save_confirmed_record_to_database,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -519,8 +522,13 @@ def initialise_state() -> None:
 
 def save_confirmed_session(
     session: JoeyConversationSession,
-) -> None:
-    """Write a confirmed record locally in the background."""
+) -> int:
+    """
+    Save a confirmed record to SQLite and retain JSONL as a backup.
+
+    Nothing is stored unless the parent or carer has explicitly
+    confirmed the current draft.
+    """
 
     if session.status != ConversationStatus.confirmed:
         raise ValueError("The draft has not been confirmed.")
@@ -530,20 +538,34 @@ def save_confirmed_session(
         exist_ok=True,
     )
 
+    saved_at = datetime.now().isoformat(
+        timespec="seconds"
+    )
+    source = "streamlit_speech_bubble_interface"
+
+    conversation_history = [
+        {
+            "question": turn.question,
+            "answer": turn.answer,
+            "field_name": turn.field_name,
+        }
+        for turn in session.history
+    ]
+
+    database_entry_id = save_confirmed_record_to_database(
+        record=session.current_record,
+        original_note=session.original_note,
+        conversation_history=conversation_history,
+        source=source,
+        saved_at=saved_at,
+    )
+
     saved_item = {
-        "saved_at": datetime.now().isoformat(
-            timespec="seconds"
-        ),
-        "source": "streamlit_speech_bubble_interface",
+        "database_entry_id": database_entry_id,
+        "saved_at": saved_at,
+        "source": source,
         "original_note": session.original_note,
-        "conversation_history": [
-            {
-                "question": turn.question,
-                "answer": turn.answer,
-                "field_name": turn.field_name,
-            }
-            for turn in session.history
-        ],
+        "conversation_history": conversation_history,
         "structured_record": (
             session.current_record.model_dump(
                 mode="json"
@@ -562,6 +584,8 @@ def save_confirmed_session(
             )
             + "\n"
         )
+
+    return database_entry_id
 
 
 def clean_text(
@@ -923,12 +947,13 @@ def handle_record_input(
 
             return [
                 (
-                    "The journal entry has been confirmed and recorded."
+                    "The journal entry has been confirmed and "
+                    "stored locally."
                 ),
                 (
                     "Its structured information is now available "
-                    "in the background for the Journal Entries and "
-                    "Insights integration layer."
+                    "in the local Joey database for the Journal "
+                    "Entries and Insights integration layer."
                 ),
             ]
 
