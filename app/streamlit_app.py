@@ -26,6 +26,11 @@ from safety.safety_guard import should_limit_strategy_suggestions
 from storage.database import (
     save_confirmed_record as save_confirmed_record_to_database,
 )
+from storage.strategy_feedback import (
+    feedback_label,
+    save_strategy_feedback,
+    save_strategy_search,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -482,6 +487,7 @@ def initialise_state() -> None:
         "record_session": None,
         "last_mode": "Record what happened",
         "workflow_mode": "Record what happened",
+        "pending_strategy_feedback": None,
     }
 
     for key, value in defaults.items():
@@ -1008,10 +1014,134 @@ def clean_strategy_title(
     ).strip()
 
 
+STRATEGY_FEEDBACK_PATTERN = re.compile(
+    r"^\s*(\d+)\s*[-:.)]?\s*"
+    r"(worked well|helped somewhat|not relevant|"
+    r"did not work well)\s*$",
+    flags=re.IGNORECASE,
+)
+
+
+def parse_strategy_feedback(
+    value: str,
+) -> tuple[int, str] | None:
+    """Parse feedback such as '1 worked well' from the chat box."""
+
+    match = STRATEGY_FEEDBACK_PATTERN.fullmatch(
+        clean_text(value)
+    )
+
+    if match is None:
+        return None
+
+    strategy_rank = int(
+        match.group(1)
+    )
+    rating = clean_text(
+        match.group(2)
+    ).lower()
+
+    return strategy_rank, rating
+
+
+def build_strategy_feedback_prompt(
+    strategy_count: int,
+) -> str:
+    """Explain how to record feedback without adding extra UI controls."""
+
+    strategy_word = (
+        "strategy"
+        if strategy_count == 1
+        else "strategies"
+    )
+
+    return (
+        f"I displayed {strategy_count} {strategy_word}. "
+        "To record feedback, reply with the strategy number and "
+        "one of: <strong>worked well</strong>, "
+        "<strong>helped somewhat</strong>, "
+        "<strong>not relevant</strong>, or "
+        "<strong>did not work well</strong>. "
+        "For example: <strong>1 worked well</strong>. "
+        "You can also ask another strategy question."
+    )
+
+
+def handle_strategy_feedback_input(
+    value: str,
+) -> list[str] | None:
+    """
+    Save an explicit feedback command.
+
+    Return None when the message is a new strategy question rather than
+    a feedback command.
+    """
+
+    parsed = parse_strategy_feedback(
+        value
+    )
+
+    if parsed is None:
+        return None
+
+    strategy_rank, rating = parsed
+    pending = st.session_state.get(
+        "pending_strategy_feedback"
+    )
+
+    if not isinstance(
+        pending,
+        dict,
+    ):
+        return [
+            (
+                "There is no recent strategy search available for "
+                "feedback. Ask for a strategy first."
+            )
+        ]
+
+    search_id = int(
+        pending["search_id"]
+    )
+    strategy_count = int(
+        pending["strategy_count"]
+    )
+
+    if strategy_rank > strategy_count:
+        return [
+            (
+                f"That search displayed {strategy_count} "
+                f"{'strategy' if strategy_count == 1 else 'strategies'}. "
+                "Please use one of the displayed strategy numbers."
+            )
+        ]
+
+    save_strategy_feedback(
+        search_id=search_id,
+        strategy_rank=strategy_rank,
+        rating=rating,
+    )
+
+    return [
+        (
+            "I recorded your feedback for strategy "
+            f"{strategy_rank} as "
+            f"<strong>{html.escape(feedback_label(rating))}</strong>."
+        ),
+        (
+            "You can rate another strategy from the same response "
+            "or ask a new strategy question."
+        ),
+    ]
+
+
 def build_strategy_response(
     question: str,
 ) -> str:
     """Return a readable answer and source-backed strategies."""
+
+    # A new question replaces the previously pending feedback target.
+    st.session_state.pending_strategy_feedback = None
 
     screening_record = extract_structured_record(
         question
@@ -1042,6 +1172,19 @@ def build_strategy_response(
 
     if confidence_decision.should_abstain:
         return build_abstention_message()
+
+    search_id = save_strategy_search(
+        question=question,
+        retrieval_query=result.retrieval_query,
+        evidence=result.evidence,
+        confidence_level=confidence_decision.level.value,
+        source="streamlit_chat_interface",
+    )
+
+    st.session_state.pending_strategy_feedback = {
+        "search_id": search_id,
+        "strategy_count": len(result.evidence),
+    }
 
     titles = [
         clean_strategy_title(
@@ -1345,14 +1488,45 @@ def main() -> None:
                     clean_input
                 )
             else:
-                with st.spinner(
-                    "Searching the approved local strategy library..."
-                ):
-                    assistant_messages = [
-                        build_strategy_response(
-                            clean_input
+                feedback_messages = (
+                    handle_strategy_feedback_input(
+                        clean_input
+                    )
+                )
+
+                if feedback_messages is not None:
+                    assistant_messages = feedback_messages
+                else:
+                    with st.spinner(
+                        "Searching the approved local strategy library..."
+                    ):
+                        strategy_response = (
+                            build_strategy_response(
+                                clean_input
+                            )
                         )
+
+                    assistant_messages = [
+                        strategy_response
                     ]
+
+                    pending = st.session_state.get(
+                        "pending_strategy_feedback"
+                    )
+
+                    if isinstance(
+                        pending,
+                        dict,
+                    ):
+                        assistant_messages.append(
+                            build_strategy_feedback_prompt(
+                                int(
+                                    pending[
+                                        "strategy_count"
+                                    ]
+                                )
+                            )
+                        )
 
             for message in assistant_messages:
                 history.append(
