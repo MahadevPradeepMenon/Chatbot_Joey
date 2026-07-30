@@ -18,6 +18,10 @@ from app.extractor import extract_structured_record
 from rag.history_aware_strategy_service import (
     HistoryAwareStrategyService,
 )
+from rag.retrieval_confidence import (
+    assess_retrieval_confidence,
+    build_abstention_message,
+)
 from safety.safety_guard import should_limit_strategy_suggestions
 from storage.database import (
     save_confirmed_record as save_confirmed_record_to_database,
@@ -1031,11 +1035,13 @@ def build_strategy_response(
         candidate_pool=6,
     )
 
-    if not result.evidence:
-        return (
-            "I could not find a sufficiently relevant strategy "
-            "in the current approved local collection."
-        )
+    confidence_decision = assess_retrieval_confidence(
+        question=question,
+        evidence=result.evidence,
+    )
+
+    if confidence_decision.should_abstain:
+        return build_abstention_message()
 
     titles = [
         clean_strategy_title(
