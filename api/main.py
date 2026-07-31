@@ -12,6 +12,7 @@ from api.dependencies import (
     initialise_local_storage,
     resolve_database_path,
 )
+from api.routers.record import router as record_router
 from api.routers.system import router as system_router
 
 
@@ -75,6 +76,9 @@ def create_app(
 
     application.include_router(
         system_router
+    )
+    application.include_router(
+        record_router
     )
 
     return application
