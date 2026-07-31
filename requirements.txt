@@ -4,5 +4,8 @@ openpyxl
 python-docx
 pypdf
 sentence-transformers
-numpy 
+numpy
 streamlit
+fastapi
+uvicorn[standard]
+httpx
