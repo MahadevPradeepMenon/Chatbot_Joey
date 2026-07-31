@@ -13,6 +13,7 @@ from api.dependencies import (
     resolve_database_path,
 )
 from api.routers.record import router as record_router
+from api.routers.strategies import router as strategies_router
 from api.routers.system import router as system_router
 
 
@@ -23,6 +24,7 @@ API_VERSION = "v1"
 
 def create_app(
     database_path: str | Path | None = None,
+    strategy_service_factory: object | None = None,
 ) -> FastAPI:
     """Create an independently configurable Hey Joey API instance."""
 
@@ -73,12 +75,18 @@ def create_app(
     application.state.application_version = (
         APPLICATION_VERSION
     )
+    application.state.strategy_service_factory = (
+        strategy_service_factory
+    )
 
     application.include_router(
         system_router
     )
     application.include_router(
         record_router
+    )
+    application.include_router(
+        strategies_router
     )
 
     return application

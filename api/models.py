@@ -187,3 +187,212 @@ class RecordSessionResponse(BaseModel):
     metadata: dict[str, Any] = Field(
         default_factory=dict
     )
+
+
+class StrategySearchRequest(_CleanTextRequest):
+    """One parent/carer question for the approved strategy library."""
+
+    question: str = Field(
+        min_length=1,
+        max_length=10_000,
+        description="Natural-language strategy question.",
+    )
+    top_k: int = Field(
+        default=3,
+        ge=1,
+        le=5,
+        description="Maximum number of source-backed strategies to return.",
+    )
+
+    @field_validator("question")
+    @classmethod
+    def validate_question(
+        cls,
+        value: str,
+    ) -> str:
+        clean = cls._clean(
+            value
+        )
+
+        if not clean:
+            raise ValueError(
+                "The strategy question cannot be empty."
+            )
+
+        return clean
+
+
+class StrategyFeedbackRequest(_CleanTextRequest):
+    """Explicit feedback for one strategy displayed by an accepted search."""
+
+    search_id: int = Field(
+        ge=1,
+        description="Accepted strategy-search identifier.",
+    )
+    strategy_rank: int = Field(
+        ge=1,
+        description="Display rank returned by the search endpoint.",
+    )
+    rating: Literal[
+        "worked_well",
+        "helped_somewhat",
+        "not_relevant",
+        "did_not_work_well",
+    ]
+    comment: str | None = Field(
+        default=None,
+        max_length=2_000,
+        description="Optional local note about the strategy outcome.",
+    )
+
+    @field_validator("comment")
+    @classmethod
+    def validate_comment(
+        cls,
+        value: str | None,
+    ) -> str | None:
+        if value is None:
+            return None
+
+        clean = cls._clean(
+            value
+        )
+        return clean or None
+
+
+class StrategyConfidenceResponse(BaseModel):
+    """Explainable retrieval-confidence decision."""
+
+    level: Literal[
+        "strong",
+        "moderate",
+        "weak",
+    ]
+    should_abstain: bool
+    reason: str | None = None
+    query_token_count: int | None = Field(
+        default=None,
+        ge=0,
+    )
+    evidence_count: int | None = Field(
+        default=None,
+        ge=0,
+    )
+    top_original_score: float | None = Field(
+        default=None,
+        ge=0.0,
+    )
+    top_overlap_count: int | None = Field(
+        default=None,
+        ge=0,
+    )
+    top_overlap_ratio: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+    )
+    overlapping_evidence_count: int | None = Field(
+        default=None,
+        ge=0,
+    )
+
+
+class StrategyContextResponse(BaseModel):
+    """Minimal confirmed context selected for a strategy question."""
+
+    detected_topics: list[str] = Field(
+        default_factory=list
+    )
+    profile_items: list[str] = Field(
+        default_factory=list
+    )
+    journal_items: list[str] = Field(
+        default_factory=list
+    )
+    quick_track_items: list[str] = Field(
+        default_factory=list
+    )
+    active_strategy_items: list[str] = Field(
+        default_factory=list
+    )
+    omitted_sensitive_fields: list[str] = Field(
+        default_factory=list
+    )
+
+
+class StrategyEvidenceResponse(BaseModel):
+    """One source-backed strategy with transparent history adjustment."""
+
+    rank: int = Field(ge=1)
+    original_rank: int = Field(ge=1)
+    original_score: float = Field(ge=0.0)
+    history_adjustment: float
+    personalised_score: float
+    strategy_code: str | None = None
+    strategy_title: str | None = None
+    collection_title: str
+    source_file: str
+    theme: str | None = None
+    chunk_id: str
+    passage: str
+    lifecycle_status: str
+    latest_outcome: str
+    times_used: int = Field(ge=0)
+    history_note: str
+
+
+class StrategyFeedbackResponse(BaseModel):
+    """One persisted feedback record for a displayed strategy."""
+
+    feedback_id: int = Field(ge=1)
+    search_id: int = Field(ge=1)
+    strategy_rank: int = Field(ge=1)
+    strategy_code: str | None = None
+    strategy_title: str | None = None
+    collection_title: str
+    source_file: str
+    rating: Literal[
+        "worked_well",
+        "helped_somewhat",
+        "not_relevant",
+        "did_not_work_well",
+    ]
+    rating_label: str
+    comment: str | None = None
+    created_at: str
+
+
+class StrategySearchResponse(BaseModel):
+    """Complete result of a strategy search or safety abstention."""
+
+    outcome: Literal[
+        "results",
+        "abstained",
+        "safety_limited",
+    ]
+    search_id: int | None = Field(
+        default=None,
+        ge=1,
+    )
+    question: str
+    retrieval_query: str | None = None
+    message: str
+    safety_notice: str | None = None
+    confidence: StrategyConfidenceResponse | None = None
+    context: StrategyContextResponse | None = None
+    strategies: list[StrategyEvidenceResponse] = Field(
+        default_factory=list
+    )
+    feedback: list[StrategyFeedbackResponse] = Field(
+        default_factory=list
+    )
+    strategy_count: int = Field(ge=0)
+    can_submit_feedback: bool
+    created_at: str | None = None
+
+
+class StrategyFeedbackSubmissionResponse(BaseModel):
+    """Acknowledgement of an inserted or updated feedback record."""
+
+    message: str
+    feedback: StrategyFeedbackResponse

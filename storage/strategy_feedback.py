@@ -416,6 +416,37 @@ def _evidence_dict(
             ),
             "evidence.passage",
         ),
+        "lifecycle_status": _optional_text(
+            getattr(
+                item,
+                "lifecycle_status",
+                None,
+            )
+        ) or "not_active",
+        "latest_outcome": _optional_text(
+            getattr(
+                item,
+                "latest_outcome",
+                None,
+            )
+        ) or "not_recorded",
+        "times_used": max(
+            int(
+                getattr(
+                    item,
+                    "times_used",
+                    0,
+                )
+            ),
+            0,
+        ),
+        "history_note": _optional_text(
+            getattr(
+                item,
+                "history_note",
+                None,
+            )
+        ) or "Stored accepted strategy evidence.",
     }
 
 
