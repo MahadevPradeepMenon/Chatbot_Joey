@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import os
 from typing import Any, Mapping, Sequence
 
 import httpx
+
+from app.settings import load_settings
 
 
 DEFAULT_API_BASE_URL = "http://127.0.0.1:8000"
@@ -52,10 +53,7 @@ def resolve_api_base_url(
     raw_value = (
         value
         if value is not None
-        else os.getenv(
-            "HEY_JOEY_API_URL",
-            DEFAULT_API_BASE_URL,
-        )
+        else load_settings().api_base_url
     )
     clean = str(raw_value or "").strip().rstrip("/")
 

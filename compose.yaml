@@ -23,8 +23,17 @@ services:
       - --workers
       - "1"
     ports:
-      - "${HEY_JOEY_API_PORT:-8000}:8000"
+      - "${HEY_JOEY_API_BIND_HOST:-127.0.0.1}:${HEY_JOEY_API_PORT:-8000}:8000"
     environment:
+      HEY_JOEY_ENVIRONMENT: "${HEY_JOEY_ENVIRONMENT:-local}"
+      HEY_JOEY_DEMO_MODE: "${HEY_JOEY_DEMO_MODE:-false}"
+      HEY_JOEY_DATA_POLICY: "${HEY_JOEY_DATA_POLICY:-local_private}"
+      HEY_JOEY_ALLOW_PRIVATE_DATA: "${HEY_JOEY_ALLOW_PRIVATE_DATA:-false}"
+      HEY_JOEY_DATA_DIR: /app/data
+      HEY_JOEY_DATABASE_PATH: /app/data/local/joey.db
+      HEY_JOEY_LOG_LEVEL: "${HEY_JOEY_LOG_LEVEL:-INFO}"
+      HEY_JOEY_LOG_FORMAT: "${HEY_JOEY_LOG_FORMAT:-text}"
+      HEY_JOEY_DOCS_ENABLED: "${HEY_JOEY_DOCS_ENABLED:-true}"
       HF_HOME: /opt/huggingface
       HF_HUB_DISABLE_TELEMETRY: "1"
       TOKENIZERS_PARALLELISM: "false"
@@ -61,9 +70,16 @@ services:
       - --server.headless=true
       - --browser.gatherUsageStats=false
     ports:
-      - "${HEY_JOEY_FRONTEND_PORT:-8501}:8501"
+      - "${HEY_JOEY_FRONTEND_BIND_HOST:-127.0.0.1}:${HEY_JOEY_FRONTEND_PORT:-8501}:8501"
     environment:
       HEY_JOEY_API_URL: http://api:8000
+      HEY_JOEY_ENVIRONMENT: "${HEY_JOEY_ENVIRONMENT:-local}"
+      HEY_JOEY_DEMO_MODE: "${HEY_JOEY_DEMO_MODE:-false}"
+      HEY_JOEY_DATA_POLICY: "${HEY_JOEY_DATA_POLICY:-local_private}"
+      HEY_JOEY_ALLOW_PRIVATE_DATA: "${HEY_JOEY_ALLOW_PRIVATE_DATA:-false}"
+      HEY_JOEY_LOG_LEVEL: "${HEY_JOEY_LOG_LEVEL:-INFO}"
+      HEY_JOEY_LOG_FORMAT: "${HEY_JOEY_LOG_FORMAT:-text}"
+      HEY_JOEY_DOCS_ENABLED: "${HEY_JOEY_DOCS_ENABLED:-true}"
     depends_on:
       api:
         condition: service_healthy

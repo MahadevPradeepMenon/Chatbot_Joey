@@ -8,13 +8,11 @@ from pathlib import Path
 
 from fastapi import Request
 
+from app.settings import get_settings
 from storage.conversation_storage import (
     create_conversation_tables,
 )
-from storage.database import (
-    DEFAULT_DATABASE_PATH,
-    create_database,
-)
+from storage.database import create_database
 from storage.strategy_feedback import (
     create_strategy_feedback_tables,
 )
@@ -47,7 +45,7 @@ def resolve_database_path(
     """Return the configured SQLite path without creating it."""
 
     if database_path is None:
-        return DEFAULT_DATABASE_PATH
+        return get_settings().database_path
 
     return Path(database_path)
 

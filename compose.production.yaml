@@ -1,0 +1,56 @@
+services:
+  api:
+    restart: always
+    cpus: "${HEY_JOEY_API_CPUS:-2.0}"
+    mem_limit: "${HEY_JOEY_API_MEMORY_LIMIT:-2g}"
+    pids_limit: 256
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "${HEY_JOEY_LOG_MAX_SIZE:-10m}"
+        max-file: "${HEY_JOEY_LOG_MAX_FILES:-3}"
+    environment:
+      HEY_JOEY_ENVIRONMENT: production
+      HEY_JOEY_DEMO_MODE: "${HEY_JOEY_DEMO_MODE:-true}"
+      HEY_JOEY_DATA_POLICY: "${HEY_JOEY_DATA_POLICY:-synthetic_only}"
+      HEY_JOEY_ALLOW_PRIVATE_DATA: "${HEY_JOEY_ALLOW_PRIVATE_DATA:-false}"
+      HEY_JOEY_DATA_DIR: /app/data
+      HEY_JOEY_DATABASE_PATH: /app/data/local/joey.db
+      HEY_JOEY_LOG_LEVEL: "${HEY_JOEY_LOG_LEVEL:-INFO}"
+      HEY_JOEY_LOG_FORMAT: "${HEY_JOEY_LOG_FORMAT:-json}"
+      HEY_JOEY_DOCS_ENABLED: "${HEY_JOEY_DOCS_ENABLED:-false}"
+    volumes:
+      - type: volume
+        source: joey_production_data
+        target: /app/data
+
+  frontend:
+    restart: always
+    cpus: "${HEY_JOEY_FRONTEND_CPUS:-1.0}"
+    mem_limit: "${HEY_JOEY_FRONTEND_MEMORY_LIMIT:-1g}"
+    pids_limit: 128
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "${HEY_JOEY_LOG_MAX_SIZE:-10m}"
+        max-file: "${HEY_JOEY_LOG_MAX_FILES:-3}"
+    environment:
+      HEY_JOEY_API_URL: http://api:8000
+      HEY_JOEY_ENVIRONMENT: production
+      HEY_JOEY_DEMO_MODE: "${HEY_JOEY_DEMO_MODE:-true}"
+      HEY_JOEY_DATA_POLICY: "${HEY_JOEY_DATA_POLICY:-synthetic_only}"
+      HEY_JOEY_ALLOW_PRIVATE_DATA: "${HEY_JOEY_ALLOW_PRIVATE_DATA:-false}"
+      HEY_JOEY_LOG_LEVEL: "${HEY_JOEY_LOG_LEVEL:-INFO}"
+      HEY_JOEY_LOG_FORMAT: "${HEY_JOEY_LOG_FORMAT:-json}"
+      HEY_JOEY_DOCS_ENABLED: "${HEY_JOEY_DOCS_ENABLED:-false}"
+
+volumes:
+  joey_production_data:

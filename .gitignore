@@ -224,4 +224,17 @@ data/indexes/
 # Streamlit
 .streamlit/secrets.toml
 
-
+# BEGIN HEY JOEY PRIVATE RUNTIME DATA
+.env
+.env.*
+!.env.example
+!.env.production.example
+data/local/
+data/private/
+*.db
+*.sqlite
+*.sqlite3
+*.pem
+*.key
+stage7c_context.zip
+# END HEY JOEY PRIVATE RUNTIME DATA

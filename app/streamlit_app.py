@@ -12,6 +12,7 @@ from app.api_client import (
     HeyJoeyApiError,
     InvalidApiResponseError,
 )
+from app.settings import get_settings
 from app.streamlit_api_adapter import (
     RECORD_GREETING,
     RESET_GREETING,
@@ -1005,6 +1006,15 @@ def main() -> None:
         """,
         unsafe_allow_html=True,
     )
+
+    settings = get_settings()
+
+    if settings.synthetic_only:
+        st.warning(
+            "Synthetic demonstration mode is active. Do not enter "
+            "real names, contact details, school details, medical "
+            "identifiers or other private family information."
+        )
 
     backend_error = st.session_state.get(
         "backend_error"
