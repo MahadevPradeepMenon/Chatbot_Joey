@@ -396,3 +396,127 @@ class StrategyFeedbackSubmissionResponse(BaseModel):
 
     message: str
     feedback: StrategyFeedbackResponse
+
+
+class FrontendConversationCreateRequest(_CleanTextRequest):
+    """Create a persistent UI conversation placeholder."""
+
+    workflow: Literal[
+        "record_observation",
+        "ask_strategy",
+    ]
+    greeting: str = Field(
+        min_length=1,
+        max_length=5_000,
+    )
+    metadata: dict[str, Any] = Field(
+        default_factory=dict
+    )
+
+    @field_validator("greeting")
+    @classmethod
+    def validate_greeting(
+        cls,
+        value: str,
+    ) -> str:
+        clean = cls._clean(
+            value
+        )
+
+        if not clean:
+            raise ValueError(
+                "The conversation greeting cannot be empty."
+            )
+
+        return clean
+
+
+class FrontendConversationExchangeRequest(_CleanTextRequest):
+    """Persist one frontend user message and Joey response sequence."""
+
+    user_content: str = Field(
+        min_length=1,
+        max_length=10_000,
+    )
+    user_message_type: str = Field(
+        min_length=1,
+        max_length=100,
+    )
+    assistant_messages: list[str] = Field(
+        min_length=1,
+        max_length=10,
+    )
+    assistant_message_type: str = Field(
+        min_length=1,
+        max_length=100,
+    )
+    metadata: dict[str, Any] | None = None
+
+    @field_validator(
+        "user_content",
+        "user_message_type",
+        "assistant_message_type",
+    )
+    @classmethod
+    def validate_required_text(
+        cls,
+        value: str,
+    ) -> str:
+        clean = cls._clean(
+            value
+        )
+
+        if not clean:
+            raise ValueError(
+                "Conversation exchange text cannot be empty."
+            )
+
+        return clean
+
+    @field_validator("assistant_messages")
+    @classmethod
+    def validate_assistant_messages(
+        cls,
+        values: list[str],
+    ) -> list[str]:
+        cleaned = [
+            cls._clean(value)
+            for value in values
+        ]
+
+        if any(
+            not value
+            for value in cleaned
+        ):
+            raise ValueError(
+                "Assistant messages cannot be empty."
+            )
+
+        return cleaned
+
+
+class FrontendConversationResponse(BaseModel):
+    """Persistent conversation state used by the Streamlit client."""
+
+    session_id: int = Field(ge=1)
+    workflow: Literal[
+        "record_observation",
+        "ask_strategy",
+    ]
+    status: Literal[
+        "active",
+        "ready_for_review",
+        "confirmed",
+        "rejected",
+        "completed",
+        "archived",
+    ]
+    created_at: str
+    updated_at: str
+    draft_state: dict[str, Any] | None = None
+    metadata: dict[str, Any] = Field(
+        default_factory=dict
+    )
+    messages: list[ConversationMessageResponse] = Field(
+        default_factory=list
+    )

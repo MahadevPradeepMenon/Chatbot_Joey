@@ -43,6 +43,8 @@ router = APIRouter(
     tags=["strategy workflow"],
 )
 
+STRATEGY_SERVICE_STATE_KEY = "strategy_retrieval_service"
+
 
 StrategyOutcomeValue = Literal[
     "results",
@@ -76,17 +78,34 @@ def _strategy_service(
         None,
     )
 
-    if factory is None:
-        return build_strategy_retrieval_service(
+    if factory is not None:
+        service = factory(
             database_path
         )
+        return cast(
+            StrategyRetrievalService,
+            service,
+        )
 
-    service = factory(
-        database_path
+    cached_service = getattr(
+        request.app.state,
+        STRATEGY_SERVICE_STATE_KEY,
+        None,
     )
+
+    if cached_service is None:
+        cached_service = build_strategy_retrieval_service(
+            database_path
+        )
+        setattr(
+            request.app.state,
+            STRATEGY_SERVICE_STATE_KEY,
+            cached_service,
+        )
+
     return cast(
         StrategyRetrievalService,
-        service,
+        cached_service,
     )
 
 
