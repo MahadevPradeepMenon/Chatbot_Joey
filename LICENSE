@@ -1,0 +1,24 @@
+# Academic and Portfolio Use Notice
+
+Copyright (c) 2026. All rights reserved.
+
+This repository and its contents are provided for academic assessment,
+portfolio review, demonstration, and evaluation purposes.
+
+No permission is granted to copy, modify, distribute, sublicense, sell,
+commercialise, deploy, or create derivative works from this software or its
+documentation without prior written permission from the project owner.
+
+The software is provided "as is", without warranty of any kind, express or
+implied, including but not limited to warranties of merchantability, fitness
+for a particular purpose, and non-infringement. In no event shall the project
+owner be liable for any claim, damages, or other liability arising from the
+software or its use.
+
+This project is an MSc/portfolio prototype. It is not a clinical, diagnostic,
+emergency, safeguarding, or medical service.
+
+Only synthetic or explicitly authorised demonstration data may be used with
+public builds, screenshots, releases, or demonstrations. Identifiable child,
+family, parent, or carer information must not be committed to the repository,
+included in container images, or exposed through public demonstrations.
