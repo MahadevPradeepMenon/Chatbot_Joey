@@ -14,6 +14,12 @@ from app.conversation_manager import (
     ConversationStatus,
     JoeyConversationSession,
 )
+from app.conversation_persistence import (
+    load_or_create_workflow_state,
+    persist_chat_exchange,
+    persist_record_workflow_state,
+    persist_strategy_workflow_state,
+)
 from app.extractor import extract_structured_record
 from rag.history_aware_strategy_service import (
     HistoryAwareStrategyService,
@@ -470,7 +476,7 @@ def get_strategy_service() -> HistoryAwareStrategyService:
 
 
 def initialise_state() -> None:
-    """Create separate persistent chat histories for both workflows."""
+    """Restore the latest persistent session for each workflow."""
 
     record_greeting = (
         "Tell me what happened in your own words. "
@@ -488,47 +494,54 @@ def initialise_state() -> None:
         "last_mode": "Record what happened",
         "workflow_mode": "Record what happened",
         "pending_strategy_feedback": None,
+        "conversation_storage_loaded": False,
     }
 
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
 
-    # Migrate older response-only state when the app hot-reloads.
-    if "record_chat_history" not in st.session_state:
-        old_record = st.session_state.get(
-            "record_response",
-            [record_greeting],
+    if st.session_state.conversation_storage_loaded:
+        return
+
+    record_state = load_or_create_workflow_state(
+        workflow="Record what happened",
+        greeting=record_greeting,
+    )
+    strategy_state = load_or_create_workflow_state(
+        workflow="Ask for a strategy",
+        greeting=strategy_greeting,
+    )
+
+    st.session_state.record_conversation_id = (
+        record_state.session_id
+    )
+    st.session_state.strategy_conversation_id = (
+        strategy_state.session_id
+    )
+    st.session_state.record_chat_history = (
+        record_state.history
+    )
+    st.session_state.strategy_chat_history = (
+        strategy_state.history
+    )
+    st.session_state.record_session = (
+        record_state.record_session
+    )
+
+    pending_feedback = strategy_state.metadata.get(
+        "pending_strategy_feedback"
+    )
+
+    st.session_state.pending_strategy_feedback = (
+        pending_feedback
+        if isinstance(
+            pending_feedback,
+            dict,
         )
-
-        if isinstance(old_record, str):
-            old_record = [old_record]
-
-        st.session_state.record_chat_history = [
-            {
-                "role": "assistant",
-                "content": message,
-            }
-            for message in old_record
-        ]
-
-    if "strategy_chat_history" not in st.session_state:
-        old_strategy = st.session_state.get(
-            "strategy_response",
-            [strategy_greeting],
-        )
-
-        if isinstance(old_strategy, str):
-            old_strategy = [old_strategy]
-
-        st.session_state.strategy_chat_history = [
-            {
-                "role": "assistant",
-                "content": message,
-            }
-            for message in old_strategy
-        ]
-
+        else None
+    )
+    st.session_state.conversation_storage_loaded = True
 
 def save_confirmed_session(
     session: JoeyConversationSession,
@@ -1343,6 +1356,50 @@ def render_chat_message(
         )
 
 
+def record_user_message_type(
+    command: str,
+    session: JoeyConversationSession | None,
+) -> str:
+    """Classify one record-workflow user message for persistence."""
+
+    if command.lower() in {
+        "start over",
+        "restart",
+        "reset",
+    }:
+        return "reset_command"
+
+    if session is None:
+        return "observation"
+
+    if (
+        session.status
+        == ConversationStatus.collecting_information
+    ):
+        return "follow_up_answer"
+
+    if (
+        session.status
+        == ConversationStatus.ready_for_review
+    ):
+        return "confirmation_response"
+
+    return "observation"
+
+
+def strategy_user_message_type(
+    command: str,
+) -> str:
+    """Distinguish a new strategy question from explicit feedback."""
+
+    if parse_strategy_feedback(
+        command
+    ) is not None:
+        return "strategy_feedback"
+
+    return "strategy_question"
+
+
 def render_chat_history(
     history: list[dict[str, str]],
 ) -> None:
@@ -1474,12 +1531,47 @@ def main() -> None:
             )
             return
 
-        # Keep the sender's message in the visible conversation.
+        record_session_before: (
+            JoeyConversationSession | None
+        ) = (
+            st.session_state.record_session
+            if mode == "Record what happened"
+            else None
+        )
+
+        record_reset_requested = (
+            mode == "Record what happened"
+            and clean_input.lower()
+            in {
+                "start over",
+                "restart",
+                "reset",
+            }
+        )
+
+        user_message_type = (
+            record_user_message_type(
+                clean_input,
+                record_session_before,
+            )
+            if mode == "Record what happened"
+            else strategy_user_message_type(
+                clean_input
+            )
+        )
+
         history.append(
             {
                 "role": "user",
                 "content": clean_input,
             }
+        )
+
+        assistant_messages: list[str]
+        assistant_message_type = (
+            "record_response"
+            if mode == "Record what happened"
+            else "strategy_response"
         )
 
         try:
@@ -1496,6 +1588,9 @@ def main() -> None:
 
                 if feedback_messages is not None:
                     assistant_messages = feedback_messages
+                    assistant_message_type = (
+                        "strategy_feedback_response"
+                    )
                 else:
                     with st.spinner(
                         "Searching the approved local strategy library..."
@@ -1528,18 +1623,12 @@ def main() -> None:
                             )
                         )
 
-            for message in assistant_messages:
-                history.append(
-                    {
-                        "role": "assistant",
-                        "content": message,
-                    }
-                )
-
         except (
             ValueError,
             RuntimeError,
         ) as error:
+            assistant_message_type = "error"
+
             if mode == "Record what happened":
                 error_message = (
                     "I could not use that answer yet: "
@@ -1551,15 +1640,76 @@ def main() -> None:
                     f"{html.escape(str(error))}"
                 )
 
+            assistant_messages = [
+                error_message
+            ]
+
+        for message in assistant_messages:
             history.append(
                 {
                     "role": "assistant",
-                    "content": error_message,
+                    "content": message,
                 }
             )
 
         st.session_state[history_key] = history
+
+        if mode == "Record what happened":
+            conversation_id = int(
+                st.session_state[
+                    "record_conversation_id"
+                ]
+            )
+        else:
+            conversation_id = int(
+                st.session_state[
+                    "strategy_conversation_id"
+                ]
+            )
+
+        persist_chat_exchange(
+            session_id=conversation_id,
+            user_content=clean_input,
+            assistant_messages=assistant_messages,
+            user_message_type=user_message_type,
+            assistant_message_type=assistant_message_type,
+        )
+
+        if mode == "Record what happened":
+            session_after = (
+                st.session_state.record_session
+            )
+
+            session_to_store = (
+                session_after
+                if session_after is not None
+                else record_session_before
+            )
+
+            persist_record_workflow_state(
+                session_id=conversation_id,
+                record_session=session_to_store,
+                clear_draft=record_reset_requested,
+            )
+        else:
+            pending_feedback = st.session_state.get(
+                "pending_strategy_feedback"
+            )
+
+            persist_strategy_workflow_state(
+                session_id=conversation_id,
+                pending_feedback=(
+                    pending_feedback
+                    if isinstance(
+                        pending_feedback,
+                        dict,
+                    )
+                    else None
+                ),
+            )
+
         st.rerun()
+
 
 
 if __name__ == "__main__":

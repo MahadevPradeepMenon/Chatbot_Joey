@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 from enum import Enum
-from typing import Any
+from typing import Any, Mapping
 
 from app.extractor import extract_structured_record
 from app.schemas import (
@@ -76,9 +76,11 @@ class JoeyConversationSession:
         if not clean_note:
             raise ValueError("The parent/carer note cannot be empty.")
 
+        # Positional construction avoids a false-positive Pylance
+        # warning about generated dataclass keyword parameters.
         session = cls(
-            original_note=clean_note,
-            current_record=extract_structured_record(clean_note),
+            clean_note,
+            extract_structured_record(clean_note),
         )
         session._select_next_question()
         return session
@@ -160,6 +162,172 @@ class JoeyConversationSession:
             "skipped_fields": sorted(self.skipped_fields),
             "structured_record": record_data,
         }
+
+    @classmethod
+    def from_dict(
+        cls,
+        data: Mapping[str, Any],
+    ) -> "JoeyConversationSession":
+        """Restore one validated conversation draft from stored JSON."""
+
+        original_note = " ".join(
+            str(
+                data.get(
+                    "original_note",
+                    "",
+                )
+            ).split()
+        ).strip()
+
+        if not original_note:
+            raise ValueError(
+                "Stored conversation draft has no original note."
+            )
+
+        record_data = data.get(
+            "structured_record"
+        )
+
+        if not isinstance(
+            record_data,
+            Mapping,
+        ):
+            raise ValueError(
+                "Stored conversation draft has no structured record."
+            )
+
+        current_record = (
+            StructuredJoeyRecord.model_validate(
+                dict(record_data)
+            )
+        )
+
+        status_value = str(
+            data.get(
+                "status",
+                ConversationStatus.collecting_information.value,
+            )
+        ).strip()
+
+        try:
+            status = ConversationStatus(
+                status_value
+            )
+        except ValueError as error:
+            raise ValueError(
+                "Stored conversation draft has an unsupported status."
+            ) from error
+
+        history_items = data.get(
+            "history",
+            [],
+        )
+        history: list[ConversationTurn] = []
+
+        if isinstance(
+            history_items,
+            list,
+        ):
+            for item in history_items:
+                if not isinstance(
+                    item,
+                    Mapping,
+                ):
+                    continue
+
+                question = " ".join(
+                    str(
+                        item.get(
+                            "question",
+                            "",
+                        )
+                    ).split()
+                ).strip()
+                answer = " ".join(
+                    str(
+                        item.get(
+                            "answer",
+                            "",
+                        )
+                    ).split()
+                ).strip()
+                field_name = " ".join(
+                    str(
+                        item.get(
+                            "field_name",
+                            "",
+                        )
+                    ).split()
+                ).strip()
+
+                if (
+                    question
+                    and answer
+                    and field_name
+                ):
+                    history.append(
+                        ConversationTurn(
+                            question=question,
+                            answer=answer,
+                            field_name=field_name,
+                        )
+                    )
+
+        completed_values = data.get(
+            "completed_fields",
+            [],
+        )
+        skipped_values = data.get(
+            "skipped_fields",
+            [],
+        )
+
+        completed_fields = {
+            str(value).strip()
+            for value in completed_values
+            if str(value).strip()
+        } if isinstance(
+            completed_values,
+            (list, tuple, set),
+        ) else set()
+
+        skipped_fields = {
+            str(value).strip()
+            for value in skipped_values
+            if str(value).strip()
+        } if isinstance(
+            skipped_values,
+            (list, tuple, set),
+        ) else set()
+
+        pending_field_value = data.get(
+            "pending_field"
+        )
+        follow_up_value = data.get(
+            "follow_up_question"
+        )
+
+        pending_field = (
+            str(pending_field_value).strip()
+            if pending_field_value
+            else None
+        )
+        follow_up_question = (
+            str(follow_up_value).strip()
+            if follow_up_value
+            else None
+        )
+
+        return cls(
+            original_note,
+            current_record,
+            status=status,
+            pending_field=pending_field,
+            follow_up_question=follow_up_question,
+            history=history,
+            completed_fields=completed_fields,
+            skipped_fields=skipped_fields,
+        )
 
     def _select_next_question(self) -> None:
         """Choose one useful unanswered question."""
