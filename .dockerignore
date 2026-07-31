@@ -1,0 +1,46 @@
+# Version control
+.git
+.gitignore
+.github
+
+# Python environments and caches
+.venv
+venv
+env
+__pycache__
+*.py[cod]
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# IDE configuration
+.vscode
+.idea
+
+# Tests and evaluation outputs
+evaluation
+*.coverage
+htmlcov
+
+# Data is mounted at runtime and never copied into the image
+data
+*.db
+*.sqlite
+*.sqlite3
+
+# Local secrets
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# Large project documents and generated archives
+*.zip
+*.pdf
+*.docx
+*.pptx
+*.xlsx
+
+# Operating-system files
+.DS_Store
+Thumbs.db

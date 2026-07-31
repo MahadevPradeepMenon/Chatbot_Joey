@@ -1,0 +1,85 @@
+name: chatbot-joey
+
+x-joey-image: &joey-image
+  build:
+    context: .
+    dockerfile: Dockerfile
+  image: chatbot-joey:local
+  init: true
+  restart: unless-stopped
+
+services:
+  api:
+    <<: *joey-image
+    command:
+      - python
+      - -m
+      - uvicorn
+      - api.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --workers
+      - "1"
+    ports:
+      - "${HEY_JOEY_API_PORT:-8000}:8000"
+    environment:
+      HF_HOME: /opt/huggingface
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      TOKENIZERS_PARALLELISM: "false"
+    volumes:
+      - type: bind
+        source: ./data
+        target: /app/data
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request;
+          urllib.request.urlopen(
+              'http://127.0.0.1:8000/ready',
+              timeout=5
+          )
+      interval: 10s
+      timeout: 6s
+      retries: 12
+      start_period: 20s
+
+  frontend:
+    <<: *joey-image
+    command:
+      - python
+      - -m
+      - streamlit
+      - run
+      - app/streamlit_app.py
+      - --server.address=0.0.0.0
+      - --server.port=8501
+      - --server.headless=true
+      - --browser.gatherUsageStats=false
+    ports:
+      - "${HEY_JOEY_FRONTEND_PORT:-8501}:8501"
+    environment:
+      HEY_JOEY_API_URL: http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+        restart: true
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request;
+          urllib.request.urlopen(
+              'http://127.0.0.1:8501/_stcore/health',
+              timeout=5
+          )
+      interval: 10s
+      timeout: 6s
+      retries: 12
+      start_period: 20s

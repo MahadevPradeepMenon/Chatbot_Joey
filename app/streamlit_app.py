@@ -1049,10 +1049,6 @@ def main() -> None:
                 "Record what happened",
                 "Ask for a strategy",
             ],
-            default=st.session_state.get(
-                "workflow_mode",
-                "Record what happened",
-            ),
             selection_mode="single",
             key="workflow_mode",
             label_visibility="collapsed",
