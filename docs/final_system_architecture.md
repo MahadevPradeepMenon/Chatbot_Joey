@@ -1,52 +1,20 @@
 # Hey Joey Final System Architecture
 
-## System Purpose
+This early architecture note has been superseded by the maintained system architecture:
 
-Hey Joey is a local-first conversational support prototype for parents
-and carers of neurodivergent children.
+- [`docs/architecture.md`](architecture.md)
 
-The system converts a natural-language observation into a structured
-record, retrieves relevant passages from approved Hey Joey strategy
-documents and produces a cautious, source-backed response for the
-parent or carer to review.
+The maintained document covers the final `v0.1.0` architecture, including:
 
-The system does not diagnose, prescribe treatment or save information
-without confirmation.
+- the Streamlit frontend and FastAPI backend;
+- deterministic record extraction and confirmation;
+- the safety response layer;
+- hybrid BM25 and local semantic retrieval;
+- confidence-based abstention and source-backed evidence;
+- SQLite persistence;
+- persistent conversations, strategy searches and feedback;
+- Docker and Docker Compose;
+- production configuration and repository safeguards;
+- GitHub Actions and versioned container releases.
 
-## Final Processing Pipeline
-
-```text
-Parent/carer observation
-        |
-        v
-Rule-based structured extraction
-        |
-        v
-Safety and medication checks
-        |
-        +---------------- Safety concern detected ----------------+
-        |                                                         |
-        |                                                         v
-        |                                              Safety-first response
-        |                                              Ordinary retrieval blocked
-        |
-        v
-Structured retrieval query
-        |
-        v
-Local semantic embedding model
-        |
-        v
-Search across local strategy embeddings
-        |
-        v
-Rank and deduplicate strategy evidence
-        |
-        v
-Source-backed parent response
-        |
-        v
-Parent/carer review and confirmation
-        |
-        v
-Optional local JSONL save
+This file remains only as a compatibility pointer for earlier project notes.

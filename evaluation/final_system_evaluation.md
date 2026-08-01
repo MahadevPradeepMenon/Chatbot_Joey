@@ -290,11 +290,12 @@ The main limitations are:
 - retrieval latency depends on the local computer and model-loading state;
 - source-backed retrieval does not establish clinical effectiveness;
 - history-aware ranking is based on synthetic context rather than long-term real-world use;
-- chat history is retained in Streamlit session state and is not yet persistently stored;
-- confirmed records are saved locally as JSONL rather than through a production database;
+- conversations are persisted through the application storage layer and remain available across Streamlit sessions;
+- confirmed records, conversations, strategy searches and feedback are stored locally in SQLite in the main FastAPI application;
+- the legacy command-line interface still writes confirmed records to a private JSONL file for backwards-compatible development use;
 - no live Bubble, mobile-app or production Hey Joey integration was available;
 - no usability study with real parents, carers or professionals has yet been completed;
-- the prototype has not undergone production security, load, privacy-impact or deployment testing.
+- automated configuration, Docker build and release validation have been completed, but the prototype has not undergone production security, load, privacy-impact or live operational testing.
 
 ---
 
@@ -309,9 +310,9 @@ In a future product implementation:
 - approved Quick Track suggestions could populate tracking workflows;
 - strategy searches could use the supported person’s recent journal context;
 - strategy feedback could update future history-aware ranking;
-- confirmed data could be stored through a production database and permission model.
+- confirmed data could be migrated from local SQLite to an authorised production database with authentication, authorisation and permission controls.
 
-The current synthetic context provider and local save process demonstrate how these components could connect without requiring access to live family data.
+The current synthetic context provider and local SQLite persistence layer demonstrate how these components could connect without requiring access to live family data.
 
 ---
 
@@ -327,19 +328,26 @@ These results support the technical feasibility of Joey as a local support-manag
 
 ---
 
+## Engineering Completed Since the Initial Evaluation
+
+The following items were originally identified as future work and were subsequently implemented for release `v0.1.0`:
+
+- local SQLite persistence for confirmed records, conversations, strategy searches and feedback;
+- retrieval-confidence handling with a clear abstention response when evidence is insufficient;
+- structured strategy feedback and history-aware ranking;
+- persistent conversation storage;
+- a FastAPI backend, Docker and Docker Compose configuration, structured logging, health and readiness checks, GitHub Actions validation and a versioned container-release workflow.
+
+---
+
 ## Future Work
 
-Recommended future work includes:
+Recommended future work now includes:
 
-1. replacing or supplementing JSONL storage with a local SQLite integration;
-2. feeding confirmed fields into local Weekly Insights calculations;
-3. adding a retrieval-confidence threshold and a clear “no sufficiently relevant source found” response;
-4. collecting structured strategy feedback through the chatbot;
-5. storing chat sessions persistently;
-6. implementing a formal profile and journal-context adapter for future Hey Joey integration;
-7. expanding the synthetic datasets and obtaining domain-expert relevance judgements;
-8. conducting an approved usability evaluation;
-9. adding FastAPI, Docker, structured logging and deployment health checks;
-10. completing production privacy, security and monitoring assessments.
+1. feeding confirmed fields into local Weekly Insights calculations;
+2. implementing a formal live profile and journal-context adapter for future Hey Joey product integration;
+3. expanding the synthetic datasets and obtaining domain-expert relevance judgements;
+4. conducting an approved usability evaluation;
+5. completing production authentication, authorisation, privacy, security, monitoring, backup, retention and incident-response assessments.
 
 A local generative model could later be tested as a controlled response-rewriting component, but the deterministic and source-backed system should remain responsible for safety, retrieval evidence and final validation.
