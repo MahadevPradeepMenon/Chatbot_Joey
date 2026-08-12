@@ -217,7 +217,7 @@ Feedback never replaces the source-relevance score and is deliberately prevented
 
 The prototype corpus snapshot contains:
 
-- 10 approved Hey Joey strategy documents;
+- 10 Hey Joey source documents containing 217 individual support strategies;
 - 359 processed chunks;
 - 257 strategy chunks;
 - 102 context chunks.
