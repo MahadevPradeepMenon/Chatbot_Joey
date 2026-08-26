@@ -23,6 +23,8 @@ from storage.conversation_storage import (
 )
 
 
+# Immutable container returned to the Streamlit layer after restoring a
+# conversation, including chat history, workflow state and metadata.
 @dataclass(frozen=True)
 class PersistentWorkflowState:
     """One restored Streamlit workflow state."""
@@ -39,9 +41,11 @@ def _record_storage_status(
 ) -> StoredConversationStatus:
     """Map the journal workflow state to its SQLite status."""
 
+    # If no in-memory journal draft exists, keep the stored conversation active.
     if session is None:
         return StoredConversationStatus.active
 
+    # Translate application conversation states into the statuses stored in SQLite.
     status_map = {
         ConversationStatus.collecting_information: (
             StoredConversationStatus.active
@@ -65,6 +69,8 @@ def _history_from_stored(
 ) -> list[dict[str, str]]:
     """Convert stored typed messages into Streamlit chat dictionaries."""
 
+    # Streamlit only needs role/content pairs, so storage-specific message
+    # metadata is omitted from the displayed chat history.
     return [
         {
             "role": message.role.value,
@@ -79,15 +85,18 @@ def _restore_record_session(
 ) -> JoeyConversationSession | None:
     """Restore only an unfinished journal draft."""
 
+    # Only the journal-record workflow owns a JoeyConversationSession draft.
     if stored.workflow != ConversationWorkflow.record_observation:
         return None
 
+    # Restore only unfinished drafts; confirmed/rejected conversations remain closed.
     if stored.status not in {
         StoredConversationStatus.active,
         StoredConversationStatus.ready_for_review,
     }:
         return None
 
+    # Without a persisted draft snapshot there is nothing to reconstruct.
     if stored.draft_state is None:
         return None
 
@@ -104,15 +113,18 @@ def load_or_create_workflow_state(
 ) -> PersistentWorkflowState:
     """Restore the latest workflow session or create its first session."""
 
+    # Normalise enum/string input once before querying persistent storage.
     workflow_value = normalise_workflow(
         workflow
     )
+    # Restore only the latest session for the requested workflow.
     sessions = list_conversation_sessions(
         workflow=workflow_value,
         limit=1,
         database_path=database_path,
     )
 
+    # Reuse the most recent persisted conversation; otherwise create a new one.
     if sessions:
         stored = sessions[0]
     else:
@@ -140,6 +152,7 @@ def load_or_create_workflow_state(
                 "The newly created conversation could not be restored."
             )
 
+    # Defensive fallback: ensure a restored session always has a greeting.
     if not stored.messages:
         add_conversation_message(
             session_id=stored.id,
@@ -161,6 +174,7 @@ def load_or_create_workflow_state(
 
         stored = refreshed
 
+    # Convert the stored conversation into the state object expected by the app.
     return PersistentWorkflowState(
         session_id=stored.id,
         workflow=stored.workflow,
@@ -187,6 +201,7 @@ def persist_chat_exchange(
 ) -> None:
     """Append one user message and all resulting Joey messages."""
 
+    # Save the user message first so stored order matches the visible conversation.
     add_conversation_message(
         session_id=session_id,
         role="user",
@@ -195,6 +210,7 @@ def persist_chat_exchange(
         database_path=database_path,
     )
 
+    # Persist each assistant response separately so the full exchange can be restored.
     for message in assistant_messages:
         add_conversation_message(
             session_id=session_id,
@@ -214,6 +230,7 @@ def persist_record_workflow_state(
 ) -> None:
     """Persist or intentionally clear the current journal draft."""
 
+    # Clearing a draft removes only the saved draft snapshot, not the session itself.
     if clear_draft:
         update_conversation_session(
             session_id=session_id,
@@ -224,6 +241,7 @@ def persist_record_workflow_state(
         )
         return
 
+    # Persist both the mapped workflow status and the serialised journal draft.
     update_conversation_session(
         session_id=session_id,
         status=_record_storage_status(
@@ -247,8 +265,10 @@ def persist_strategy_workflow_state(
 ) -> None:
     """Persist the current feedback target needed after an app restart."""
 
+    # Pending strategy feedback is lightweight workflow state stored in metadata.
     metadata: dict[str, Any] = {}
 
+    # Store only the currently pending feedback target needed after a restart.
     if pending_feedback is not None:
         metadata[
             "pending_strategy_feedback"
@@ -256,6 +276,7 @@ def persist_strategy_workflow_state(
             pending_feedback
         )
 
+    # Keep the strategy conversation active while updating only its metadata.
     update_conversation_session(
         session_id=session_id,
         status=StoredConversationStatus.active,

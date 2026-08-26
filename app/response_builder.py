@@ -9,6 +9,8 @@ from safety.safety_guard import (
 )
 
 
+# Small formatting helpers keep presentation logic separate from the
+# extraction and retrieval components that produced the underlying data.
 def format_items(items: list[str]) -> str:
     """Format list items for parent-facing text."""
 
@@ -21,6 +23,8 @@ def format_items(items: list[str]) -> str:
 def display_value(value: Any) -> str:
     """Convert enum and ordinary values into readable text."""
 
+    # Enum fields are displayed using their human-readable values rather
+    # than Python representations such as MoodZone.orange.
     if isinstance(value, Enum):
         return str(value.value)
 
@@ -39,6 +43,8 @@ def get_strategy_value(
     Read a value from either semantic evidence or a legacy dictionary.
     """
 
+    # Support both the newer JoeyStrategyEvidence objects and older
+    # dictionary-shaped results without duplicating response logic.
     if isinstance(strategy, Mapping):
         return strategy.get(field_name, default)
 
@@ -51,11 +57,15 @@ def shorten_passage(
 ) -> str:
     """Create a concise parent-facing passage preview."""
 
+    # Collapse excess whitespace before truncating so the preview remains
+    # compact and readable in the parent-facing response.
     clean_text = " ".join(text.split()).strip()
 
     if len(clean_text) <= maximum_characters:
         return clean_text
 
+    # Cut at the final complete word within the character limit rather than
+    # ending the preview in the middle of a word.
     shortened = clean_text[:maximum_characters].rsplit(
         " ",
         maxsplit=1,
@@ -69,6 +79,8 @@ def build_strategy_title(
 ) -> str:
     """Build a readable title for semantic or legacy results."""
 
+    # Prefer the structured strategy code/title used by the semantic
+    # retriever, while retaining compatibility with legacy result fields.
     strategy_code = get_strategy_value(
         strategy,
         "strategy_code",
@@ -114,11 +126,15 @@ def build_parent_response(
     The function does not diagnose, prescribe or save automatically.
     """
 
+    # Build the response line-by-line so safety information, structured
+    # fields, evidence and confirmation guidance remain clearly separated.
     lines: list[str] = []
 
     lines.append("JOEY RESPONSE")
     lines.append("=" * 60)
 
+    # Safety guidance is added before ordinary extracted details so any
+    # potential risk is visible immediately in the response.
     safety_notice = build_safety_notice(record)
 
     if safety_notice:
@@ -155,6 +171,8 @@ def build_parent_response(
     lines.append("")
     lines.append("Suggested Quick Track fields:")
 
+    # Quick Track suggestions are surfaced directly from the structured
+    # record; this layer does not generate additional tracking categories.
     if record.quick_track_suggestions:
         for item in record.quick_track_suggestions:
             lines.append(f"- {item}")
@@ -169,6 +187,8 @@ def build_parent_response(
         or "Would you like to add more detail?"
     )
 
+    # Safety gating prevents ordinary support-strategy presentation when
+    # the extracted record indicates a possible immediate concern.
     if should_limit_strategy_suggestions(record):
         lines.append("")
         lines.append(
@@ -187,6 +207,8 @@ def build_parent_response(
             "Relevant source-backed support strategies:"
         )
 
+        # Show only the first three retrieved strategies to keep the response
+        # concise and reduce cognitive load for the parent/carer.
         if retrieved_strategies:
             for strategy in retrieved_strategies[:3]:
                 strategy_title = build_strategy_title(
@@ -203,6 +225,8 @@ def build_parent_response(
                     "source_file",
                 )
 
+                # Evidence may come from current semantic results or older
+                # dictionary formats, so try the supported passage fields in order.
                 passage = (
                     get_strategy_value(
                         strategy,
@@ -238,6 +262,8 @@ def build_parent_response(
                         f"  Source: {source_file}"
                     )
 
+            # The wording deliberately frames retrieved passages as support
+            # options rather than instructions, diagnoses or medical advice.
             lines.append("")
             lines.append(
                 "These passages were retrieved because they appear "
@@ -252,6 +278,8 @@ def build_parent_response(
             )
 
     lines.append("")
+    # Keep the parent/carer as the final decision-maker before any structured
+    # record is accepted or saved by the wider workflow.
     lines.append("Before saving:")
 
     lines.append(
@@ -265,4 +293,6 @@ def build_parent_response(
         "professional advice or make final decisions."
     )
 
+    # Join the prepared lines only at the end so response construction stays
+    # easy to inspect and modify without changing the underlying data.
     return "\n".join(lines)

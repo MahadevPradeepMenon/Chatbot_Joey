@@ -13,6 +13,8 @@ from app.api_client import (
 )
 
 
+# Keep workflow greetings as constants so restored and newly created chats
+# use the same parent-facing wording.
 RECORD_GREETING = (
     "Tell me what happened in your own words. "
     "I will turn it into a journal draft and ask only "
@@ -28,6 +30,8 @@ RESET_GREETING = (
     "Started over. Tell me what happened in your own words."
 )
 
+# Accept compact chat feedback such as "1 worked well" and capture both
+# the displayed strategy rank and the parent-facing rating phrase.
 STRATEGY_FEEDBACK_PATTERN = re.compile(
     r"^\s*(\d+)\s*[-:.)]?\s*"
     r"(worked well|helped somewhat|not relevant|"
@@ -35,6 +39,8 @@ STRATEGY_FEEDBACK_PATTERN = re.compile(
     flags=re.IGNORECASE,
 )
 
+# Translate parent-facing feedback phrases into the normalised values used
+# by the backend feedback endpoint.
 FEEDBACK_API_VALUES = {
     "worked well": "worked_well",
     "helped somewhat": "helped_somewhat",
@@ -43,6 +49,7 @@ FEEDBACK_API_VALUES = {
 }
 
 
+# Immutable frontend state reconstructed from the HTTP API.
 @dataclass(frozen=True)
 class RestoredFrontendState:
     """One workflow state reconstructed through the HTTP API."""
@@ -54,6 +61,7 @@ class RestoredFrontendState:
     draft_state: dict[str, Any] | None
 
 
+# Centralise whitespace normalisation for user and API text.
 def clean_text(
     value: str | None,
 ) -> str:
@@ -69,6 +77,7 @@ def _message_content(
 ) -> str:
     """Return safe display content for one API message."""
 
+    # Read message fields defensively because API payloads are generic mappings.
     content = str(
         message.get(
             "content",
@@ -88,6 +97,7 @@ def _message_content(
         )
     )
 
+    # Display backend confirmation commands as natural yes/no chat replies.
     if role == "user":
         if (
             message_type
@@ -100,9 +110,13 @@ def _message_content(
 
         return content
 
+    # Strategy responses may already contain adapter-generated HTML; ordinary
+    # assistant text is escaped before display.
     if assistant_html:
         return content
 
+    # Replace endpoint-oriented confirmation wording with the conversational
+    # yes/no prompt used by the Streamlit interface.
     if (
         message_type
         == "confirmation_prompt"
@@ -128,6 +142,7 @@ def normalise_api_messages(
 ) -> list[dict[str, str]]:
     """Convert API messages into the existing chat-bubble structure."""
 
+    # Rebuild only the role/content structure required by Streamlit chat bubbles.
     history: list[dict[str, str]] = []
 
     for message in messages:
@@ -138,6 +153,7 @@ def normalise_api_messages(
             )
         ).strip().lower()
 
+        # Ignore unsupported roles rather than rendering unexpected message types.
         if role not in {
             "user",
             "assistant",
@@ -161,6 +177,8 @@ def normalise_api_messages(
             }
         )
 
+    # Ensure the workflow greeting is present as the first assistant message,
+    # including for empty or older persisted conversations.
     if (
         not history
         or history[0].get("role") != "assistant"
@@ -198,6 +216,8 @@ def _restore_or_create(
 ) -> dict[str, Any]:
     """Load the latest workflow conversation or create a placeholder."""
 
+    # A missing latest conversation is handled by creating a new placeholder;
+    # other API failures are re-raised.
     try:
         return client.get_latest_conversation(
             workflow
@@ -217,12 +237,14 @@ def restore_record_frontend_state(
 ) -> RestoredFrontendState:
     """Restore the latest journal conversation through FastAPI."""
 
+    # Restore the latest journal conversation or create a greeting-only placeholder.
     response = _restore_or_create(
         client,
         workflow="record_observation",
         greeting=RECORD_GREETING,
         assistant_html=False,
     )
+    # A record workflow needs a dictionary-shaped draft snapshot to resume.
     draft_state = response.get(
         "draft_state"
     )
@@ -245,6 +267,8 @@ def restore_record_frontend_state(
 
     # Placeholder conversations have no draft and must not be sent to
     # the record workflow endpoints.
+    # Greeting-only placeholders have no journal draft and therefore must not
+    # be sent to record-workflow endpoints.
     conversation_id = (
         response_id
         if draft_state is not None
@@ -278,6 +302,7 @@ def restore_strategy_frontend_state(
 ) -> RestoredFrontendState:
     """Restore the persistent strategy chat through FastAPI."""
 
+    # Strategy chat always uses the persistent generic conversation session.
     response = _restore_or_create(
         client,
         workflow="ask_strategy",
@@ -337,6 +362,7 @@ def conversation_history_from_response(
 ) -> list[dict[str, str]]:
     """Build chat history from the generic conversation API."""
 
+    # Strategy history permits adapter-generated HTML; record history is escaped.
     is_strategy = (
         workflow == "ask_strategy"
     )
@@ -360,6 +386,8 @@ def parse_strategy_feedback(
 ) -> tuple[int, str] | None:
     """Parse chat feedback and return the API rating value."""
 
+    # Require the whole message to match so ordinary questions are not
+    # misinterpreted as strategy feedback.
     match = STRATEGY_FEEDBACK_PATTERN.fullmatch(
         clean_text(value)
     )
@@ -374,6 +402,7 @@ def parse_strategy_feedback(
         match.group(2)
     ).lower()
 
+    # Return both the displayed strategy rank and backend-compatible rating.
     return rank, FEEDBACK_API_VALUES[label]
 
 
@@ -403,6 +432,7 @@ def clean_strategy_title(
 ) -> str:
     """Remove trailing age information from summary prose."""
 
+    # Remove age-range suffixes only from display prose, not stored titles.
     return re.sub(
         r"\s*\(Ages?[^)]*\)\s*$",
         "",
@@ -416,6 +446,7 @@ def readable_list(
 ) -> str:
     """Join a short list into readable prose."""
 
+    # Escape list values before inserting them into HTML-based response text.
     clean_values = [
         html.escape(
             clean_text(value)
@@ -448,6 +479,8 @@ def build_strategy_response_html(
 ) -> str:
     """Render the source-backed strategy API result for Joey's bubble."""
 
+    # Safety-limited and abstained outcomes return only the backend message;
+    # no strategy cards are rendered for those cases.
     outcome = str(
         response.get(
             "outcome",
@@ -468,6 +501,7 @@ def build_strategy_response_html(
             )
         )
 
+    # The detailed rendering path expects accepted source-backed strategies.
     strategies = response.get(
         "strategies",
         [],
@@ -486,6 +520,7 @@ def build_strategy_response_html(
             )
         )
 
+    # Build the introduction from cleaned strategy titles.
     titles = [
         clean_strategy_title(
             str(
@@ -513,6 +548,8 @@ def build_strategy_response_html(
         introduction
     ]
 
+    # Inspect history notes so the response can mention active or previously
+    # helpful strategies when that context exists.
     history_notes = [
         str(
             item.get(
@@ -549,6 +586,7 @@ def build_strategy_response_html(
             "least one related approach was reported to help."
         )
 
+    # Render each accepted strategy as a separate HTML evidence card.
     strategy_html: list[str] = []
 
     for index, item in enumerate(
@@ -594,6 +632,7 @@ def build_strategy_response_html(
                 )
             )
         )
+        # Limit long passages to a concise preview without cutting the final word.
         passage_preview = (
             passage
             if len(passage) <= 360
@@ -616,6 +655,8 @@ def build_strategy_response_html(
         )
         history_sentence = ""
 
+        # Show history context only when it adds information beyond the
+        # default "new strategy option" message.
         if (
             history_note
             and "new strategy option"
@@ -636,6 +677,7 @@ def build_strategy_response_html(
             )
         )
 
+        # Escape dynamic values before inserting them into the HTML card.
         strategy_html.append(
             '<div class="joey-strategy">'
             f"<strong>{index}. {html.escape(title)}</strong><br>"
@@ -648,6 +690,8 @@ def build_strategy_response_html(
             "</div>"
         )
 
+    # End with the explicit boundary that these are support options rather
+    # than diagnostic or medical recommendations.
     response_parts.append(
         "These are support options for parent or carer review, "
         "not a diagnosis or medical recommendation."
@@ -673,6 +717,7 @@ def build_strategy_feedback_prompt(
 ) -> str:
     """Explain the existing chat-based feedback format."""
 
+    # Adjust singular/plural wording while keeping feedback instructions stable.
     strategy_word = (
         "strategy"
         if strategy_count == 1

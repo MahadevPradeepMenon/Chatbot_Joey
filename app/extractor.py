@@ -73,6 +73,8 @@ def upgrade_mood_zone(current: MoodZone, candidate: MoodZone) -> MoodZone:
     Unknown < Green < Blue < Orange < Red
     """
 
+    # The numeric ordering allows later rules to increase severity
+    # without letting a less urgent match overwrite a stronger result.
     priority = {
         MoodZone.unknown: 0,
         MoodZone.green: 1,
@@ -95,6 +97,8 @@ def upgrade_anxiety_level(
     Upgrade anxiety level only when the new level is more serious.
     """
 
+    # The numeric ordering allows later rules to increase severity
+    # without letting a less urgent match overwrite a stronger result.
     priority = {
         AnxietyLevel.unknown: 0,
         AnxietyLevel.minimal: 1,
@@ -120,8 +124,12 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
     It is an improved baseline extractor after dataset review.
     """
 
+    # Normalise the note once so all later keyword and regex checks are
+    # case-insensitive and deterministic.
     text = note.lower()
 
+    # Run safety-specific checks before general behaviour matching so
+    # phrases about hitting can be distinguished from self-injury.
     self_injury_detected = (
     contains_self_injury_pattern(text)
     or contains_any(
@@ -138,6 +146,8 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
     text
 )
 
+    # These lists collect the structured signals found in the note.
+    # add_unique() is used throughout to prevent duplicate suggestions.
     mood_labels = []
     behaviours = []
     possible_triggers = []
@@ -146,6 +156,8 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
     risk_flags = []
     missing_information = []
 
+    # Start from neutral/unknown defaults. Matching rules can move these
+    # fields to the project-defined classifications supported by the schema.
     anxiety_level = AnxietyLevel.unknown
     mood_zone = MoodZone.unknown
     confidence = ConfidenceLevel.medium
@@ -159,6 +171,7 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
     # Time of day detection
     # -------------------------
 
+    # The first matching time phrase is used as the broad time-of-day label.
     if contains_any(text, ["morning", "before school", "breakfast"]):
         time_of_day = "morning"
     elif contains_any(text, ["afternoon", "after school"]):
@@ -172,6 +185,7 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
     # Environment detection
     # -------------------------
 
+    # Specific place words are mapped to broader environment categories.
     if contains_any(text, ["home", "bedroom", "bathroom", "kitchen", "living room"]):
         environment = "home"
     elif contains_any(text, ["school", "classroom", "teacher"]):
@@ -184,6 +198,9 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
     # -------------------------
     # Anxiety and panic detection
     # -------------------------
+
+    # Anxiety terms update both anxiety level and mood zone. The upgrade
+    # helpers retain the most serious matched state when several rules fire.
 
     if contains_any(
         text,
@@ -261,6 +278,8 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
         add_unique(quick_track_suggestions, "Mood")
         mood_zone = upgrade_mood_zone(mood_zone, MoodZone.orange)
 
+    # Positive language fills an otherwise unknown state, but does not
+    # overwrite a stronger mood classification found earlier in the note.
     if contains_any(text, ["happy", "calm", "confident", "balanced"]):
         add_unique(mood_labels, "Calm/Positive")
 
@@ -290,12 +309,17 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
         add_unique(quick_track_suggestions, "Energy Level")
         add_unique(strategy_categories, "Sleep & Bedtime Routines")
 
+        # Tiredness moves an unclassified/positive state to Blue, but does
+        # not reduce a more urgent Orange or Red classification.
         if mood_zone in [MoodZone.unknown, MoodZone.green]:
             mood_zone = MoodZone.blue
 
     # -------------------------
     # Behaviour detection
     # -------------------------
+
+    # Behaviour rules record observable actions separately from mood labels,
+    # allowing one note to contain several behaviours at the same time.
 
     if contains_any(text, ["refused", "refusing", "wouldn't", "would not"]):
         add_unique(behaviours, "refusal")
@@ -341,6 +365,9 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
     # Safety detection
     # -------------------------
 
+    # Safety evidence takes priority over ordinary behavioural signals.
+    # It raises severity, records risk flags and asks for immediate
+    # confirmation about current safety and possible injury.
     if self_injury_detected or injury_concern_detected:
         add_unique(
         risk_flags,
@@ -397,6 +424,9 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
     # Food / appetite detection
     # -------------------------
 
+    # Domain-specific rules also suggest relevant Quick Track fields and
+    # strategy collections for later parts of the application.
+
     if contains_any(
         text,
         ["breakfast", "lunch", "dinner", "meal", "food", "eat", "eating", "appetite"],
@@ -419,6 +449,9 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
     # -------------------------
     # School and routine detection
     # -------------------------
+
+    # School-related terms provide activity context and possible triggers;
+    # they are not treated as diagnoses or confirmed causes.
 
     if contains_any(text, ["school", "teacher", "classroom", "homework", "phonics"]):
         activity = "school-related routine"
@@ -469,6 +502,9 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
     # -------------------------
     # Sensory processing detection
     # -------------------------
+
+    # Sensory rules cover tactile, visual, smell, sound and crowding cues.
+    # A follow-up question is only set if a higher-priority one is absent.
 
     if contains_any(
         text,
@@ -617,6 +653,9 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
     # Medication mention detection
     # -------------------------
 
+    # Medication language is logged as a mention and routed toward
+    # professional follow-up; this extractor does not give medication advice.
+
     if contains_any(
         text,
         ["medication", "medicine", "tablet", "dose", "dosage", "adderall", "ritalin"],
@@ -637,6 +676,9 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
     # Default follow-up question
     # -------------------------
 
+    # If no domain-specific question was produced, request the most useful
+    # missing context so the parent/carer can clarify the observation.
+
     if follow_up_question is None:
         if possible_triggers:
             follow_up_question = "Would you like to add any more detail about what happened just before this?"
@@ -651,9 +693,13 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
     # Final fallback
     # -------------------------
 
+    # If distress rules produced Orange/Red mood but no explicit anxiety
+    # keyword matched, assign Moderate anxiety rather than leaving it Unknown.
     if anxiety_level == AnxietyLevel.unknown and mood_zone in [MoodZone.orange, MoodZone.red]:
         anxiety_level = AnxietyLevel.moderate
         
+    # Convert the collected signals into a short readable summary before
+    # validating and returning the final Pydantic record.
     summary = build_summary(
         time_of_day=time_of_day,
         behaviours=behaviours,
@@ -661,6 +707,8 @@ def extract_structured_record(note: str) -> StructuredJoeyRecord:
         possible_triggers=possible_triggers,
     )
 
+    # Parent confirmation remains required so extracted values are suggestions
+    # rather than records that are saved automatically.
     return StructuredJoeyRecord(
         entry_type="journal_entry",
         summary=summary,
@@ -691,6 +739,7 @@ def build_summary(
 ) -> str:
     """Build a short parent-friendly summary."""
 
+    # Build the summary only from information that was actually detected.
     parts = []
 
     if time_of_day != "Unknown":
@@ -711,6 +760,8 @@ def build_summary(
     return "; ".join(parts) + "."
 
 
+# This block is a small smoke test for running the module directly.
+# It is not used when the extractor is imported by the application.
 if __name__ == "__main__":
     test_note = (
         "He was anxious before school, refused breakfast, "

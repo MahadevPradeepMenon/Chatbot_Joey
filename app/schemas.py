@@ -5,6 +5,8 @@ from pydantic import BaseModel, Field
 
 
 class AnxietyLevel(str, Enum):
+    """Project-defined anxiety categories used by the structured extractor."""
+
     minimal = "Minimal"
     moderate = "Moderate"
     high = "High"
@@ -13,6 +15,8 @@ class AnxietyLevel(str, Enum):
 
 
 class MoodZone(str, Enum):
+    """Hey Joey mood-zone categories supported by the structured record."""
+
     red = "Red"
     orange = "Orange"
     green = "Green"
@@ -22,12 +26,16 @@ class MoodZone(str, Enum):
 
 
 class ConfidenceLevel(str, Enum):
+    """Confidence categories used for structured extraction."""
+
     low = "Low"
     medium = "Medium"
     high = "High"
 
 
 class StructuredJoeyRecord(BaseModel):
+    """Validated structure produced from a parent or carer free-text observation."""
+
     entry_type: str = Field(
         default="journal_entry",
         description="Suggested Hey Joey record type."

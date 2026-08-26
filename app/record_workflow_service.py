@@ -26,6 +26,8 @@ from storage.conversation_storage import (
 from storage.database import save_confirmed_session
 
 
+# Workflow-specific exceptions distinguish missing sessions from invalid
+# operations on an existing record workflow.
 class RecordSessionNotFoundError(LookupError):
     """Raised when an API record-session ID does not exist."""
 
@@ -34,6 +36,7 @@ class RecordWorkflowStateError(RuntimeError):
     """Raised when an operation conflicts with the current draft state."""
 
 
+# Immutable result object returned to the API/UI layer after each workflow action.
 @dataclass(frozen=True)
 class RecordWorkflowResult:
     """One complete record-workflow result returned to an API adapter."""
@@ -45,6 +48,8 @@ class RecordWorkflowResult:
     def journal_entry_id(self) -> int | None:
         """Return the confirmed journal-entry ID stored in metadata."""
 
+        # A journal entry exists only after confirmation, so its database ID
+        # is read from conversation metadata when available.
         raw_value = self.conversation.metadata.get(
             "journal_entry_id"
         )
@@ -69,6 +74,7 @@ def _clean_text(value: str) -> str:
 def _readable_list(values: list[str]) -> str:
     """Join a short list into parent-facing prose."""
 
+    # Clean values before turning them into parent-facing prose and ignore blanks.
     clean_values = [
         _clean_text(value)
         for value in values
@@ -253,6 +259,8 @@ def _start_messages(
         )
     ]
 
+    # Safety messaging is kept separate from the ordinary draft summary so
+    # risk-related information can be surfaced explicitly when needed.
     safety_notice = build_safety_notice(
         session.current_record
     )
@@ -265,6 +273,8 @@ def _start_messages(
             )
         )
 
+    # While information is still being collected, return one follow-up question.
+    # Otherwise move the user to review and explicit confirmation.
     if (
         session.status
         == ConversationStatus.collecting_information
@@ -349,6 +359,8 @@ def _stored_record_conversation(
 ) -> StoredConversation:
     """Load one record workflow or raise a controlled API error."""
 
+    # Reload the conversation by ID before each operation so this service
+    # always works from persisted state rather than stale in-memory data.
     stored = get_conversation_session(
         session_id,
         database_path=database_path,
@@ -359,6 +371,8 @@ def _stored_record_conversation(
             "The requested record conversation was not found."
         )
 
+    # A valid session ID is not sufficient: this service must not operate on
+    # conversations that belong to another Joey workflow.
     if (
         stored.workflow
         != ConversationWorkflow.record_observation
@@ -375,6 +389,7 @@ def _restore_session(
 ) -> JoeyConversationSession:
     """Restore the validated draft snapshot for one record conversation."""
 
+    # A record workflow cannot continue without its persisted draft snapshot.
     if stored.draft_state is None:
         raise RecordWorkflowStateError(
             "The record conversation has no journal draft."
@@ -399,6 +414,8 @@ def _persist_typed_exchange(
 ) -> None:
     """Persist one user message and specifically typed Joey messages."""
 
+    # Persist the user message first; assistant messages are then stored with
+    # explicit message types so the complete exchange can be reconstructed.
     add_conversation_message(
         session_id=session_id,
         role="user",
@@ -444,6 +461,7 @@ def create_record_workflow(
 ) -> RecordWorkflowResult:
     """Create and persist a record conversation from the first note."""
 
+    # Normalise the first note before extraction and persistence.
     clean_note = _clean_text(note)
 
     if not clean_note:
@@ -451,9 +469,12 @@ def create_record_workflow(
             "The parent/carer note cannot be empty."
         )
 
+    # Starting a session runs the deterministic extractor and selects the
+    # first follow-up question when more information is required.
     session = JoeyConversationSession.start(
         clean_note
     )
+    # Create the durable workflow session before storing any conversation messages.
     session_id = create_conversation_session(
         workflow=ConversationWorkflow.record_observation,
         database_path=database_path,
@@ -470,6 +491,8 @@ def create_record_workflow(
         database_path=database_path,
     )
 
+    # The visible exchange is stored before the draft snapshot so the persisted
+    # state change is accompanied by the messages that caused it.
     # Persist the validated draft after all visible messages are stored.
     persist_record_workflow_state(
         session_id=session_id,
@@ -508,6 +531,7 @@ def submit_record_message(
 ) -> RecordWorkflowResult:
     """Submit one follow-up answer to an active record conversation."""
 
+    # Follow-up answers are normalised using the same whitespace handling as notes.
     clean_message = _clean_text(
         message
     )
@@ -540,6 +564,8 @@ def submit_record_message(
         stored
     )
 
+    # The restored draft must still be in the information-collection state
+    # before another follow-up answer can be merged into it.
     if (
         session.status
         != ConversationStatus.collecting_information
@@ -548,6 +574,8 @@ def submit_record_message(
             "This record conversation is not collecting information."
         )
 
+    # Capture the field before submit_answer() advances to the next question;
+    # the acknowledgement needs to describe the field that was just updated.
     answered_field = session.pending_field
     session.submit_answer(
         clean_message
@@ -598,6 +626,8 @@ def confirm_record_workflow(
             "This journal draft has already been confirmed."
         )
 
+    # Confirmation or rejection is allowed only after questioning has finished
+    # and the draft has explicitly entered the review state.
     if (
         stored.status
         != StoredConversationStatus.ready_for_review
@@ -611,6 +641,8 @@ def confirm_record_workflow(
     )
     session.confirm()
 
+    # This is the explicit save boundary: no journal entry is written until
+    # the parent/carer has reviewed and confirmed the draft.
     journal_entry_id = save_confirmed_session(
         session,
         source="fastapi_record_workflow",
@@ -645,6 +677,8 @@ def confirm_record_workflow(
         database_path=database_path,
     )
 
+    # Preserve existing metadata and attach the saved journal-entry ID so
+    # callers can link the confirmed workflow to the stored record.
     metadata: dict[str, Any] = dict(
         stored.metadata
     )
@@ -688,6 +722,8 @@ def reject_record_workflow(
             "This journal draft has already been rejected."
         )
 
+    # Confirmation or rejection is allowed only after questioning has finished
+    # and the draft has explicitly entered the review state.
     if (
         stored.status
         != StoredConversationStatus.ready_for_review
@@ -699,6 +735,8 @@ def reject_record_workflow(
     session = _restore_session(
         stored
     )
+    # Rejection changes only the workflow state; save_confirmed_session() is
+    # deliberately not called, so no journal entry is created.
     session.reject()
     assistant_messages = [
         "The draft was discarded and no journal entry was saved."

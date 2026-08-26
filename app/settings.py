@@ -10,11 +10,14 @@ from typing import Mapping
 from urllib.parse import urlsplit
 
 
+# Resolve project-relative paths from this module so configuration does not
+# depend on the process working directory.
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 ENVIRONMENT_LOCAL = "local"
 ENVIRONMENT_TEST = "test"
 ENVIRONMENT_PRODUCTION = "production"
+# Restrict runtime mode to the explicitly supported environments.
 ALLOWED_ENVIRONMENTS = frozenset(
     {
         ENVIRONMENT_LOCAL,
@@ -25,6 +28,7 @@ ALLOWED_ENVIRONMENTS = frozenset(
 
 DATA_POLICY_LOCAL_PRIVATE = "local_private"
 DATA_POLICY_SYNTHETIC_ONLY = "synthetic_only"
+# Make the permitted use of synthetic versus local private data explicit.
 ALLOWED_DATA_POLICIES = frozenset(
     {
         DATA_POLICY_LOCAL_PRIVATE,
@@ -32,6 +36,7 @@ ALLOWED_DATA_POLICIES = frozenset(
     }
 )
 
+# Validate logging options against a known supported set.
 ALLOWED_LOG_LEVELS = frozenset(
     {
         "DEBUG",
@@ -53,6 +58,8 @@ class SettingsError(ValueError):
     """Raised when runtime configuration is missing or unsafe."""
 
 
+# Keep validated settings immutable so API and frontend code share one
+# consistent configuration object.
 @dataclass(frozen=True)
 class JoeySettings:
     """Validated runtime settings shared by the API and frontend."""
@@ -94,6 +101,8 @@ def _read(
 ) -> str:
     """Read and trim one environment value."""
 
+    # Convert the selected environment value to text and trim whitespace
+    # before setting-specific validation occurs.
     return str(
         environ.get(
             key,
@@ -110,6 +119,8 @@ def _parse_bool(
 ) -> bool:
     """Parse a strict boolean environment value."""
 
+    # Parse boolean text explicitly rather than relying on Python truthiness
+    # for non-empty strings.
     normalised = raw_value.strip().lower()
 
     if normalised in {
@@ -143,6 +154,8 @@ def _normalise_choice(
 
     normalised = raw_value.strip().lower()
 
+    # Reject unsupported values early so invalid configuration does not reach
+    # the running application.
     if normalised not in allowed:
         choices = ", ".join(
             sorted(allowed)
@@ -161,11 +174,14 @@ def _resolve_path(
 ) -> Path:
     """Resolve an absolute or project-relative path without creating it."""
 
+    # Empty path settings use the supplied project-relative default.
     if not raw_value:
         return default.resolve()
 
     path = Path(raw_value).expanduser()
 
+    # Relative paths are interpreted from the project root for predictable
+    # behaviour across local runs, tests and deployment.
     if not path.is_absolute():
         path = PROJECT_ROOT / path
 
@@ -177,9 +193,11 @@ def _normalise_api_url(
 ) -> str:
     """Validate and normalise the frontend-to-API base URL."""
 
+    # Remove surrounding whitespace and a trailing slash before URL checks.
     clean = raw_value.strip().rstrip("/")
     parsed = urlsplit(clean)
 
+    # Require an absolute HTTP(S) destination for frontend-to-API requests.
     if parsed.scheme not in {
         "http",
         "https",
@@ -188,6 +206,8 @@ def _normalise_api_url(
             "HEY_JOEY_API_URL must be an absolute HTTP or HTTPS URL."
         )
 
+    # Reject embedded credentials so secrets are not placed in configuration
+    # URLs or exposed accidentally through logs or UI output.
     if parsed.username or parsed.password:
         raise SettingsError(
             "HEY_JOEY_API_URL must not contain embedded credentials."
@@ -201,6 +221,8 @@ def load_settings(
 ) -> JoeySettings:
     """Load and validate settings from one environment mapping."""
 
+    # Normal execution reads process environment variables, while tests can
+    # inject an isolated mapping.
     values = os.environ if environ is None else environ
 
     environment = _normalise_choice(
@@ -212,6 +234,7 @@ def load_settings(
         key="HEY_JOEY_ENVIRONMENT",
         allowed=ALLOWED_ENVIRONMENTS,
     )
+    # Production mode changes defaults and activates stricter safeguards below.
     production = (
         environment == ENVIRONMENT_PRODUCTION
     )
@@ -248,11 +271,15 @@ def load_settings(
         key="HEY_JOEY_ALLOW_PRIVATE_DATA",
     )
 
+    # Demo mode is restricted to synthetic data to prevent demonstrations
+    # from accidentally running under the private-data policy.
     if demo_mode and data_policy != DATA_POLICY_SYNTHETIC_ONLY:
         raise SettingsError(
             "Demo mode requires HEY_JOEY_DATA_POLICY=synthetic_only."
         )
 
+    # Production use of local private data requires an additional explicit
+    # opt-in rather than being enabled by environment selection alone.
     if (
         production
         and data_policy == DATA_POLICY_LOCAL_PRIVATE
@@ -263,6 +290,8 @@ def load_settings(
             "HEY_JOEY_ALLOW_PRIVATE_DATA=true decision."
         )
 
+    # Resolve the data directory first so the default database location can
+    # be derived from the same validated path.
     data_dir = _resolve_path(
         _read(
             values,
@@ -280,6 +309,8 @@ def load_settings(
         default=data_dir / "local" / "joey.db",
     )
 
+    # Read and validate the API URL separately so configuration failures are
+    # clear and deterministic.
     raw_api_base_url = _read(
         values,
         "HEY_JOEY_API_URL",
@@ -290,6 +321,8 @@ def load_settings(
         or "http://127.0.0.1:8000"
     )
 
+    # Logging levels are uppercased before validation to match standard
+    # Python logging conventions.
     log_level = _read(
         values,
         "HEY_JOEY_LOG_LEVEL",
@@ -301,6 +334,8 @@ def load_settings(
             "ERROR or CRITICAL."
         )
 
+    # Production defaults to JSON logging, while non-production runs default
+    # to simpler human-readable text output.
     log_format = _normalise_choice(
         _read(
             values,
@@ -311,6 +346,7 @@ def load_settings(
         allowed=ALLOWED_LOG_FORMATS,
     )
 
+    # API documentation defaults off in production and on elsewhere.
     docs_enabled = _parse_bool(
         _read(
             values,
@@ -320,6 +356,8 @@ def load_settings(
         key="HEY_JOEY_DOCS_ENABLED",
     )
 
+    # Return settings only after every environment value has been parsed and
+    # validated successfully.
     return JoeySettings(
         environment=environment,
         demo_mode=demo_mode,
@@ -334,6 +372,7 @@ def load_settings(
     )
 
 
+# Cache one validated settings object for the lifetime of the process.
 @lru_cache(maxsize=1)
 def get_settings() -> JoeySettings:
     """Return the process-wide validated settings instance."""
@@ -344,4 +383,7 @@ def get_settings() -> JoeySettings:
 def reset_settings_cache() -> None:
     """Clear cached settings for isolated tests and controlled reloads."""
 
+    # Tests or controlled reloads can clear the cached object after changing
+    # environment variables.
     get_settings.cache_clear()
+

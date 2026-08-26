@@ -28,6 +28,8 @@ from storage.strategy_feedback import (
 )
 
 
+# This user-facing message is returned when safety screening prevents
+# ordinary strategy retrieval from continuing.
 SAFETY_LIMIT_MESSAGE = (
     "What you described may involve an immediate safety or injury "
     "concern. Joey will not provide ordinary strategy suggestions for "
@@ -36,6 +38,8 @@ SAFETY_LIMIT_MESSAGE = (
 )
 
 
+# Workflow-specific exceptions let API adapters distinguish missing
+# searches from invalid feedback operations.
 class StrategySearchNotFoundError(LookupError):
     """Raised when an accepted strategy-search ID does not exist."""
 
@@ -44,6 +48,8 @@ class StrategyFeedbackStateError(RuntimeError):
     """Raised when feedback conflicts with the stored search state."""
 
 
+# The protocol keeps this workflow independent of one concrete retriever,
+# which also makes deterministic testing with mock services easier.
 class StrategyRetrievalService(Protocol):
     """Small protocol used by the API and deterministic tests."""
 
@@ -57,6 +63,8 @@ class StrategyRetrievalService(Protocol):
         ...
 
 
+# Immutable snapshots expose retrieval evidence without leaking the
+# implementation-specific result objects returned by the RAG layer.
 @dataclass(frozen=True)
 class StrategyEvidenceSnapshot:
     """Framework-neutral copy of one history-aware evidence result."""
@@ -99,6 +107,8 @@ class StrategySearchWorkflowResult:
     def can_submit_feedback(self) -> bool:
         """Return whether the result has persisted strategies to rate."""
 
+        # Feedback is allowed only for persisted searches that actually returned
+        # accepted evidence to the user.
         return (
             self.outcome == "results"
             and self.search_id is not None
@@ -119,6 +129,8 @@ def build_strategy_retrieval_service(
 ) -> StrategyRetrievalService:
     """Build a real retrieval service bound to the configured database."""
 
+    # Import the embedding/history stack only when a real search is requested;
+# this avoids unnecessary model initialisation during API setup and tests.
     # These imports are deliberately lazy so API foundation and mocked
     # tests do not initialise the embedding stack until a real search is
     # requested.
@@ -129,6 +141,8 @@ def build_strategy_retrieval_service(
         load_stored_feedback_history,
     )
 
+    # Preserve the caller-provided database location so retrieval history
+    # and feedback are loaded from the same local store as the workflow.
     path = (
         Path(database_path)
         if database_path is not None
@@ -153,6 +167,8 @@ def _clean_text(value: str) -> str:
 def _copy_evidence(item: Any) -> StrategyEvidenceSnapshot:
     """Copy one retrieval result into the framework-neutral contract."""
 
+    # getattr() provides safe defaults so mocked or alternate retrieval
+    # result objects can still be converted into the workflow contract.
     return StrategyEvidenceSnapshot(
         rank=max(
             int(getattr(item, "rank", 1)),
@@ -225,6 +241,8 @@ def _results_message(
 ) -> str:
     """Return cautious summary wording for accepted evidence."""
 
+    # The response wording deliberately describes retrieved items as support
+    # options rather than diagnoses or medical recommendations.
     count = len(evidence)
     strategy_word = "strategy" if count == 1 else "strategies"
 
@@ -244,6 +262,8 @@ def search_strategy_workflow(
 ) -> StrategySearchWorkflowResult:
     """Run safety, retrieval, confidence and accepted-search storage."""
 
+    # Normalise the parent/carer query before safety screening, retrieval,
+    # confidence assessment, and persistence.
     clean_question = _clean_text(
         question
     )
@@ -258,6 +278,8 @@ def search_strategy_workflow(
             "top_k must be between 1 and 5."
         )
 
+    # Reuse the deterministic extractor as a lightweight safety screen before
+    # any ordinary strategy suggestions are retrieved.
     screening_record = extract_structured_record(
         clean_question
     )
@@ -265,6 +287,8 @@ def search_strategy_workflow(
         screening_record
     )
 
+    # Safety-limited queries stop here: no retrieval is run and no search
+    # result is persisted for strategy feedback.
     if should_limit_strategy_suggestions(
         screening_record
     ):
@@ -280,6 +304,8 @@ def search_strategy_workflow(
             evidence=(),
         )
 
+    # A caller-supplied retrieval service is used in tests; otherwise build
+    # the real history-aware local retrieval service.
     service = (
         retrieval_service
         if retrieval_service is not None
@@ -288,6 +314,8 @@ def search_strategy_workflow(
         )
     )
 
+    # Search a larger candidate pool than top_k so history-aware ranking has
+    # enough alternatives before the final displayed results are selected.
     retrieval = service.retrieve(
         question=clean_question,
         top_k=top_k,
@@ -296,6 +324,8 @@ def search_strategy_workflow(
             top_k * 2,
         ),
     )
+    # Convert implementation-specific evidence items into immutable,
+    # framework-neutral snapshots before confidence evaluation or storage.
     evidence = tuple(
         _copy_evidence(item)
         for item in list(
@@ -303,6 +333,8 @@ def search_strategy_workflow(
         )
     )
 
+    # Confidence is assessed after retrieval and can force abstention even
+    # when the retriever has produced ranked evidence.
     confidence = assess_retrieval_confidence(
         question=clean_question,
         evidence=evidence,
@@ -317,6 +349,8 @@ def search_strategy_workflow(
         None,
     )
 
+    # Abstained searches return no strategy evidence to the user and are not
+    # stored as accepted searches for later feedback.
     if confidence.should_abstain:
         return StrategySearchWorkflowResult(
             outcome="abstained",
@@ -330,6 +364,8 @@ def search_strategy_workflow(
             evidence=(),
         )
 
+    # Only accepted, non-abstained searches are persisted so later feedback
+    # is tied to evidence that was actually shown to the user.
     search_id = save_strategy_search(
         question=clean_question,
         retrieval_query=retrieval_query,
@@ -367,6 +403,8 @@ def _stored_evidence(
         "evidence_snapshot",
         [],
     )
+    # Snapshot rows contain history/lifecycle fields that are joined back to
+    # the stored evidence by display rank when a search is reloaded.
     snapshot_by_rank = {
         int(item.get("display_rank", 0)): item
         for item in snapshot_rows
@@ -461,6 +499,8 @@ def _feedback_for_search(
 ) -> tuple[StoredStrategyFeedback, ...]:
     """Return feedback belonging only to the requested accepted search."""
 
+    # Feedback is filtered by search ID so callers receive only ratings for
+    # the requested accepted search.
     return tuple(
         item
         for item in list_strategy_feedback(
@@ -483,6 +523,8 @@ def get_strategy_search_workflow(
             "search_id must be at least 1."
         )
 
+    # Accepted searches are reloaded from local storage before being exposed
+    # through the workflow result.
     stored = get_strategy_search(
         search_id,
         database_path=database_path,
@@ -543,6 +585,8 @@ def submit_strategy_feedback_workflow(
             "The requested strategy search was not found."
         )
 
+    # Validate/normalise the rating first, then upsert feedback against the
+    # displayed strategy rank from the stored search.
     try:
         normalised_rating = normalise_feedback_rating(
             rating
@@ -559,6 +603,8 @@ def submit_strategy_feedback_workflow(
             str(error)
         ) from error
 
+    # Reload the stored feedback after saving so the workflow returns the
+    # canonical persisted record, including its generated ID and metadata.
     matching = next(
         (
             item
@@ -583,3 +629,4 @@ def submit_strategy_feedback_workflow(
             f"{strategy_rank} as {feedback_label(normalised_rating)}."
         ),
     )
+

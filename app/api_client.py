@@ -9,11 +9,16 @@ import httpx
 from app.settings import load_settings
 
 
+# Defaults support the local FastAPI service used by the Streamlit frontend.
 DEFAULT_API_BASE_URL = "http://127.0.0.1:8000"
 DEFAULT_TIMEOUT_SECONDS = 15.0
+# Strategy retrieval receives a longer timeout because the first local
+# semantic search may need extra time to load the embedding model.
 STRATEGY_SEARCH_TIMEOUT_SECONDS = 120.0
 
 
+# Controlled exception types let the frontend distinguish connection,
+# timeout, response-status and invalid-payload failures.
 class HeyJoeyApiError(RuntimeError):
     """Base exception for controlled frontend API failures."""
 
@@ -34,6 +39,8 @@ class ApiResponseError(HeyJoeyApiError):
         status_code: int,
         detail: str,
     ) -> None:
+        # Preserve the backend status code and readable detail so the UI can
+        # report controlled API failures without exposing raw responses.
         self.status_code = status_code
         self.detail = detail
         super().__init__(
@@ -50,11 +57,15 @@ def resolve_api_base_url(
 ) -> str:
     """Resolve and normalise the configured FastAPI base URL."""
 
+    # Prefer an explicitly supplied URL, otherwise use the validated value
+    # from the central application settings.
     raw_value = (
         value
         if value is not None
         else load_settings().api_base_url
     )
+    # Normalise whitespace and trailing slashes so endpoint paths can be
+    # appended consistently.
     clean = str(raw_value or "").strip().rstrip("/")
 
     if not clean:
@@ -73,9 +84,13 @@ class HeyJoeyApiClient:
         timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
         transport: httpx.BaseTransport | None = None,
     ) -> None:
+        # Resolve the API URL once, then keep one reusable httpx client for
+        # connection pooling across frontend requests.
         self.base_url = resolve_api_base_url(
             base_url
         )
+        # The client expects JSON responses, follows redirects and supports
+        # an injectable transport for deterministic tests.
         self._client = httpx.Client(
             base_url=self.base_url,
             timeout=timeout_seconds,
@@ -89,6 +104,7 @@ class HeyJoeyApiClient:
     def close(self) -> None:
         """Close the underlying HTTP connection pool."""
 
+        # Explicitly release the underlying HTTP connection pool.
         self._client.close()
 
     def __enter__(
@@ -110,6 +126,8 @@ class HeyJoeyApiClient:
     ) -> str:
         """Extract a readable FastAPI error detail."""
 
+        # FastAPI errors are normally JSON, but fall back to plain response
+        # text if the backend returned a non-JSON error body.
         try:
             payload = response.json()
         except ValueError:
@@ -124,6 +142,8 @@ class HeyJoeyApiClient:
             if isinstance(detail, str):
                 return detail
 
+            # FastAPI validation errors can be returned as a list of detail
+            # objects, so flatten them into one readable frontend message.
             if isinstance(detail, Sequence) and not isinstance(
                 detail,
                 (str, bytes),
@@ -160,6 +180,8 @@ class HeyJoeyApiClient:
     ) -> dict[str, Any]:
         """Send one request and validate the shared JSON contract."""
 
+        # Route all endpoint calls through one request method so timeout,
+        # network and response validation behaviour stays consistent.
         try:
             response = self._client.request(
                 method,
@@ -180,6 +202,8 @@ class HeyJoeyApiClient:
                     else self._client.timeout
                 ),
             )
+        # Timeouts are separated from connection failures because strategy
+        # search may be slow while the local model is loading.
         except httpx.TimeoutException as error:
             raise ApiTimeoutError(
                 "The FastAPI backend is running, but the request took "
@@ -187,6 +211,8 @@ class HeyJoeyApiClient:
                 "need extra time while the local semantic model loads. "
                 "Please wait for model loading to finish and try again."
             ) from error
+        # Network/request errors indicate that the local FastAPI service is
+        # unavailable rather than that the endpoint returned an error status.
         except (
             httpx.NetworkError,
             httpx.RequestError,
@@ -197,6 +223,8 @@ class HeyJoeyApiClient:
                 "reload Streamlit."
             ) from error
 
+        # Convert non-success HTTP responses into one controlled exception
+        # using the most readable detail available from FastAPI.
         if response.is_error:
             raise ApiResponseError(
                 response.status_code,
@@ -205,6 +233,7 @@ class HeyJoeyApiClient:
                 ),
             )
 
+        # Successful responses must still satisfy the shared JSON contract.
         try:
             payload = response.json()
         except ValueError as error:
@@ -212,6 +241,8 @@ class HeyJoeyApiClient:
                 "The FastAPI backend returned invalid JSON."
             ) from error
 
+        # Endpoint wrappers expect object-shaped JSON so list/scalar payloads
+        # are rejected as contract violations.
         if not isinstance(
             payload,
             dict,
@@ -220,6 +251,8 @@ class HeyJoeyApiClient:
                 "The FastAPI backend response must be a JSON object."
             )
 
+        # Return a plain dictionary so callers are isolated from httpx response
+        # objects and JSON implementation details.
         return dict(payload)
 
     def health(
@@ -297,6 +330,7 @@ class HeyJoeyApiClient:
         *,
         top_k: int = 3,
     ) -> dict[str, Any]:
+        # Strategy search uses the longer retrieval timeout defined above.
         return self._request(
             "POST",
             "/api/v1/strategies/search",
@@ -390,6 +424,8 @@ class HeyJoeyApiClient:
         assistant_message_type: str,
         metadata: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
+        # Build the exchange payload once so optional metadata can be added
+        # only when the caller supplies it.
         body: dict[str, Any] = {
             "user_content": user_content,
             "user_message_type": user_message_type,
@@ -401,6 +437,8 @@ class HeyJoeyApiClient:
             ),
         }
 
+        # Omit metadata entirely when it is not being updated rather than
+        # sending an empty value that could overwrite stored metadata.
         if metadata is not None:
             body["metadata"] = dict(
                 metadata

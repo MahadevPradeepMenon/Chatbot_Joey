@@ -13,8 +13,12 @@ from rag.joey_strategy_service import (
 from safety.safety_guard import should_limit_strategy_suggestions
 
 
+# Resolve local output paths relative to the repository rather than the
+# shell working directory.
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 LOCAL_OUTPUT_DIR = PROJECT_ROOT / "data" / "local"
+# Confirmed CLI records are appended to one local JSONL file so each saved
+# observation remains a separate line-delimited record.
 CONFIRMED_RECORDS_FILE = (
     LOCAL_OUTPUT_DIR / "confirmed_joey_records.jsonl"
 )
@@ -23,6 +27,7 @@ CONFIRMED_RECORDS_FILE = (
 def print_list(items: list[str]) -> None:
     """Print a list neatly."""
 
+    # Use an explicit placeholder when a structured list contains no values.
     if not items:
         print("- None detected")
         return
@@ -36,6 +41,7 @@ def display_record(
 ) -> None:
     """Display Joey's structured output in a parent-friendly way."""
 
+    # Present the extracted record separately from later retrieval evidence.
     print("\n" + "=" * 60)
     print("JOEY STRUCTURED RECORD")
     print("=" * 60)
@@ -95,10 +101,12 @@ def display_semantic_strategies(
     print("RETRIEVED STRATEGY EVIDENCE")
     print("=" * 60)
 
+    # Keep the CLI usable when retrieval returns no evidence.
     if not strategies:
         print("\nNo strategy evidence was retrieved.")
         return
 
+    # Show each evidence item with its rank, source metadata and passage preview.
     for strategy in strategies:
         if strategy.strategy_code and strategy.strategy_title:
             title = (
@@ -135,11 +143,15 @@ def save_confirmed_record(
 ) -> None:
     """Save a parent-confirmed record locally as JSONL."""
 
+    # Create the local output directory only when a parent/carer has chosen
+    # to save a confirmed record.
     LOCAL_OUTPUT_DIR.mkdir(
         parents=True,
         exist_ok=True,
     )
 
+    # Store both the original note and the validated structured record so the
+    # saved output can be traced back to the user-provided observation.
     saved_item = {
         "saved_at": datetime.now().isoformat(
             timespec="seconds"
@@ -150,6 +162,7 @@ def save_confirmed_record(
         ),
     }
 
+    # Append rather than overwrite so previously confirmed CLI records are preserved.
     with CONFIRMED_RECORDS_FILE.open(
         "a",
         encoding="utf-8",
@@ -177,13 +190,19 @@ def process_note(
     retrieval and parent-response generation without saving.
     """
 
+    # Deterministically extract the structured journal fields before any
+    # retrieval or saving decision is made.
     record = extract_structured_record(note)
     display_record(record)
 
+    # Start with no evidence so the parent response can still be built if
+    # retrieval is safety-limited or fails.
     retrieved_strategies: list[
         JoeyStrategyEvidence
     ] = []
 
+    # Safety gating stops ordinary strategy retrieval when the extracted
+    # record indicates a possible safety concern.
     if should_limit_strategy_suggestions(record):
         print("\n" + "=" * 60)
         print("STRATEGY RETRIEVAL")
@@ -194,6 +213,8 @@ def process_note(
         )
 
     else:
+        # Retrieval is attempted only for non-safety-limited records and the
+        # CLI displays at most the top three evidence items.
         try:
             retrieved_strategies = (
                 strategy_service.retrieve_for_record(
@@ -207,6 +228,8 @@ def process_note(
                 retrieved_strategies
             )
 
+        # Retrieval failure does not discard the extracted journal draft;
+        # the user can still review and decide whether to save it.
         except Exception as error:
             print("\n" + "=" * 60)
             print("STRATEGY RETRIEVAL")
@@ -222,6 +245,8 @@ def process_note(
                 "and saved."
             )
 
+    # Build the same cautious parent-facing summary from the structured
+    # record and whatever evidence was successfully retrieved.
     parent_response = build_parent_response(
         original_note=note,
         record=record,
@@ -245,6 +270,8 @@ def run_joey_cli() -> None:
 
     print("Loading Joey's local strategy system...")
 
+    # Initialise the local semantic strategy service once before entering
+    # the input loop so the index/model are reused across notes.
     try:
         strategy_service = JoeyStrategyService()
     except Exception as error:
@@ -262,11 +289,13 @@ def run_joey_cli() -> None:
 
     print("Joey's local strategy system is ready.\n")
 
+    # Continue accepting observations until the user enters an exit command.
     while True:
         note = input(
             "Parent/carer note: "
         ).strip()
 
+        # Accept several short exit commands for convenience in the CLI.
         if note.lower() in {
             "exit",
             "quit",
@@ -282,6 +311,8 @@ def run_joey_cli() -> None:
             )
             continue
 
+        # Process and display the note first; saving remains a separate,
+        # explicit parent/carer decision below.
         record, _ = process_note(
             note,
             strategy_service,
@@ -302,6 +333,7 @@ def run_joey_cli() -> None:
             "Your choice: "
         ).strip()
 
+        # Save only after the parent/carer explicitly chooses the save option.
         if choice == "1":
             save_confirmed_record(
                 note,
@@ -316,6 +348,8 @@ def run_joey_cli() -> None:
         elif choice == "2":
             print("\nRecord was not saved.")
 
+        # Rewriting re-runs extraction and retrieval from the revised note
+        # instead of modifying the previous structured record in place.
         elif choice == "3":
             revised_note = input(
                 "\nRewrite the note: "
@@ -331,6 +365,7 @@ def run_joey_cli() -> None:
                     "\nSave revised record? yes/no: "
                 ).strip().lower()
 
+                # The revised record has its own explicit confirmation step.
                 if confirm_revised in {
                     "yes",
                     "y",
@@ -360,5 +395,6 @@ def run_joey_cli() -> None:
             )
 
 
+# Run the command-line application only when this module is executed directly.
 if __name__ == "__main__":
     run_joey_cli()
