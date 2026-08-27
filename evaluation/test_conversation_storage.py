@@ -24,6 +24,8 @@ from storage.conversation_storage import (
 )
 
 
+# Keep this regression module runnable as a standalone script without requiring
+# an external testing framework.
 def assert_true(
     condition: bool,
     message: str,
@@ -39,6 +41,8 @@ def test_table_creation(
 ) -> None:
     """The session and message tables should be created."""
 
+    # Create the persistent-conversation schema at the injected temporary path so
+    # the test does not touch the application's normal local database.
     path = create_conversation_tables(
         database_path
     )
@@ -54,6 +58,8 @@ def test_separate_workflow_sessions(
 ) -> tuple[int, int]:
     """Both chatbot workflows should receive separate sessions."""
 
+    # Create one session for each supported workflow to verify that they receive
+    # distinct persistent identifiers.
     record_id = create_conversation_session(
         "Record what happened",
         created_at="2026-07-30T18:00:00",
@@ -87,6 +93,8 @@ def test_message_insertion_and_ordering(
 ) -> None:
     """Messages should retain user/assistant order."""
 
+    # Insert alternating assistant/user turns with fixed timestamps so sequence
+    # numbering and role preservation can be checked deterministically.
     add_conversation_message(
         record_id,
         ConversationRole.assistant,
@@ -114,6 +122,8 @@ def test_message_insertion_and_ordering(
         database_path=database_path,
     )
 
+    # Retrieve the complete session through the public storage API, including its
+    # ordered child-message records.
     stored = get_conversation_session(
         record_id,
         database_path,
@@ -151,6 +161,7 @@ def test_conversation_retrieval(
 ) -> None:
     """A strategy session should round-trip independently."""
 
+    # Exercise the same storage API with string role values as well as enum values.
     add_conversation_message(
         strategy_id,
         "user",
@@ -195,6 +206,8 @@ def test_status_update(
 ) -> None:
     """Conversation status should be updateable."""
 
+    # Update only the persisted workflow status while leaving the rest of the
+    # conversation session intact.
     update_conversation_session(
         record_id,
         status=StoredConversationStatus.ready_for_review,
@@ -225,12 +238,16 @@ def test_draft_state_preservation(
 ) -> None:
     """The JoeyConversationSession snapshot should round-trip."""
 
+    # Build a real conversation-manager draft and persist its serialised snapshot
+    # so compatibility between conversation and storage layers is regression-tested.
     draft = JoeyConversationSession.start(
         "The classroom became loud and the child covered their ears."
     )
 
     draft_state = draft.to_dict()
 
+    # Explicitly enable the draft-state update so the stored JSON snapshot can be
+    # recovered on a later read.
     update_conversation_session(
         record_id,
         draft_state=draft_state,
@@ -273,6 +290,8 @@ def test_workflow_isolation(
 ) -> None:
     """Messages and filters must not leak between workflows."""
 
+    # Query each workflow separately to prove that filters and attached messages do
+    # not leak between the record and strategy conversation streams.
     record_sessions = list_conversation_sessions(
         workflow="Record what happened",
         database_path=database_path,
@@ -312,6 +331,8 @@ def test_session_deletion_cascades(
 ) -> None:
     """Deleting a session should also delete its messages."""
 
+    # Capture the global message count before deletion so the foreign-key cascade
+    # can be verified after removing one session.
     messages_before = count_conversation_messages(
         database_path
     )
@@ -350,6 +371,8 @@ def test_invalid_session_rejected(
 ) -> None:
     """Messages cannot be added to a missing session."""
 
+    # Use an intentionally missing session ID to confirm that orphan messages are
+    # rejected rather than silently inserted.
     try:
         add_conversation_message(
             999,
@@ -374,6 +397,8 @@ def main() -> None:
     passed = 0
     total = 8
 
+    # Run the storage checks against a disposable SQLite database so the regression
+    # suite is isolated and repeatable.
     with tempfile.TemporaryDirectory() as directory:
         database_path = (
             Path(directory)
@@ -386,6 +411,8 @@ def main() -> None:
         passed += 1
         print("[PASS] conversation table creation")
 
+        # Reuse the created workflow IDs throughout the remaining tests so ordering,
+        # updates, isolation and deletion operate on the same persisted sessions.
         record_id, strategy_id = (
             test_separate_workflow_sessions(
                 database_path
@@ -444,11 +471,14 @@ def main() -> None:
 
     # The invalid-session check is an additional guard beyond the eight
     # required storage behaviours.
+    # It is reported separately because it is not included in the primary pass total.
+    # required storage behaviours.
     print("\nCONVERSATION STORAGE TEST RESULTS")
     print("=" * 60)
     print(f"Tests passed: {passed}/{total}")
     print("Additional guard passed: invalid-session rejection")
 
 
+# Run the conversation-storage regression suite only when executed directly.
 if __name__ == "__main__":
     main()

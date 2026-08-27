@@ -6,6 +6,8 @@ import re
 from pathlib import Path
 
 
+# Resolve the release workflow and documentation paths relative to the repository
+# so the checks behave consistently from local shells and CI runners.
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW_PATH = (
     PROJECT_ROOT
@@ -20,9 +22,13 @@ DOCUMENTATION_PATH = (
 )
 
 
+# Centralise release-workflow loading so every regression check reads the same
+# versioned container-release configuration.
 def workflow_text() -> str:
     """Return the required release workflow text."""
 
+    # Fail clearly if the publishing workflow itself is missing before checking any
+    # of its trigger, permission or build settings.
     if not WORKFLOW_PATH.exists():
         raise AssertionError(
             "The container-release workflow is missing."
@@ -31,9 +37,13 @@ def workflow_text() -> str:
     return WORKFLOW_PATH.read_text(encoding="utf-8")
 
 
+# Load the companion release-process documentation so operational safeguards are
+# checked alongside the workflow implementation.
 def documentation_text() -> str:
     """Return the required release-process documentation."""
 
+    # Treat missing release documentation as a configuration regression rather than
+    # allowing the workflow to exist without an explained publishing process.
     if not DOCUMENTATION_PATH.exists():
         raise AssertionError(
             "The container-release documentation is missing."
@@ -42,6 +52,8 @@ def documentation_text() -> str:
     return DOCUMENTATION_PATH.read_text(encoding="utf-8")
 
 
+# Keep this configuration module runnable as a standalone regression script without
+# requiring an external testing framework.
 def assert_true(condition: bool, message: str) -> None:
     """Raise one readable Stage 7D validation failure."""
 
@@ -54,6 +66,8 @@ def test_release_only_triggers() -> None:
 
     content = workflow_text()
 
+    # Require publishing to be initiated only by semantic-version tags or an
+    # explicit manual rebuild request.
     for required in (
         "push:",
         "tags:",
@@ -67,6 +81,8 @@ def test_release_only_triggers() -> None:
             f"The release trigger setting is missing: {required}",
         )
 
+    # Reject branch, schedule and pull-request triggers so image publishing cannot
+    # happen accidentally during ordinary development activity.
     for forbidden in (
         "pull_request:",
         "pull_request_target:",
@@ -84,6 +100,8 @@ def test_release_permissions() -> None:
 
     content = workflow_text()
 
+    # Use a whitespace-tolerant regular expression to verify the workflow token is
+    # limited to source read access plus package publishing permission.
     assert_true(
         re.search(
             r"permissions:\s*\n"
@@ -112,6 +130,8 @@ def test_immutable_action_references() -> None:
 
     content = workflow_text()
 
+    # Extract external action names and revisions so every dependency can be checked
+    # for immutable full commit-SHA pinning.
     references = re.findall(
         r"uses:\s+([^@\s]+)@([0-9a-fA-F]+)",
         content,
@@ -122,6 +142,7 @@ def test_immutable_action_references() -> None:
         "Release CI should use checkout, Buildx, login and build-push.",
     )
 
+    # Validate every discovered action reference rather than checking only one.
     for action_name, revision in references:
         assert_true(
             len(revision) == 40,
@@ -129,6 +150,8 @@ def test_immutable_action_references() -> None:
         )
 
 
+# Confirm manual releases rebuild the exact requested tag/commit and do not leave
+# checkout credentials available to later workflow steps.
 def test_immutable_source_checkout() -> None:
     """Manual publishing should rebuild an existing tag, not a branch."""
 
@@ -145,6 +168,8 @@ def test_immutable_source_checkout() -> None:
         )
 
 
+# Verify strict vMAJOR.MINOR.PATCH validation, lowercase GHCR image naming and
+# commit-derived metadata for traceable releases.
 def test_semantic_version_and_image_normalisation() -> None:
     """Tags should be validated and GHCR names should be lowercase."""
 
@@ -164,6 +189,8 @@ def test_semantic_version_and_image_normalisation() -> None:
     )
 
 
+# Ensure publishing authenticates only to GitHub Container Registry with the
+# repository-scoped GITHUB_TOKEN rather than custom or hard-coded credentials.
 def test_registry_authentication() -> None:
     """Publishing should use GHCR and the repository-scoped token."""
 
@@ -193,6 +220,8 @@ def test_registry_authentication() -> None:
         )
 
 
+# Require version, tag, commit and OCI labels so each published image can be traced
+# back to its exact source revision and release identifier.
 def test_versioned_image_tags_and_labels() -> None:
     """Every image should have traceable version and commit metadata."""
 
@@ -213,6 +242,8 @@ def test_versioned_image_tags_and_labels() -> None:
         )
 
 
+# Check that the release workflow validates Compose, builds the production
+# Dockerfile, publishes linux/amd64 and includes provenance/SBOM attestations.
 def test_production_publish_settings() -> None:
     """The production Dockerfile should be published with attestations."""
 
@@ -233,6 +264,8 @@ def test_production_publish_settings() -> None:
         )
 
 
+# Verify release builds are bounded, cached and fail-fast while intentionally not
+# cancelling an in-progress publication when a newer release run starts.
 def test_cache_and_execution_controls() -> None:
     """Release builds should be bounded, cached and never ignored."""
 
@@ -256,6 +289,8 @@ def test_cache_and_execution_controls() -> None:
     )
 
 
+# Confirm the repository documents the intentional tag-and-push release process,
+# registry destination and synthetic/private data boundary.
 def test_release_documentation() -> None:
     """The repository should explain the intentional release process."""
 
@@ -278,6 +313,8 @@ def test_release_documentation() -> None:
 def main() -> None:
     """Run all Stage 7D workflow checks."""
 
+    # Keep all release-workflow checks in a fixed order for deterministic local and
+    # CI progress output.
     tests = [
         ("release-only triggers", test_release_only_triggers),
         ("least-privilege release permissions", test_release_permissions),
@@ -299,6 +336,8 @@ def main() -> None:
 
     passed = 0
 
+    # Any failed assertion stops the module with a non-zero exit status that the
+    # wider CI suite can detect.
     for label, test in tests:
         test()
         passed += 1
@@ -309,5 +348,7 @@ def main() -> None:
     print(f"Tests passed: {passed}/{len(tests)}")
 
 
+# Run the container-release configuration regressions only when executed directly.
 if __name__ == "__main__":
     main()
+

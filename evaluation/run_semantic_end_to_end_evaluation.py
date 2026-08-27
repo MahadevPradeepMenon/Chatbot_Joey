@@ -16,6 +16,8 @@ from safety.safety_guard import (
 )
 
 
+# Resolve evaluation fixtures and outputs relative to the repository so the
+# integrated evaluation can be rerun consistently from different directories.
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 TEST_CASES_FILE = (
@@ -36,12 +38,16 @@ RESULTS_CSV = (
     / "semantic_end_to_end_results.csv"
 )
 
+# Use a fixed top-k so retrieval-count checks and saved results are comparable
+# across repeated evaluation runs.
 TOP_K = 3
 
 
 def normalise_text(value: str) -> str:
     """Normalise text for resilient filename comparisons."""
 
+    # Normalise filenames and expected source keywords to lowercase underscore
+    # tokens so punctuation differences do not affect source matching.
     return re.sub(
         r"[^a-z0-9]+",
         "_",
@@ -52,6 +58,7 @@ def normalise_text(value: str) -> str:
 def load_test_cases() -> list[dict[str, Any]]:
     """Load the synthetic evaluation cases."""
 
+    # Fail early when the synthetic semantic evaluation fixture is unavailable.
     if not TEST_CASES_FILE.exists():
         raise FileNotFoundError(
             f"Test-case file not found: {TEST_CASES_FILE}"
@@ -63,6 +70,7 @@ def load_test_cases() -> list[dict[str, Any]]:
         )
     )
 
+    # Require a non-empty case list so aggregate pass counts remain meaningful.
     if not isinstance(cases, list) or not cases:
         raise ValueError(
             "The evaluation file must contain a non-empty list."
@@ -81,12 +89,16 @@ def expected_source_found(
     appeared in the retrieved source filenames.
     """
 
+    # Safety-limited cases intentionally skip strategy retrieval, so source matching
+    # is treated as satisfied rather than requiring evidence that should not exist.
     if safety_limited:
         return True
 
     if not expected_keywords:
         return True
 
+    # Compare expected collection keywords against normalised source filenames from
+    # the retrieved evidence rather than relying on exact filename spelling.
     normalised_sources = [
         normalise_text(strategy.source_file)
         for strategy in strategies
@@ -132,8 +144,12 @@ def evaluate_case(
 
     started_at = time.perf_counter()
 
+    # Run the production deterministic extractor first so the evaluation follows
+    # the same structured-record path as the application.
     record = extract_structured_record(note)
 
+    # Apply the production safety guard before retrieval so risk-sensitive cases
+    # are evaluated with the same strategy-limiting behaviour as normal use.
     safety_limited = (
         should_limit_strategy_suggestions(
             record
@@ -144,6 +160,8 @@ def evaluate_case(
         JoeyStrategyEvidence
     ] = []
 
+    # Only retrieve local strategy evidence when the safety layer permits ordinary
+    # strategy suggestions for the current record.
     if not safety_limited:
         strategies = (
             strategy_service.retrieve_for_record(
@@ -153,16 +171,22 @@ def evaluate_case(
             )
         )
 
+    # Build the actual parent-facing response from the extracted record and any
+    # retrieved evidence so response safeguards are included in the evaluation.
     response = build_parent_response(
         original_note=note,
         record=record,
         retrieved_strategies=strategies,
     )
 
+    # Measure the complete integrated workflow from extraction through response
+    # construction rather than retrieval latency alone.
     elapsed_seconds = (
         time.perf_counter() - started_at
     )
 
+    # Preserve source filenames, readable strategy titles and rounded scores so
+    # saved artifacts can be inspected without rerunning the system.
     source_files = [
         strategy.source_file
         for strategy in strategies
@@ -183,12 +207,16 @@ def evaluate_case(
         for strategy in strategies
     ]
 
+    # Evaluate whether at least one expected source collection appears unless the
+    # case was intentionally safety-limited.
     source_match = expected_source_found(
         strategies,
         expected_keywords,
         safety_limited,
     )
 
+    # Combine extraction, confirmation, safety, retrieval, provenance and response
+    # expectations into one transparent set of per-case boolean checks.
     checks = {
         "record_created": bool(
             record.summary
@@ -234,6 +262,7 @@ def evaluate_case(
         ),
     }
 
+    # A case passes only when every defined integration check succeeds.
     passed_checks = sum(
         checks.values()
     )
@@ -241,6 +270,8 @@ def evaluate_case(
     total_checks = len(checks)
     case_passed = passed_checks == total_checks
 
+    # Save the original note, timing, retrieval evidence summary and full check map
+    # so each case result remains traceable.
     return {
         "case_id": case_id,
         "note": note,
@@ -265,6 +296,7 @@ def save_results(
 ) -> None:
     """Save detailed JSON and summary CSV results."""
 
+    # JSON output keeps aggregate totals together with every detailed case result.
     summary = {
         "evaluation_name": (
             "Hey Joey integrated semantic "
@@ -295,8 +327,11 @@ def save_results(
         encoding="utf-8",
     )
 
+    # Flatten list-valued fields and failed-check names for a spreadsheet-friendly
+    # CSV companion to the detailed JSON artifact.
     csv_rows: list[dict[str, Any]] = []
 
+    # Print one compact status block per case before the overall summary totals.
     for result in results:
         csv_rows.append(
             {
@@ -340,6 +375,7 @@ def save_results(
             }
         )
 
+    # Use UTF-8 with BOM for compatibility with common spreadsheet applications.
     with RESULTS_CSV.open(
         "w",
         newline="",
@@ -397,6 +433,7 @@ def print_results(
             f"{result['elapsed_seconds']:.4f}s"
         )
 
+        # Reconstruct failed check names directly from the stored boolean check map.
         failed_checks = [
             check_name
             for check_name, passed
@@ -441,16 +478,20 @@ def print_results(
 def main() -> None:
     """Run the integrated semantic system evaluation."""
 
+    # Load fixtures before initialising the heavier local strategy service.
     test_cases = load_test_cases()
 
     print(
         "Loading the local semantic strategy service..."
     )
 
+    # Reuse one local strategy service instance across all cases so the semantic
+    # model/index are not repeatedly reloaded during the evaluation.
     strategy_service = JoeyStrategyService()
 
     results: list[dict[str, Any]] = []
 
+    # Run every case through the same integrated extraction-safety-retrieval-response path.
     for test_case in test_cases:
         result = evaluate_case(
             test_case,
@@ -463,5 +504,6 @@ def main() -> None:
     print_results(results)
 
 
+# Run the integrated semantic end-to-end evaluation only when executed directly.
 if __name__ == "__main__":
     main()

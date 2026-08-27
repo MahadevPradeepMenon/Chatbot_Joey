@@ -10,14 +10,20 @@ from app.logging_config import JoeyJsonFormatter, redact_secrets
 from app.settings import SettingsError, load_settings
 
 
+# Resolve configuration and source files relative to the repository root so the
+# regression checks behave consistently from local shells and CI runners.
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
+# Keep this regression module runnable as a standalone script without requiring an
+# external testing framework.
 def assert_true(condition: bool, message: str) -> None:
     if not condition:
         raise AssertionError(message)
 
 
+# Centralise repository-file loading and fail clearly when a required production
+# configuration or integration file is missing.
 def read(path: str) -> str:
     target = PROJECT_ROOT / path
     if not target.exists():
@@ -25,6 +31,8 @@ def read(path: str) -> str:
     return target.read_text(encoding="utf-8")
 
 
+# Verify that an empty environment mapping produces the intended local-development
+# defaults, including private local data, enabled docs and text logging.
 def test_local_defaults() -> None:
     settings = load_settings({})
     assert_true(settings.environment == "local", "Local environment default failed.")
@@ -34,6 +42,8 @@ def test_local_defaults() -> None:
     assert_true(settings.log_format == "text", "Local log format should be text.")
 
 
+# Confirm that production mode defaults to the safer demonstration configuration:
+# synthetic-only data, no private-data access, disabled docs and JSON logs.
 def test_safe_production_defaults() -> None:
     settings = load_settings({"HEY_JOEY_ENVIRONMENT": "production"})
     assert_true(settings.demo_mode, "Production should default to demo mode.")
@@ -43,6 +53,8 @@ def test_safe_production_defaults() -> None:
     assert_true(settings.log_format == "json", "Production logs should default to JSON.")
 
 
+# Ensure production cannot silently combine local-private data with demo mode off
+# unless private-data access has been explicitly authorised.
 def test_unsafe_production_private_data_rejection() -> None:
     try:
         load_settings(
@@ -57,6 +69,8 @@ def test_unsafe_production_private_data_rejection() -> None:
     raise AssertionError("Unsafe production private-data mode was accepted.")
 
 
+# Verify that an explicit production override for private data is accepted only when
+# the dedicated permission flag is enabled and demo mode is disabled.
 def test_explicit_production_private_data_decision() -> None:
     settings = load_settings(
         {
@@ -71,6 +85,8 @@ def test_explicit_production_private_data_decision() -> None:
     assert_true(not settings.demo_mode, "Private production mode must not be demo mode.")
 
 
+# Exercise both structured JSON formatting and secret redaction so sensitive values
+# are not emitted into production-style logs.
 def test_json_logging_and_redaction() -> None:
     record = logging.LogRecord(
         name="hey_joey.test",
@@ -81,12 +97,16 @@ def test_json_logging_and_redaction() -> None:
         args=(),
         exc_info=None,
     )
+    # Parse the formatted log back into JSON so level metadata and redacted message
+    # content can be asserted directly.
     payload = json.loads(JoeyJsonFormatter().format(record))
     assert_true(payload["level"] == "INFO", "JSON log level is missing.")
     assert_true("super-secret-value" not in payload["message"], "Log secret was not redacted.")
     assert_true("[REDACTED]" in redact_secrets("password=abc123"), "Direct redaction failed.")
 
 
+# Check the production Compose file for resource limits, privilege reduction,
+# bounded logging, persistent data storage and synthetic-only operation.
 def test_production_compose_controls() -> None:
     content = read("compose.production.yaml")
     for required in (
@@ -103,6 +123,8 @@ def test_production_compose_controls() -> None:
         assert_true(required in content, f"Production Compose control is missing: {required}")
 
 
+# Verify the example environment files document distinct local and production
+# defaults, including the synthetic-only and disabled-docs production safeguards.
 def test_environment_templates() -> None:
     local = read(".env.example")
     production = read(".env.production.example")
@@ -112,6 +134,8 @@ def test_environment_templates() -> None:
     assert_true("HEY_JOEY_DOCS_ENABLED=false" in production, "Production docs safeguard is missing.")
 
 
+# Inspect key runtime modules to confirm central settings are actually consumed by
+# the API, database dependencies, frontend API client and Streamlit warning layer.
 def test_runtime_integration() -> None:
     api_main = read("api/main.py")
     dependencies = read("api/dependencies.py")
@@ -124,6 +148,8 @@ def test_runtime_integration() -> None:
 
 
 def main() -> None:
+    # Keep production-configuration checks in a fixed order for deterministic local
+    # and CI progress output.
     tests = [
         ("local configuration defaults", test_local_defaults),
         ("safe production defaults", test_safe_production_defaults),
@@ -135,6 +161,8 @@ def main() -> None:
         ("central settings runtime integration", test_runtime_integration),
     ]
     passed = 0
+    # Any failed assertion stops the module with a non-zero exit status that the
+    # wider CI suite can detect.
     for label, test in tests:
         test()
         passed += 1
@@ -144,5 +172,6 @@ def main() -> None:
     print(f"Tests passed: {passed}/{len(tests)}")
 
 
+# Run the production-configuration regressions only when this module is executed directly.
 if __name__ == "__main__":
     main()

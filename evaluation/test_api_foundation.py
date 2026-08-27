@@ -20,6 +20,8 @@ from api.main import (
 )
 
 
+# Keep this regression module runnable as a standalone script without requiring
+# an external testing framework.
 def assert_true(
     condition: bool,
     message: str,
@@ -35,6 +37,8 @@ def test_health_endpoint(
 ) -> None:
     """The liveness endpoint should be cheap and stable."""
 
+    # Exercise the lightweight liveness endpoint through FastAPI's in-process
+    # TestClient rather than starting a separate HTTP server.
     response = client.get(
         "/health"
     )
@@ -44,6 +48,7 @@ def test_health_endpoint(
         "The health endpoint did not return HTTP 200.",
     )
 
+    # Decode the JSON body so both status code and contract fields are verified.
     payload = response.json()
 
     assert_true(
@@ -56,6 +61,8 @@ def test_health_endpoint(
     )
 
 
+# Verify that deployment/application version metadata remains exposed through a
+# stable HTTP contract.
 def test_version_endpoint(
     client: TestClient,
 ) -> None:
@@ -86,6 +93,8 @@ def test_version_endpoint(
     )
 
 
+# Readiness is stricter than liveness: it confirms the local database schema is
+# complete enough for the application to serve requests.
 def test_readiness_endpoint(
     client: TestClient,
 ) -> None:
@@ -124,6 +133,8 @@ def test_lifespan_creates_all_tables(
 ) -> None:
     """Application startup should initialise every current storage table."""
 
+    # Inspect the same database after TestClient startup to confirm the FastAPI
+    # lifespan initialiser created every required storage table.
     readiness = inspect_database_readiness(
         database_path
     )
@@ -145,6 +156,8 @@ def test_openapi_contract(
 ) -> None:
     """OpenAPI should include each Stage 5A system endpoint."""
 
+    # Use the generated OpenAPI document as a contract check that all system
+    # endpoints remain registered on the application.
     response = client.get(
         "/openapi.json"
     )
@@ -173,6 +186,7 @@ def test_documentation_endpoint(
 ) -> None:
     """The local Swagger UI should be available for manual testing."""
 
+    # Confirm that the local Swagger UI remains available for manual API inspection.
     response = client.get(
         "/docs"
     )
@@ -195,6 +209,8 @@ def test_unknown_route(
 ) -> None:
     """Unknown API routes should return the standard HTTP 404 response."""
 
+    # Exercise FastAPI's normal missing-route behaviour to guard against accidental
+    # catch-all routing.
     response = client.get(
         "/does-not-exist"
     )
@@ -210,9 +226,12 @@ def test_app_factory_database_isolation(
 ) -> None:
     """Two application instances should support different SQLite files."""
 
+    # Give each application factory call a distinct database path to prove that
+    # app instances do not share SQLite state implicitly.
     first_path = directory / "first.db"
     second_path = directory / "second.db"
 
+    # Build two independent FastAPI application instances using the same factory.
     first_app = create_app(
         first_path
     )
@@ -220,6 +239,8 @@ def test_app_factory_database_isolation(
         second_path
     )
 
+    # Entering TestClient triggers each application's lifespan startup and schema
+    # initialisation before readiness is checked.
     with TestClient(first_app) as first_client:
         assert_true(
             first_client.get(
@@ -246,6 +267,8 @@ def test_app_factory_database_isolation(
         "The application factories unexpectedly shared one path.",
     )
 
+    # Open both SQLite files directly to confirm isolation extends to stored data,
+    # not just differing filesystem paths.
     for path in (
         first_path,
         second_path,
@@ -273,6 +296,8 @@ def main() -> None:
     passed = 0
     total = 8
 
+    # Run the API foundation suite against disposable database files so tests are
+    # isolated from normal application data and repeatable in CI.
     with tempfile.TemporaryDirectory() as directory_name:
         directory = Path(
             directory_name
@@ -281,10 +306,14 @@ def main() -> None:
             directory
             / "api_foundation_test.db"
         )
+        # Inject the temporary database into the application factory used by all
+        # endpoint checks in this test run.
         application = create_app(
             database_path
         )
 
+        # Keeping one TestClient open across endpoint checks reuses a single active
+        # application lifespan and database instance.
         with TestClient(
             application
         ) as client:
@@ -330,6 +359,8 @@ def main() -> None:
             passed += 1
             print("[PASS] unknown-route handling")
 
+        # Run the factory-isolation check outside the shared TestClient so it can
+        # create and start two additional independent applications.
         test_app_factory_database_isolation(
             directory
         )
@@ -341,5 +372,6 @@ def main() -> None:
     print(f"Tests passed: {passed}/{total}")
 
 
+# Run the FastAPI foundation regressions only when this module is executed directly.
 if __name__ == "__main__":
     main()

@@ -20,6 +20,8 @@ from storage.strategy_feedback import (
 )
 
 
+# Use a minimal immutable evidence fixture that matches the fields expected by
+# strategy-search persistence without depending on the live retrieval service.
 @dataclass(frozen=True)
 class FakeEvidence:
     """Synthetic history-aware strategy evidence."""
@@ -40,6 +42,8 @@ class FakeEvidence:
 def sample_evidence() -> list[FakeEvidence]:
     """Return two synthetic displayed strategies."""
 
+    # Return two deterministic displayed strategies so search ordering, identity,
+    # scores and feedback linkage can be checked after storage.
     return [
         FakeEvidence(
             original_rank=1,
@@ -80,6 +84,8 @@ def assert_true(
 ) -> None:
     """Raise a readable test failure."""
 
+    # Keep this regression module runnable as a standalone script without requiring
+    # an external testing framework.
     if not condition:
         raise AssertionError(message)
 
@@ -89,6 +95,8 @@ def test_table_creation(
 ) -> None:
     """All strategy-feedback tables should be created."""
 
+    # Create the strategy-search and feedback tables at the injected temporary path
+    # rather than touching the application's normal local database.
     created = create_strategy_feedback_tables(
         database_path
     )
@@ -104,6 +112,8 @@ def test_search_and_results_saved(
 ) -> int:
     """A search and all displayed strategies should be stored."""
 
+    # Persist one search together with the exact strategies shown to the user so
+    # later feedback can be linked to a specific displayed rank.
     search_id = save_strategy_search(
         question=(
             "What may help when classroom noise "
@@ -140,6 +150,8 @@ def test_search_round_trip(
 ) -> None:
     """Stored question, query and result order should round-trip."""
 
+    # Read the search back through the public storage API to verify result ordering
+    # and stored retrieval metadata survive the SQLite round trip.
     stored = get_strategy_search(
         search_id,
         database_path,
@@ -172,6 +184,8 @@ def test_valid_feedback_saved(
 ) -> int:
     """A supported user-facing rating should be stored."""
 
+    # Save feedback against the first displayed strategy using the same user-facing
+    # rating label accepted by the application workflow.
     feedback_id = save_strategy_feedback(
         search_id=search_id,
         strategy_rank=1,
@@ -201,6 +215,8 @@ def test_feedback_round_trip(
 ) -> None:
     """Stored feedback should retain strategy identity and label."""
 
+    # Retrieve the joined feedback view so strategy identity, internal enum value
+    # and parent-facing display label can be checked together.
     items = list_strategy_feedback(
         database_path=database_path,
     )
@@ -235,6 +251,8 @@ def test_feedback_update_is_not_duplicate(
 ) -> None:
     """Changing feedback should update the existing result record."""
 
+    # Re-save feedback for the same search/rank pair to confirm the existing row is
+    # updated rather than duplicated.
     save_strategy_feedback(
         search_id=search_id,
         strategy_rank=1,
@@ -268,6 +286,8 @@ def test_invalid_rating_rejected(
 ) -> None:
     """Unsupported ratings must not be stored."""
 
+    # Exercise validation with an unsupported rating and confirm no invalid value
+    # is silently accepted.
     try:
         save_strategy_feedback(
             search_id=search_id,
@@ -292,6 +312,8 @@ def test_invalid_strategy_rank_rejected(
 ) -> None:
     """Feedback must reference a displayed strategy."""
 
+    # Use a rank that was never displayed for this search to verify referential
+    # validation between feedback and stored search results.
     try:
         save_strategy_feedback(
             search_id=search_id,
@@ -313,6 +335,8 @@ def test_invalid_strategy_rank_rejected(
 def test_rating_normalisation() -> None:
     """User labels and stored values should normalise consistently."""
 
+    # Check both directions of the rating boundary: user-facing labels normalise
+    # to stored enum values, and stored values map back to display labels.
     assert_true(
         normalise_feedback_rating(
             "Did not work well"
@@ -336,6 +360,8 @@ def main() -> None:
     passed = 0
     total = 8
 
+    # Run all persistence tests against a disposable SQLite database so the suite
+    # is isolated and repeatable.
     with tempfile.TemporaryDirectory() as directory:
         database_path = (
             Path(directory)
@@ -395,6 +421,8 @@ def main() -> None:
         passed += 1
         print("[PASS] invalid strategy rank rejection")
 
+    # Rating normalisation is a pure in-memory check, so it runs after the temporary
+    # database context has been closed.
     test_rating_normalisation()
     print("[PASS] rating normalisation")
     total += 1
@@ -405,5 +433,6 @@ def main() -> None:
     print(f"Tests passed: {passed}/{total}")
 
 
+# Run the strategy-feedback storage regression suite only when executed directly.
 if __name__ == "__main__":
     main()

@@ -21,6 +21,8 @@ from storage.conversation_storage import (
 )
 
 
+# Keep this regression module runnable as a standalone script without requiring
+# an external testing framework.
 def assert_true(
     condition: bool,
     message: str,
@@ -36,6 +38,8 @@ def test_new_workflow_creates_greeting(
 ) -> int:
     """The first load should create one session and greeting."""
 
+    # The first workflow load should create persistent state and store exactly one
+    # assistant greeting for the record workflow.
     state = load_or_create_workflow_state(
         "Record what happened",
         "Tell me what happened.",
@@ -61,6 +65,8 @@ def test_chat_exchange_round_trip(
 ) -> None:
     """A complete user/assistant exchange should persist in order."""
 
+    # Persist the user turn and both assistant messages as one ordered exchange so
+    # the complete visible conversation can be reconstructed after restart.
     persist_chat_exchange(
         session_id=session_id,
         user_content="The classroom became very noisy.",
@@ -73,6 +79,8 @@ def test_chat_exchange_round_trip(
         database_path=database_path,
     )
 
+    # Reload the latest record-workflow session rather than creating a new greeting
+    # when persisted state is already available.
     restored = load_or_create_workflow_state(
         "Record what happened",
         "Unused greeting.",
@@ -103,10 +111,13 @@ def test_active_draft_restoration(
 ) -> JoeyConversationSession:
     """An unfinished Joey draft should survive a restart."""
 
+    # Create a real in-progress conversation-manager session so persistence is
+    # tested against the same draft object used by the application workflow.
     draft = JoeyConversationSession.start(
         "The classroom became loud and the child covered their ears."
     )
 
+    # Save the active draft snapshot against the existing persistent chat session.
     persist_record_workflow_state(
         session_id=session_id,
         record_session=draft,
@@ -145,6 +156,8 @@ def test_ready_for_review_restoration(
 ) -> None:
     """A review-ready draft should remain review-ready."""
 
+    # Move the same draft into the review state and clear the pending follow-up so
+    # restoration can verify workflow status as well as record content.
     draft.status = (
         ConversationStatus.ready_for_review
     )
@@ -182,6 +195,8 @@ def test_completed_draft_not_resumed(
 ) -> None:
     """Confirmed or rejected drafts must not reopen as active drafts."""
 
+    # Mark the draft complete to confirm that persisted completed conversations are
+    # retained for history but are not reopened as editable drafts.
     draft.status = ConversationStatus.confirmed
 
     persist_record_workflow_state(
@@ -190,6 +205,8 @@ def test_completed_draft_not_resumed(
         database_path=database_path,
     )
 
+    # Inspect the underlying stored status directly before testing application-level
+    # restoration behaviour for the completed workflow.
     stored = get_conversation_session(
         session_id,
         database_path=database_path,
@@ -224,6 +241,8 @@ def test_draft_clear_operation(
 ) -> None:
     """A reset command should intentionally clear the draft snapshot."""
 
+    # Explicitly request draft removal rather than relying on None alone; the clear
+    # flag distinguishes an intentional reset from an omitted update.
     persist_record_workflow_state(
         session_id=session_id,
         record_session=None,
@@ -263,11 +282,14 @@ def test_strategy_metadata_round_trip(
         database_path=database_path,
     )
 
+    # Store lightweight strategy-feedback metadata separately from journal draft
+    # state so it can survive a strategy-workflow restart.
     pending = {
         "search_id": 42,
         "strategy_count": 3,
     }
 
+    # Persist pending feedback against the strategy workflow session for later reload.
     persist_strategy_workflow_state(
         session_id=state.session_id,
         pending_feedback=pending,
@@ -294,6 +316,8 @@ def test_workflow_isolation(
 ) -> None:
     """Record and strategy workflows must retain different IDs."""
 
+    # Load the strategy workflow independently and verify it does not reuse or
+    # restore state belonging to the record workflow.
     strategy = load_or_create_workflow_state(
         "Ask for a strategy",
         "Ask which strategy may help.",
@@ -317,12 +341,16 @@ def main() -> None:
     passed = 0
     total = 8
 
+    # Run all persistence checks against a disposable SQLite database so the suite
+    # is isolated from normal application data and repeatable in CI.
     with tempfile.TemporaryDirectory() as directory:
         database_path = (
             Path(directory)
             / "conversation_persistence_test.db"
         )
 
+        # Reuse the same record-workflow session across successive tests so restart,
+        # draft-state transitions and clearing are exercised as one lifecycle.
         session_id = test_new_workflow_creates_greeting(
             database_path
         )
@@ -384,5 +412,6 @@ def main() -> None:
     print(f"Tests passed: {passed}/{total}")
 
 
+# Run the application-level persistence regressions only when executed directly.
 if __name__ == "__main__":
     main()

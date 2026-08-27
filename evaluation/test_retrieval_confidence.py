@@ -13,6 +13,8 @@ from rag.retrieval_confidence import (
 from safety.safety_guard import should_limit_strategy_suggestions
 
 
+# Use a minimal immutable stand-in that satisfies the confidence module's
+# evidence protocol without depending on the full history-aware retriever.
 @dataclass(frozen=True)
 class FakeEvidence:
     """Minimal history-aware evidence used by confidence tests."""
@@ -36,6 +38,8 @@ def evidence(
 ) -> FakeEvidence:
     """Create synthetic source-backed evidence."""
 
+    # Keep test evidence construction consistent so each case varies only the
+    # score, metadata and passage needed for that scenario.
     return FakeEvidence(
         original_score=score,
         strategy_code=None,
@@ -53,6 +57,8 @@ def assert_true(
 ) -> None:
     """Raise a readable test failure."""
 
+    # A tiny assertion helper keeps this script runnable without an external
+    # testing framework while still producing readable failures.
     if not condition:
         raise AssertionError(message)
 
@@ -60,6 +66,8 @@ def assert_true(
 def test_clear_sensory_question_is_accepted() -> None:
     """A clear sensory question should retain strategy evidence."""
 
+    # Provide strongly overlapping sensory evidence with relatively high original
+    # Hybrid scores to exercise the strong-confidence branch.
     items = [
         evidence(
             score=0.0318,
@@ -83,6 +91,8 @@ def test_clear_sensory_question_is_accepted() -> None:
         ),
     ]
 
+    # The clear sensory wording deliberately overlaps directly with the approved
+    # evidence passage and metadata.
     decision = assess_retrieval_confidence(
         (
             "My child covers their ears and becomes overwhelmed "
@@ -101,6 +111,8 @@ def test_clear_sensory_question_is_accepted() -> None:
     )
 
 
+# Confirm that a second clear support domain also reaches an answerable
+# confidence level rather than overfitting the rule to sensory examples.
 def test_clear_sleep_question_is_accepted() -> None:
     """A clear sleep question should retain strategy evidence."""
 
@@ -135,6 +147,8 @@ def test_clear_sleep_question_is_accepted() -> None:
     )
 
 
+# Exercise the boundary where a concise but specific support question may be
+# moderate or strong, but should still remain answerable.
 def test_specific_but_brief_question_is_moderate() -> None:
     """A brief but relevant question may be shown cautiously."""
 
@@ -169,6 +183,8 @@ def test_specific_but_brief_question_is_moderate() -> None:
     )
 
 
+# Verify that a technically unrelated question is rejected even when retrieved
+# evidence has a non-trivial original score.
 def test_unrelated_question_abstains() -> None:
     """A non-support technical question should not receive strategies."""
 
@@ -199,6 +215,8 @@ def test_unrelated_question_abstains() -> None:
     )
 
 
+# Verify that arbitrary tokens cannot obtain a strategy merely because the
+# retriever always ranks some candidate first.
 def test_meaningless_input_abstains() -> None:
     """Meaningless tokens should not receive arbitrary strategies."""
 
@@ -227,6 +245,8 @@ def test_meaningless_input_abstains() -> None:
     )
 
 
+# Explicitly test the no-evidence guard: an otherwise sensible question still
+# must abstain when the approved collection returns nothing.
 def test_empty_evidence_abstains() -> None:
     """No retrieved evidence should always produce abstention."""
 
@@ -244,6 +264,8 @@ def test_empty_evidence_abstains() -> None:
 def test_safety_screening_remains_first() -> None:
     """Safety-sensitive questions must be limited before confidence."""
 
+    # Run the production deterministic extractor so safety priority is checked
+    # using the same structured risk flags as the application workflow.
     record = extract_structured_record(
         (
             "During a meltdown my child is hitting their head "
@@ -251,6 +273,8 @@ def test_safety_screening_remains_first() -> None:
         )
     )
 
+    # Safety limiting is asserted independently of retrieval confidence because
+    # the safety layer should take precedence over ordinary strategy presentation.
     assert_true(
         should_limit_strategy_suggestions(record),
         "The safety-sensitive case was not limited.",
@@ -260,6 +284,8 @@ def test_safety_screening_remains_first() -> None:
 def test_abstention_wording_is_cautious() -> None:
     """The user-facing message should explain the evidence limitation."""
 
+    # Check the stable user-facing abstention wording for relevance explanation,
+    # approved-source boundary and a request for additional context.
     message = build_abstention_message()
 
     assert_true(
@@ -279,6 +305,8 @@ def test_abstention_wording_is_cautious() -> None:
 def main() -> None:
     """Run all retrieval-confidence regression tests."""
 
+    # Keep all regression functions in an explicit ordered list so the script can
+    # report deterministic progress when run locally or through CI.
     tests = [
         (
             "clear sensory question",
@@ -316,6 +344,8 @@ def main() -> None:
 
     passed = 0
 
+    # Execute sequentially; any assertion failure stops the module with a non-zero
+    # exit status that the CI suite can detect.
     for label, test in tests:
         test()
         passed += 1
@@ -326,5 +356,6 @@ def main() -> None:
     print(f"Tests passed: {passed}/{len(tests)}")
 
 
+# Run the retrieval-confidence regression tests only when executed directly.
 if __name__ == "__main__":
     main()

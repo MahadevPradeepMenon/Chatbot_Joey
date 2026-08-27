@@ -31,6 +31,8 @@ from storage.strategy_feedback import (
 )
 
 
+# Use a minimal immutable evidence shape that matches the storage API expected by
+# strategy-search persistence without depending on the full application service.
 @dataclass(frozen=True)
 class FakeDisplayedEvidence:
     """Evidence shape accepted by strategy-search storage."""
@@ -48,6 +50,7 @@ class FakeDisplayedEvidence:
     passage: str
 
 
+# Build deterministic evidence for the persisted-search side of the test workflow.
 def displayed_evidence(
     code: str,
     title: str,
@@ -68,6 +71,7 @@ def displayed_evidence(
     )
 
 
+# Build matching JoeyStrategyEvidence objects for the reranking side of the tests.
 def retrieval_evidence(
     rank: int,
     score: float,
@@ -91,6 +95,8 @@ def assert_true(
     condition: bool,
     message: str,
 ) -> None:
+    # Keep the module runnable as a standalone regression script without requiring
+    # an external testing framework.
     if not condition:
         raise AssertionError(message)
 
@@ -101,6 +107,8 @@ def save_feedback_example(
     title: str,
     rating: str,
 ) -> int:
+    # Persist the exact displayed strategy first so feedback can be linked to the
+    # same search/result rank in SQLite.
     search_id = save_strategy_search(
         question="What may help with loud classroom noise?",
         retrieval_query="loud classroom noise sensory support",
@@ -116,6 +124,8 @@ def save_feedback_example(
         database_path=database_path,
     )
 
+    # Save one rating against display rank 1, exercising the same storage path used
+    # by the application feedback workflow.
     save_strategy_feedback(
         search_id=search_id,
         strategy_rank=1,
@@ -126,6 +136,8 @@ def save_feedback_example(
     return search_id
 
 
+# Verify that the user-facing "worked well" rating is converted into the history
+# ranker's internal worked_great outcome label.
 def test_worked_well_mapping(
     database_path: Path,
 ) -> None:
@@ -147,6 +159,8 @@ def test_worked_well_mapping(
     )
 
 
+# Add a second feedback record for the same strategy and confirm newest-first
+# aggregation plus cumulative usage counting.
 def test_latest_feedback_and_usage_count(
     database_path: Path,
 ) -> None:
@@ -160,6 +174,8 @@ def test_latest_feedback_and_usage_count(
     records = load_stored_feedback_history(
         database_path
     )
+    # Locate the aggregated record by stable strategy code before checking outcome
+    # and use-count behaviour.
     matching = next(
         record
         for record in records
@@ -177,6 +193,8 @@ def test_latest_feedback_and_usage_count(
     )
 
 
+# Confirm that stored feedback updates the latest outcome while preserving the
+# lifecycle state supplied by the base/synthetic history record.
 def test_merge_preserves_lifecycle(
     database_path: Path,
 ) -> None:
@@ -195,6 +213,7 @@ def test_merge_preserves_lifecycle(
         )
     ]
 
+    # Merge persisted feedback into the existing lifecycle-aware history model.
     merged = merge_strategy_history(
         base,
         stored,
@@ -217,6 +236,8 @@ def test_merge_preserves_lifecycle(
     )
 
 
+# Verify that positive history can reorder two closely scored retrieval results
+# while still operating as a small adjustment on top of Hybrid relevance.
 def test_positive_feedback_breaks_close_tie() -> None:
     history = [
         StrategyHistoryRecord(
@@ -260,6 +281,8 @@ def test_positive_feedback_breaks_close_tie() -> None:
     )
 
 
+# Check that not-relevant feedback produces a negative score adjustment and a
+# matching explanatory history note.
 def test_not_relevant_reduces_score() -> None:
     history = StrategyHistoryRecord(
         strategy_code="A",
@@ -292,6 +315,7 @@ def test_not_relevant_reduces_score() -> None:
     )
 
 
+# Check that strongly negative feedback maps to a negative reranking adjustment.
 def test_did_not_work_well_reduces_score() -> None:
     history = StrategyHistoryRecord(
         strategy_code="A",
@@ -315,6 +339,8 @@ def test_did_not_work_well_reduces_score() -> None:
     )
 
 
+# Provide a deterministic context-aware retrieval result so service-level tests
+# can isolate feedback reloading and reranking behaviour from live retrieval.
 class FakeBaseService:
     """Return a deterministic context-aware retrieval result."""
 
@@ -346,9 +372,12 @@ class FakeBaseService:
         )
 
 
+# Confirm that persisted history is requested on every search rather than cached
+# for the lifetime of the history-aware service.
 def test_service_loads_feedback_each_search() -> None:
     loader_calls = 0
 
+    # Count loader calls explicitly so the test can prove per-request feedback reloads.
     def loader() -> list[
         StrategyHistoryRecord
     ]:
@@ -367,6 +396,8 @@ def test_service_loads_feedback_each_search() -> None:
             )
         ]
 
+    # Inject the fake base service, empty base history and counting loader to keep
+    # the regression deterministic and independent of the real SQLite path.
     service = HistoryAwareStrategyService(
         base_service=cast(
             ContextAwareStrategyService,
@@ -378,6 +409,8 @@ def test_service_loads_feedback_each_search() -> None:
         stored_history_loader=loader,
     )
 
+    # Perform two searches so both reranking outcome and loader call frequency can
+    # be asserted independently.
     first = service.retrieve(
         "noise support",
         top_k=2,
@@ -409,6 +442,8 @@ def main() -> None:
     passed = 0
     tests_total = 7
 
+    # Use an isolated temporary SQLite database so storage regressions do not touch
+    # the project's normal local data.
     with tempfile.TemporaryDirectory() as directory:
         database_path = (
             Path(directory)
@@ -433,6 +468,8 @@ def main() -> None:
         passed += 1
         print("[PASS] stored and synthetic history merge")
 
+    # The remaining tests are pure in-memory reranking/service checks and therefore
+    # do not need the temporary database created above.
     test_positive_feedback_breaks_close_tie()
     passed += 1
     print("[PASS] positive feedback close-tie ranking")
@@ -456,5 +493,6 @@ def main() -> None:
     )
 
 
+# Run the stored-feedback ranking regressions only when executed directly.
 if __name__ == "__main__":
     main()

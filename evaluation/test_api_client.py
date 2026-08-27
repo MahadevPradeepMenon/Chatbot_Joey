@@ -16,6 +16,8 @@ from app.api_client import (
 )
 
 
+# Keep this regression module runnable as a standalone script without requiring
+# an external testing framework.
 def assert_true(
     condition: bool,
     message: str,
@@ -24,6 +26,8 @@ def assert_true(
         raise AssertionError(message)
 
 
+# Build small JSON httpx responses for MockTransport handlers so endpoint tests
+# can focus on client behaviour rather than repeated response construction.
 def json_response(
     payload: dict[str, object],
     *,
@@ -40,6 +44,8 @@ def json_response(
     )
 
 
+# Verify that a trailing slash is removed once so later endpoint joins do not
+# produce duplicate separators in request URLs.
 def test_base_url_normalisation() -> None:
     assert_true(
         resolve_api_base_url(
@@ -51,6 +57,8 @@ def test_base_url_normalisation() -> None:
 
 
 def test_health_request() -> None:
+    # MockTransport lets the test inspect the exact outgoing request without
+    # starting a live FastAPI server.
     def handler(
         request: httpx.Request,
     ) -> httpx.Response:
@@ -64,6 +72,8 @@ def test_health_request() -> None:
             }
         )
 
+    # Inject the mock transport into the real client so request construction,
+    # response parsing and context-manager cleanup are all exercised.
     with HeyJoeyApiClient(
         transport=httpx.MockTransport(
             handler
@@ -78,6 +88,8 @@ def test_health_request() -> None:
 
 
 def test_record_requests() -> None:
+    # Record method, path and decoded JSON for each request so the complete record
+    # workflow contract can be checked after the client calls finish.
     observed: list[
         tuple[str, str, dict[str, object] | None]
     ] = []
@@ -85,6 +97,8 @@ def test_record_requests() -> None:
     def handler(
         request: httpx.Request,
     ) -> httpx.Response:
+        # Decode request bodies inside the transport handler to verify the client's
+        # serialised payloads as well as endpoint paths.
         payload = (
             json.loads(
                 request.content.decode(
@@ -101,6 +115,8 @@ def test_record_requests() -> None:
                 payload,
             )
         )
+        # Simulate the API's 201 response for session creation and 200 for the
+        # remaining record workflow actions.
         return json_response(
             {
                 "session_id": 7,
@@ -165,6 +181,8 @@ def test_record_requests() -> None:
     )
 
 
+# Verify strategy-search and feedback request paths plus the JSON payload fields
+# sent by the Streamlit-facing API client.
 def test_strategy_requests() -> None:
     observed: list[
         tuple[str, dict[str, object]]
@@ -224,6 +242,8 @@ def test_strategy_requests() -> None:
     )
 
 
+# Exercise conversation creation, latest-session lookup and exchange persistence
+# so query parameters and nested metadata are covered by the client regression.
 def test_conversation_requests() -> None:
     requests: list[httpx.Request] = []
 
@@ -283,6 +303,8 @@ def test_conversation_requests() -> None:
         "The latest-session workflow query was missing.",
     )
 
+    # Inspect the stored request body directly to confirm assistant messages and
+    # workflow metadata were serialised as expected.
     exchange_body = json.loads(
         requests[2].content.decode(
             "utf-8"
@@ -299,6 +321,8 @@ def test_conversation_requests() -> None:
     )
 
 
+# Confirm that non-success FastAPI responses become ApiResponseError instances
+# while preserving both HTTP status and readable detail text.
 def test_fastapi_error_detail() -> None:
     def handler(
         request: httpx.Request,
@@ -337,6 +361,8 @@ def test_fastapi_error_detail() -> None:
             )
 
 
+# FastAPI validation errors may return a list of detail objects; the client should
+# combine their messages into one readable error string.
 def test_validation_error_list() -> None:
     def handler(
         request: httpx.Request,
@@ -376,6 +402,8 @@ def test_validation_error_list() -> None:
             )
 
 
+# Reject successful HTTP responses whose body is not valid JSON rather than
+# allowing malformed backend output to propagate into the UI layer.
 def test_invalid_json_rejected() -> None:
     def handler(
         request: httpx.Request,
@@ -400,6 +428,8 @@ def test_invalid_json_rejected() -> None:
             )
 
 
+# The client contract expects JSON objects, so a valid JSON array is still treated
+# as an invalid backend response.
 def test_non_object_json_rejected() -> None:
     def handler(
         request: httpx.Request,
@@ -429,6 +459,8 @@ def test_non_object_json_rejected() -> None:
 def test_strategy_timeout_message() -> None:
     """A slow local model should report a timeout, not an unavailable API."""
 
+    # Simulate a local semantic-model read timeout to verify that timeout-specific
+    # guidance is distinguished from a connection failure.
     def handler(
         request: httpx.Request,
     ) -> httpx.Response:
@@ -458,6 +490,8 @@ def test_strategy_timeout_message() -> None:
             )
 
 
+# Simulate a refused connection so the client can surface startup guidance for an
+# API process that is not currently reachable.
 def test_unavailable_backend_message() -> None:
     def handler(
         request: httpx.Request,
@@ -487,6 +521,8 @@ def test_unavailable_backend_message() -> None:
 
 
 def main() -> None:
+    # Keep all client regressions in a fixed order for deterministic local and CI
+    # progress output.
     tests = [
         (
             "base URL normalisation",
@@ -536,6 +572,8 @@ def main() -> None:
 
     passed = 0
 
+    # Any assertion or expected exception mismatch stops the module with a non-zero
+    # exit status that the wider CI suite can detect.
     for name, test in tests:
         test()
         passed += 1
@@ -550,5 +588,6 @@ def main() -> None:
     )
 
 
+# Run the API-client regression suite only when this module is executed directly.
 if __name__ == "__main__":
     main()

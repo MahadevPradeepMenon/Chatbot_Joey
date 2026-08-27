@@ -16,6 +16,8 @@ from rag.semantic_retriever import SemanticSearchResult
 from rag.strategy_retriever import retrieve_strategies
 
 
+# Resolve evaluation inputs and outputs relative to the repository so the
+# comparison can be rerun consistently from different working directories.
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 CASES_FILE = (
@@ -36,6 +38,8 @@ RESULTS_CSV = (
     / "retrieval_comparison_results.csv"
 )
 
+# Evaluate all methods at the same fixed cut-off so Hit@1, Hit@3 and MRR are
+# directly comparable across retrieval approaches.
 TOP_K = 3
 
 
@@ -45,6 +49,8 @@ def normalise_text(value: Any) -> str:
     if value is None:
         return ""
 
+    # Recursively flatten dictionaries and collections so heterogeneous result
+    # metadata can be compared using one normalised text representation.
     if isinstance(value, dict):
         combined = " ".join(
             normalise_text(item)
@@ -59,6 +65,8 @@ def normalise_text(value: Any) -> str:
         )
         return normalise_text(combined)
 
+    # Lowercase and remove punctuation differences before keyword-based relevance
+    # matching; the evaluation remains intentionally transparent and lexical.
     return re.sub(
         r"[^a-z0-9]+",
         " ",
@@ -69,6 +77,7 @@ def normalise_text(value: Any) -> str:
 def load_cases() -> list[dict[str, Any]]:
     """Load and validate the shared retrieval cases."""
 
+    # Fail early when the shared retrieval evaluation cases are unavailable.
     if not CASES_FILE.exists():
         raise FileNotFoundError(
             f"Comparison cases not found: {CASES_FILE}"
@@ -85,6 +94,8 @@ def load_cases() -> list[dict[str, Any]]:
             "The comparison file must contain a non-empty list."
         )
 
+    # Every case must define an identifier, query and at least one expected keyword
+    # so relevance can be judged consistently across all three methods.
     required_fields = {
         "case_id",
         "query",
@@ -135,6 +146,8 @@ def baseline_descriptor(
     if not isinstance(result, dict):
         return normalise_text(result)
 
+    # Prefer concise strategy metadata over full descriptions when judging whether
+    # the rule-based baseline contains an expected relevance keyword.
     preferred_fields = [
         "title",
         "name",
@@ -221,12 +234,16 @@ def first_relevant_rank(
 ) -> int | None:
     """Return the first rank containing an expected keyword."""
 
+    # Apply the same text normalisation to expected keywords before scanning ranked
+    # result descriptors for the first relevant match.
     normalised_keywords = [
         normalise_text(keyword)
         for keyword in expected_keywords
         if normalise_text(keyword)
     ]
 
+    # Return the earliest matching rank because Hit@k and MRR depend on the first
+    # relevant result rather than the total number of relevant results.
     for rank, descriptor in enumerate(
         descriptors,
         start=1,
@@ -254,6 +271,8 @@ def evaluate_case(
         for keyword in case["expected_keywords"]
     ]
 
+    # Use the production deterministic extractor and structured-query builder so
+    # semantic and hybrid methods are evaluated through the application query path.
     record = extract_structured_record(
         query
     )
@@ -267,8 +286,12 @@ def evaluate_case(
     semantic_error: str | None = None
     hybrid_error: str | None = None
 
+    # Measure each retrieval method separately with a high-resolution monotonic
+    # timer; model/index warm-up is handled before the case loop in main().
     baseline_started = time.perf_counter()
 
+    # Isolate method failures so one retriever error is recorded for the case
+    # without preventing the remaining methods from being evaluated.
     try:
         baseline_results = list(
             retrieve_strategies(
@@ -290,8 +313,12 @@ def evaluate_case(
     try:
         # Use the semantic retriever directly. JoeyStrategyService is
         # intentionally not used here because it now uses Hybrid RAG.
+        # This keeps the semantic condition independent of the fusion layer.
+        # intentionally not used here because it now uses Hybrid RAG.
         semantic_results = (
-            hybrid_retriever.semantic.search(
+            # Warm up semantic and lexical components before timed evaluation so one-time
+    # model/index initialisation does not distort per-query latency measurements.
+    hybrid_retriever.semantic.search(
                 query=retrieval_query,
                 top_k=TOP_K,
                 strategy_only=True,
@@ -324,6 +351,8 @@ def evaluate_case(
         - hybrid_started
     )
 
+    # Convert each method's returned objects into comparable metadata descriptors
+    # before applying the same expected-keyword relevance rule.
     baseline_descriptors = [
         baseline_descriptor(result)
         for result in baseline_results
@@ -339,6 +368,7 @@ def evaluate_case(
         for result in hybrid_results
     ]
 
+    # Determine the first relevant rank independently for each retrieval method.
     baseline_rank = first_relevant_rank(
         baseline_descriptors,
         expected_keywords,
@@ -354,6 +384,8 @@ def evaluate_case(
         expected_keywords,
     )
 
+    # Preserve per-case ranks, hits, latency, result labels/sources and any errors
+    # so aggregate metrics can be reproduced from the saved detailed results.
     return {
         "case_id": case_id,
         "query": query,
@@ -430,6 +462,8 @@ def summarise_method(
 ) -> dict[str, Any]:
     """Calculate retrieval metrics for one method."""
 
+    # Pull the first-relevant ranks, latencies and result counts for one method
+    # before calculating aggregate retrieval metrics.
     ranks = [
         result[f"{prefix}_first_relevant_rank"]
         for result in results
@@ -459,6 +493,7 @@ def summarise_method(
         for rank in ranks
     )
 
+    # Queries with no relevant result contribute zero reciprocal rank to MRR.
     reciprocal_ranks = [
         (1.0 / rank)
         if rank is not None
@@ -503,6 +538,8 @@ def save_results(
 ) -> None:
     """Save detailed and summary results as JSON and CSV."""
 
+    # Save method descriptions, aggregate summaries and all detailed case outputs
+    # together in JSON for reproducibility and report-generation scripts.
     payload = {
         "evaluation_name": (
             "Hey Joey rule-based versus semantic versus "
@@ -539,8 +576,10 @@ def save_results(
         encoding="utf-8",
     )
 
+    # Flatten list-valued fields for a spreadsheet-friendly companion CSV export.
     csv_rows: list[dict[str, Any]] = []
 
+    # Print the first relevant rank per case before the aggregate comparison table.
     for result in results:
         csv_rows.append(
             {
@@ -618,6 +657,7 @@ def save_results(
             }
         )
 
+    # Use UTF-8 with BOM for compatibility with common spreadsheet applications.
     with RESULTS_CSV.open(
         "w",
         newline="",
@@ -685,6 +725,7 @@ def print_summary(
     )
     print("-" * 78)
 
+    # Map internal method keys to concise human-readable table labels.
     labels = {
         "baseline": "Rule-based",
         "semantic": "Semantic",
@@ -725,12 +766,16 @@ def print_summary(
 def main() -> None:
     """Run the three-way retrieval comparison."""
 
+    # Load and validate the shared cases before initialising the heavier local
+    # semantic model and hybrid retriever.
     cases = load_cases()
 
     print(
         "Loading the local semantic and BM25 retrievers..."
     )
 
+    # A single HybridStrategyRetriever instance exposes both the semantic and BM25
+    # components, ensuring all methods use the same loaded local corpus/index.
     hybrid_retriever = HybridStrategyRetriever()
 
     print(
@@ -751,6 +796,7 @@ def main() -> None:
         deduplicate_strategies=True,
     )
 
+    # Evaluate every case against the same three retrieval methods and shared query.
     results = [
         evaluate_case(
             case,
@@ -759,6 +805,7 @@ def main() -> None:
         for case in cases
     ]
 
+    # Calculate Hit@1, Hit@3, MRR, latency and error counts separately per method.
     summaries = {
         "baseline": summarise_method(
             results,
@@ -785,5 +832,6 @@ def main() -> None:
     )
 
 
+# Run the complete three-way retrieval evaluation only when executed directly.
 if __name__ == "__main__":
     main()

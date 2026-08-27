@@ -24,11 +24,15 @@ from storage.database import (
 )
 
 
+# Minimal conversation states keep these storage tests independent of the full
+# conversation manager while matching the values expected by the database layer.
 class FakeStatus(str, Enum):
     collecting_information = "collecting_information"
     confirmed = "confirmed"
 
 
+# Represent one synthetic conversation-history turn in the shape accepted by
+# save_confirmed_session().
 @dataclass
 class FakeTurn:
     question: str
@@ -36,6 +40,8 @@ class FakeTurn:
     field_name: str
 
 
+# Provide only the session attributes inspected by save_confirmed_session(); the
+# storage function deliberately accepts a lightweight session-like object.
 @dataclass
 class FakeSession:
     status: FakeStatus
@@ -49,6 +55,8 @@ def sample_record(
 ) -> StructuredJoeyRecord:
     """Return a complete synthetic record for database tests."""
 
+    # Use a complete deterministic record so scalar, list and nested JSON fields
+    # can be checked after a SQLite round trip.
     return StructuredJoeyRecord(
         summary=summary,
         date="2026-07-30",
@@ -87,6 +95,7 @@ def assert_true(
 ) -> None:
     """Raise a readable test failure."""
 
+    # Keep the regression module runnable without an external testing framework.
     if not condition:
         raise AssertionError(message)
 
@@ -96,6 +105,8 @@ def test_database_creation(
 ) -> None:
     """The SQLite file and table should be created."""
 
+    # Create the schema at an injected temporary path rather than touching the
+    # application's normal local database.
     created_path = create_database(
         database_path
     )
@@ -109,6 +120,7 @@ def test_database_creation(
         created_path
     )
 
+    # Inspect SQLite metadata directly to verify that the required table exists.
     try:
         row = connection.execute(
             """
@@ -132,6 +144,8 @@ def test_record_insert_and_count(
 ) -> int:
     """A confirmed record should be inserted and counted."""
 
+    # Persist a confirmed synthetic record with fixed timestamps and conversation
+    # history so the test remains deterministic.
     entry_id = save_confirmed_record(
         record=sample_record(),
         original_note=(
@@ -173,6 +187,8 @@ def test_record_round_trip(
 ) -> None:
     """Stored scalar and list fields should round-trip correctly."""
 
+    # Read the row back through the public storage API so JSON decoding and enum
+    # serialisation are tested as part of the round trip.
     stored = get_journal_entry(
         entry_id,
         database_path,
@@ -220,6 +236,7 @@ def test_recent_entry_order(
 ) -> None:
     """Recent-entry retrieval should return newest IDs first."""
 
+    # Insert a second record to verify that recent-entry listing orders by newest ID.
     second_id = save_confirmed_record(
         record=sample_record(
             "The child settled more easily at bedtime."
@@ -251,13 +268,16 @@ def test_unconfirmed_session_rejected(
 ) -> None:
     """An unconfirmed conversation must never be stored."""
 
+    # Positional dataclass construction avoids a Pylance false-positive warning
+    # about generated keyword parameters; field order matches FakeSession above.
     session = FakeSession(
-        status=FakeStatus.collecting_information,
-        original_note="A synthetic unconfirmed note.",
-        current_record=sample_record(),
-        history=[],
+        FakeStatus.collecting_information,
+        "A synthetic unconfirmed note.",
+        sample_record(),
+        [],
     )
 
+    # The confirmation boundary must reject this draft before any journal row is saved.
     try:
         save_confirmed_session(
             session,
@@ -279,14 +299,16 @@ def test_confirmed_session_saved(
 ) -> None:
     """A confirmed conversation session should be stored."""
 
+    # Use the same positional construction for the confirmed-session fixture to
+    # avoid the editor warning without changing runtime behaviour.
     session = FakeSession(
-        status=FakeStatus.confirmed,
-        original_note=(
+        FakeStatus.confirmed,
+        (
             "The room became noisy and "
             "the child covered their ears."
         ),
-        current_record=sample_record(),
-        history=[
+        sample_record(),
+        [
             FakeTurn(
                 question="Where did this happen?",
                 answer="In the classroom.",
@@ -295,6 +317,7 @@ def test_confirmed_session_saved(
         ],
     )
 
+    # A confirmed session should delegate to record persistence and return its row ID.
     entry_id = save_confirmed_session(
         session,
         source="database_session_test",
@@ -324,6 +347,7 @@ def main() -> None:
     tests_passed = 0
     test_count = 6
 
+    # Isolate all six regression checks in a disposable SQLite database.
     with tempfile.TemporaryDirectory() as directory:
         database_path = (
             Path(directory)
@@ -374,5 +398,6 @@ def main() -> None:
     )
 
 
+# Run the SQLite storage regression suite only when this module is executed directly.
 if __name__ == "__main__":
     main()

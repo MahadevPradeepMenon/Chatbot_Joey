@@ -20,6 +20,8 @@ from storage.strategy_feedback import (
 )
 
 
+# Replace live retrieval with a deterministic service so API workflow tests can
+# control relevance, confidence and feedback effects without loading the real index.
 class FakeStrategyService:
     """Deterministic retrieval service that can observe SQLite feedback."""
 
@@ -37,16 +39,22 @@ class FakeStrategyService:
     ) -> SimpleNamespace:
         del candidate_pool
 
+        # Read persisted feedback from the same temporary SQLite database used by
+        # the API so a later search can observe newly submitted ratings.
         feedback = list_strategy_feedback(
             limit=100,
             database_path=self.database_path,
         )
+        # Treat prior positive feedback for SP-01 as the signal that should alter
+        # the next synthetic ranking result.
         positive_feedback = any(
             item.strategy_code == "SP-01"
             and item.rating.value == "worked_well"
             for item in feedback
         )
 
+        # Use one deliberately unrelated phrase to force weak retrieval evidence and
+        # exercise the API abstention path deterministically.
         irrelevant = "football score" in question.lower()
         first_score = 0.001 if irrelevant else 0.031
         second_score = 0.0005 if irrelevant else 0.028
@@ -58,6 +66,8 @@ class FakeStrategyService:
             else "This appears to be a new strategy option in the available history."
         )
 
+        # Construct source-backed evidence snapshots in the same shape expected by
+        # the strategy workflow service and HTTP response models.
         evidence = [
             StrategyEvidenceSnapshot(
                 rank=1,
@@ -109,6 +119,8 @@ class FakeStrategyService:
             ),
         ]
 
+        # Provide synthetic context metadata so the API response still exercises the
+        # context-aware fields used by the production workflow.
         context = ContextSelection(
             question=question,
             detected_topics=(
@@ -139,6 +151,8 @@ class FakeStrategyService:
         )
 
 
+# Keep this module runnable as a standalone regression script without requiring
+# an external testing framework.
 def assert_true(
     condition: bool,
     message: str,
@@ -149,6 +163,8 @@ def assert_true(
         raise AssertionError(message)
 
 
+# Centralise strategy-search submission so multiple tests use the same endpoint
+# and default top-k request contract.
 def search_question(
     client: TestClient,
     question: str = (
@@ -174,6 +190,8 @@ def test_accepted_search_persists(
 ) -> dict:
     """Relevant source-backed evidence should be returned and stored."""
 
+    # Submit a clearly relevant sensory question and verify that accepted evidence
+    # is returned and persisted for later feedback tests.
     status_code, payload = search_question(
         client
     )
@@ -216,6 +234,8 @@ def test_accepted_search_persists(
     return payload
 
 
+# Verify Pydantic request validation rejects blank questions and top-k values
+# outside the API contract before retrieval is attempted.
 def test_request_validation(
     client: TestClient,
 ) -> None:
@@ -251,6 +271,8 @@ def test_safety_screening_priority(
 ) -> None:
     """Safety-sensitive questions must not produce ordinary strategies."""
 
+    # Capture accepted-search count before guarded outcomes so the test can prove
+    # safety-limited or abstained requests are not persisted as successful searches.
     before_count = count_strategy_searches(
         database_path
     )
@@ -285,6 +307,8 @@ def test_safety_screening_priority(
     )
 
 
+# Exercise confidence-based abstention separately from safety screening using an
+# unrelated question with deliberately weak synthetic evidence.
 def test_weak_search_abstains(
     client: TestClient,
     database_path: Path,
@@ -323,6 +347,8 @@ def test_weak_search_abstains(
     )
 
 
+# Confirm that an accepted persisted search can be retrieved later with its
+# source-backed evidence and transparent history note intact.
 def test_get_accepted_search(
     client: TestClient,
     accepted: dict,
@@ -358,6 +384,8 @@ def test_feedback_creation_and_get(
 ) -> dict:
     """Explicit feedback should be stored and included in later GET output."""
 
+    # Submit feedback against an exact persisted search/result rank so strategy
+    # identity and later history-aware ranking can be linked correctly.
     response = client.post(
         "/api/v1/strategies/feedback",
         json={
@@ -384,6 +412,8 @@ def test_feedback_creation_and_get(
         "The strategy feedback was not stored.",
     )
 
+    # Reload the accepted search to confirm its feedback collection is exposed by
+    # the GET endpoint after persistence.
     restored = client.get(
         (
             "/api/v1/strategies/searches/"
@@ -399,6 +429,8 @@ def test_feedback_creation_and_get(
     return payload
 
 
+# Re-rate the same displayed strategy and verify storage updates the existing
+# feedback identity instead of inserting a duplicate row.
 def test_feedback_update_without_duplicate(
     client: TestClient,
     database_path: Path,
@@ -434,6 +466,7 @@ def test_feedback_update_without_duplicate(
     )
 
     # Restore positive feedback for the next ranking test.
+    # This leaves the database in the state expected by the subsequent search.
     client.post(
         "/api/v1/strategies/feedback",
         json={
@@ -444,6 +477,8 @@ def test_feedback_update_without_duplicate(
     )
 
 
+# Check distinct failure modes for a missing search and a strategy rank that was
+# never displayed by an otherwise valid search.
 def test_missing_and_invalid_feedback(
     client: TestClient,
     accepted: dict,
@@ -484,6 +519,8 @@ def test_missing_and_invalid_feedback(
     )
 
 
+# Verify that the next search reloads stored feedback and exposes its resulting
+# positive history adjustment rather than relying on stale in-memory state.
 def test_feedback_affects_next_search(
     client: TestClient,
 ) -> None:
@@ -513,6 +550,8 @@ def test_openapi_and_regression_guards(
 ) -> None:
     """OpenAPI should expose Stage 5C without breaking earlier endpoints."""
 
+    # Use OpenAPI as a route-contract check while also retaining health and record
+    # workflow guards from earlier API stages.
     openapi = client.get(
         "/openapi.json"
     )
@@ -545,12 +584,16 @@ def main() -> None:
     passed = 0
     total = 10
 
+    # Run all Stage 5C tests against a disposable SQLite database so search and
+    # feedback persistence are isolated and repeatable in CI.
     with tempfile.TemporaryDirectory() as directory:
         database_path = (
             Path(directory)
             / "strategy_api_test.db"
         )
 
+        # Inject the deterministic fake strategy service through the application
+        # factory while keeping the real API, safety, confidence and storage layers.
         app = create_app(
             database_path,
             strategy_service_factory=(
@@ -560,6 +603,8 @@ def main() -> None:
             ),
         )
 
+        # Reuse one application lifespan so accepted searches, feedback updates and
+        # subsequent history-aware checks share the same temporary database state.
         with TestClient(app) as client:
             accepted = test_accepted_search_persists(
                 client,
@@ -636,5 +681,6 @@ def main() -> None:
     print(f"Tests passed: {passed}/{total}")
 
 
+# Run the Stage 5C strategy-workflow API regressions only when executed directly.
 if __name__ == "__main__":
     main()

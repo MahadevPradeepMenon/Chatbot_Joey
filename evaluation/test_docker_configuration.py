@@ -5,9 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 
 
+# Resolve Docker-related files relative to the repository so these static checks
+# behave consistently from local shells and CI working directories.
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
+# Centralise project-file loading and fail clearly when a required Docker artifact
+# is missing before any content assertions are attempted.
 def read_project_file(relative_path: str) -> str:
     path = PROJECT_ROOT / relative_path
 
@@ -19,11 +23,15 @@ def read_project_file(relative_path: str) -> str:
     return path.read_text(encoding="utf-8")
 
 
+# Keep the module runnable as a standalone regression script without requiring an
+# external testing framework.
 def assert_true(condition: bool, message: str) -> None:
     if not condition:
         raise AssertionError(message)
 
 
+# Verify that the repository contains the minimum Docker, Compose, ignore and
+# environment-template files needed for local container deployment.
 def test_required_files() -> None:
     for relative_path in (
         "Dockerfile",
@@ -37,6 +45,8 @@ def test_required_files() -> None:
         )
 
 
+# Check the container base image matches the project Python version and that the
+# final runtime switches away from root privileges.
 def test_python_image_and_non_root_user() -> None:
     content = read_project_file("Dockerfile")
 
@@ -50,6 +60,8 @@ def test_python_image_and_non_root_user() -> None:
     )
 
 
+# Confirm the Docker build prepares the local sentence-embedding model ahead of
+# runtime and exposes the model choice as a build argument.
 def test_model_is_preloaded() -> None:
     content = read_project_file("Dockerfile")
 
@@ -63,6 +75,8 @@ def test_model_is_preloaded() -> None:
     )
 
 
+# Require separate API and frontend services while avoiding fixed container names,
+# which would make parallel or renamed deployments harder to run.
 def test_compose_services() -> None:
     content = read_project_file("compose.yaml")
 
@@ -88,6 +102,8 @@ def test_internal_api_networking() -> None:
         "The frontend is not using Docker service discovery.",
     )
 
+    # Isolate the frontend Compose section before checking that it does not use
+    # loopback addressing for backend communication inside Docker.
     frontend_section = content.split(
         "frontend:",
         maxsplit=1,
@@ -99,6 +115,8 @@ def test_internal_api_networking() -> None:
     )
 
 
+# Verify startup ordering is health-aware and that both FastAPI and Streamlit expose
+# the expected health endpoints used by Compose.
 def test_health_aware_startup() -> None:
     content = read_project_file("compose.yaml")
 
@@ -116,6 +134,8 @@ def test_health_aware_startup() -> None:
     )
 
 
+# Check that mutable runtime data is mounted from the host while also being excluded
+# from the immutable Docker image build context.
 def test_runtime_data_mount() -> None:
     compose_content = read_project_file("compose.yaml")
     ignore_content = read_project_file(".dockerignore")
@@ -134,6 +154,8 @@ def test_runtime_data_mount() -> None:
     )
 
 
+# Confirm container commands use production-style networking/process settings and
+# do not enable development reload behaviour.
 def test_production_commands() -> None:
     dockerfile = read_project_file("Dockerfile")
     compose_content = read_project_file("compose.yaml")
@@ -153,6 +175,8 @@ def test_production_commands() -> None:
 
 
 def main() -> None:
+    # Keep Docker configuration regressions in a fixed order for deterministic local
+    # and CI progress output.
     tests = [
         ("required Docker files", test_required_files),
         (
@@ -169,6 +193,8 @@ def main() -> None:
 
     passed = 0
 
+    # Any failed assertion stops the module with a non-zero exit status that the
+    # wider CI runner can detect.
     for label, test in tests:
         test()
         passed += 1
@@ -179,5 +205,6 @@ def main() -> None:
     print(f"Tests passed: {passed}/{len(tests)}")
 
 
+# Run the Docker configuration regressions only when this module is executed directly.
 if __name__ == "__main__":
     main()

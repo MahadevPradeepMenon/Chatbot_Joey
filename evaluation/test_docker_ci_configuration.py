@@ -6,6 +6,8 @@ import re
 from pathlib import Path
 
 
+# Resolve the Docker CI workflow path relative to the repository so these static
+# checks behave consistently from local shells and GitHub-hosted runners.
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW_PATH = (
     PROJECT_ROOT
@@ -15,9 +17,12 @@ WORKFLOW_PATH = (
 )
 
 
+# Centralise workflow loading so every regression check reads the same docker-ci.yml file.
 def workflow_text() -> str:
     """Read the required Docker CI workflow."""
 
+    # Treat a missing workflow as a configuration failure before running any
+    # content-based checks.
     if not WORKFLOW_PATH.exists():
         raise AssertionError(
             "The Docker CI workflow is missing."
@@ -28,6 +33,8 @@ def workflow_text() -> str:
     )
 
 
+# Keep this configuration module runnable as a standalone regression script without
+# requiring an external test framework.
 def assert_true(
     condition: bool,
     message: str,
@@ -43,6 +50,8 @@ def test_expected_triggers_and_paths() -> None:
 
     content = workflow_text()
 
+    # Require automatic push/pull-request execution plus manual dispatch for
+    # reproducible on-demand Docker validation.
     for trigger in (
         "push:",
         "pull_request:",
@@ -53,6 +62,8 @@ def test_expected_triggers_and_paths() -> None:
             f"The Docker CI trigger is missing: {trigger}",
         )
 
+    # Verify path filters cover the Docker build inputs and workflow definition so
+    # expensive image validation runs only when relevant files change.
     for path in (
         '"Dockerfile"',
         '"compose.yaml"',
@@ -66,6 +77,8 @@ def test_expected_triggers_and_paths() -> None:
             f"The Docker CI path filter is missing: {path}",
         )
 
+    # Explicitly reject the privileged pull_request_target event for this validation
+    # workflow because it is unnecessary and increases trust requirements.
     assert_true(
         "pull_request_target:" not in content,
         "The privileged pull_request_target trigger must not be used.",
@@ -77,6 +90,8 @@ def test_least_privilege_permissions() -> None:
 
     content = workflow_text()
 
+    # Use a whitespace-tolerant regular expression so formatting changes do not hide
+    # whether the workflow token remains read-only.
     assert_true(
         re.search(
             r"permissions:\s*\n\s+contents:\s+read",
@@ -92,6 +107,8 @@ def test_actions_are_sha_pinned() -> None:
 
     content = workflow_text()
 
+    # Extract external action names and revisions so each can be checked for
+    # immutable full commit-SHA pinning.
     action_references = re.findall(
         r"uses:\s+([^@\s]+)@([0-9a-fA-F]+)",
         content,
@@ -102,6 +119,7 @@ def test_actions_are_sha_pinned() -> None:
         "Docker CI should use checkout, setup-buildx and build-push.",
     )
 
+    # Validate every discovered action reference rather than checking only one.
     for action_name, revision in action_references:
         assert_true(
             len(revision) == 40,
@@ -114,6 +132,8 @@ def test_compose_validation() -> None:
 
     content = workflow_text()
 
+    # Compare string positions to prove Compose syntax validation happens before the
+    # more expensive Docker image build step.
     compose_position = content.find(
         "docker compose config --quiet"
     )
@@ -135,11 +155,15 @@ def test_compose_validation() -> None:
     )
 
 
+# Confirm the workflow builds the same Dockerfile, context and target platform used
+# for production-style validation rather than a separate test image.
 def test_production_build_settings() -> None:
     """The workflow should validate the actual production image."""
 
     content = workflow_text()
 
+    # Require cancellation, timeout, disk cleanup and disabled metadata outputs so
+    # the comparatively expensive Docker job remains bounded and lean.
     for setting in (
         "context: .",
         "file: ./Dockerfile",
@@ -152,6 +176,8 @@ def test_production_build_settings() -> None:
         )
 
 
+# Enforce build-only CI behaviour: validation may construct the image locally but
+# must not authenticate to or publish into a container registry.
 def test_image_is_not_published() -> None:
     """Stage 7B must build but never publish or authenticate to a registry."""
 
@@ -171,6 +197,8 @@ def test_image_is_not_published() -> None:
     )
 
 
+# Check that BuildKit reuses the GitHub Actions cache for faster repeated image
+# validation while keeping one explicit cache scope.
 def test_build_cache_configuration() -> None:
     """BuildKit should use the GitHub Actions cache backend."""
 
@@ -215,6 +243,8 @@ def test_resource_and_metadata_controls() -> None:
 def main() -> None:
     """Run all Stage 7B Docker CI configuration checks."""
 
+    # Keep Docker CI regression checks in a fixed order for deterministic local and
+    # hosted-runner output.
     tests = [
         (
             "relevant automatic and manual triggers",
@@ -252,6 +282,8 @@ def main() -> None:
 
     passed = 0
 
+    # Any failed assertion stops the module with a non-zero exit status that the
+    # wider CI suite can detect.
     for label, test in tests:
         test()
         passed += 1
@@ -262,5 +294,6 @@ def main() -> None:
     print(f"Tests passed: {passed}/{len(tests)}")
 
 
+# Run the Docker CI configuration regressions only when executed directly.
 if __name__ == "__main__":
     main()

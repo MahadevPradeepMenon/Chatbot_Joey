@@ -18,6 +18,8 @@ from storage.database import (
 )
 
 
+# Keep this regression module runnable as a standalone script without requiring
+# an external testing framework.
 def assert_true(
     condition: bool,
     message: str,
@@ -28,6 +30,8 @@ def assert_true(
         raise AssertionError(message)
 
 
+# Centralise record-session creation so multiple tests use the same API path and
+# default synthetic observation when setting up workflow state.
 def create_record_session(
     client: TestClient,
     note: str = (
@@ -37,6 +41,8 @@ def create_record_session(
 ) -> dict:
     """Create one API journal conversation and return its payload."""
 
+    # Exercise the real FastAPI route through TestClient and submit the observation
+    # using the same JSON contract as the frontend client.
     response = client.post(
         "/api/v1/record/sessions",
         json={
@@ -58,8 +64,12 @@ def advance_to_review(
 ) -> dict:
     """Skip unanswered details until the deterministic draft is review-ready."""
 
+    # Bound the follow-up loop so a workflow regression cannot leave the test
+    # hanging indefinitely if review readiness is never reached.
     attempts = 0
 
+    # Repeatedly answer outstanding follow-up questions with a neutral response
+    # until the deterministic workflow reaches ready_for_review.
     while payload["status"] == "active":
         attempts += 1
 
@@ -68,6 +78,8 @@ def advance_to_review(
                 "The record workflow did not reach review state."
             )
 
+        # Submit each follow-up to the existing persistent session rather than
+        # creating a new conversation.
         response = client.post(
             (
                 "/api/v1/record/sessions/"
@@ -98,6 +110,8 @@ def test_create_session(
 ) -> dict:
     """The first observation should create a draft but not a journal entry."""
 
+    # Create a draft through the public API and verify that this alone does not
+    # write a confirmed journal entry.
     payload = create_record_session(
         client
     )
@@ -135,6 +149,8 @@ def test_create_session(
     return payload
 
 
+# Verify request-model validation rejects observations that contain only
+# whitespace before any workflow state is created.
 def test_whitespace_note_rejected(
     client: TestClient,
 ) -> None:
@@ -165,6 +181,8 @@ def test_get_session(
             f"{payload['session_id']}"
         )
     )
+    # Decode the persisted session payload so identity and draft contents can be
+    # compared with the original POST response.
     restored = response.json()
 
     assert_true(
@@ -189,9 +207,13 @@ def test_follow_up_message(
 ) -> dict:
     """One answer should update the same draft and ordered message history."""
 
+    # Some notes may already be review-ready after deterministic extraction; in
+    # that case there is no follow-up message to test.
     if payload["status"] != "active":
         return payload
 
+    # Capture the persistent message count before the follow-up so the test can
+    # prove the exchange was appended to the same conversation.
     before_count = len(
         payload["messages"]
     )
@@ -228,6 +250,8 @@ def test_follow_up_message(
     return updated
 
 
+# Confirm that the API enforces the explicit review boundary and will not save an
+# active draft directly as a journal entry.
 def test_confirmation_requires_review(
     client: TestClient,
 ) -> None:
@@ -261,10 +285,14 @@ def test_confirmation_saves_once(
 ) -> dict:
     """Explicit confirmation should create exactly one journal entry."""
 
+    # Ensure the draft has completed information collection before testing the
+    # confirmation endpoint.
     ready = advance_to_review(
         client,
         payload,
     )
+    # Record the journal count immediately before confirmation so exactly-once
+    # persistence can be asserted.
     before_count = count_journal_entries(
         database_path
     )
@@ -302,6 +330,7 @@ def test_confirmation_saves_once(
         "Explicit confirmation did not create exactly one journal entry.",
     )
 
+    # Retrieve the created journal row directly to verify API source provenance.
     saved = get_journal_entry(
         confirmed["journal_entry_id"],
         database_path,
@@ -317,6 +346,8 @@ def test_confirmation_saves_once(
         "The journal entry did not preserve the API source.",
     )
 
+    # Repeat the same confirmation request to verify idempotency at the workflow
+    # boundary and prevent duplicate journal records.
     duplicate = client.post(
         (
             "/api/v1/record/sessions/"
@@ -338,6 +369,8 @@ def test_confirmation_saves_once(
     return confirmed
 
 
+# Verify that rejecting a review-ready draft changes conversation state without
+# creating a journal entry.
 def test_rejection_does_not_save(
     client: TestClient,
     database_path: Path,
@@ -390,6 +423,8 @@ def test_missing_and_wrong_workflow(
 ) -> None:
     """Missing IDs and strategy-session IDs should fail predictably."""
 
+    # Exercise both a completely missing session ID and a valid session belonging
+    # to the wrong workflow so 404 and 409 behaviours remain distinct.
     missing = client.get(
         "/api/v1/record/sessions/99999"
     )
@@ -399,6 +434,8 @@ def test_missing_and_wrong_workflow(
         "A missing record session did not return HTTP 404.",
     )
 
+    # Create a real strategy-workflow session in the same temporary database to
+    # verify that record routes reject cross-workflow IDs.
     strategy_id = create_conversation_session(
         ConversationWorkflow.ask_strategy,
         database_path=database_path,
@@ -418,6 +455,8 @@ def test_openapi_record_contract(
 ) -> None:
     """Swagger/OpenAPI should expose every Stage 5B route."""
 
+    # Use the generated OpenAPI document as a contract check for all Stage 5B
+    # record-workflow routes.
     response = client.get(
         "/openapi.json"
     )
@@ -451,15 +490,21 @@ def main() -> None:
     passed = 0
     total = 10
 
+    # Run the entire API workflow suite against a disposable SQLite database so
+    # the tests are isolated from normal application data and repeatable in CI.
     with tempfile.TemporaryDirectory() as directory_name:
         database_path = (
             Path(directory_name)
             / "api_record_workflow_test.db"
         )
+        # Inject the temporary database into the FastAPI application factory used
+        # by all record-workflow tests in this run.
         application = create_app(
             database_path
         )
 
+        # Keeping one TestClient open preserves a single application lifespan and
+        # shared temporary database across the workflow sequence.
         with TestClient(
             application
         ) as client:
@@ -524,6 +569,8 @@ def main() -> None:
             passed += 1
             print("[PASS] record-workflow OpenAPI contract")
 
+            # Retain one Stage 5A liveness check as a regression guard while testing
+            # the newer Stage 5B record endpoints.
             health = client.get(
                 "/health"
             )
@@ -539,5 +586,6 @@ def main() -> None:
     print(f"Tests passed: {passed}/{total}")
 
 
+# Run the Stage 5B record-workflow API regressions only when executed directly.
 if __name__ == "__main__":
     main()

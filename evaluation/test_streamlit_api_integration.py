@@ -19,9 +19,13 @@ from app.streamlit_api_adapter import (
 )
 
 
+# Resolve the Streamlit source path relative to the repository so the boundary
+# inspection test works consistently from local and CI working directories.
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
+# Keep this regression module runnable as a standalone script without requiring
+# an external testing framework.
 def assert_true(
     condition: bool,
     message: str,
@@ -31,6 +35,8 @@ def assert_true(
 
 
 def test_record_message_rendering() -> None:
+    # Pass representative user and assistant messages through the real adapter to
+    # verify greeting insertion, escaping and message-type-specific rendering.
     history = normalise_api_messages(
         [
             {
@@ -75,6 +81,8 @@ def test_record_message_rendering() -> None:
     )
 
 
+# Strategy responses may contain trusted adapter-generated HTML; confirm this
+# remains intact when assistant_html is explicitly enabled.
 def test_strategy_html_preserved() -> None:
     history = normalise_api_messages(
         [
@@ -97,6 +105,8 @@ def test_strategy_html_preserved() -> None:
     )
 
 
+# Verify that concise parent feedback commands map to stored rating identifiers
+# while ordinary strategy questions are not misclassified as feedback.
 def test_feedback_parser() -> None:
     assert_true(
         parse_strategy_feedback(
@@ -127,6 +137,8 @@ def test_feedback_parser() -> None:
     )
 
 
+# Provide one deterministic API-style strategy payload that can be reused across
+# rendering and escaping tests.
 def sample_strategy_response() -> dict[str, Any]:
     return {
         "outcome": "results",
@@ -153,6 +165,8 @@ def sample_strategy_response() -> dict[str, Any]:
 
 
 def test_strategy_html_builder() -> None:
+    # Render the same response shape used by the Streamlit adapter and verify that
+    # strategy identity, source provenance and history wording are visible.
     result = build_strategy_response_html(
         sample_strategy_response()
     )
@@ -174,6 +188,8 @@ def test_strategy_html_builder() -> None:
 
 
 def test_strategy_html_escapes_source_data() -> None:
+    # Inject HTML-like text into source-backed data to ensure the adapter escapes
+    # untrusted strategy content before embedding it in rendered HTML.
     response = sample_strategy_response()
     response["strategies"][0][
         "strategy_title"
@@ -195,6 +211,8 @@ def test_strategy_html_escapes_source_data() -> None:
 
 
 def test_safety_and_abstention_rendering() -> None:
+    # Exercise non-result outcomes separately because safety and abstention messages
+    # should render as plain escaped text rather than strategy cards.
     safety = build_strategy_response_html(
         {
             "outcome": "safety_limited",
@@ -221,11 +239,15 @@ def test_safety_and_abstention_rendering() -> None:
 
 
 def test_conversation_ui_api_round_trip() -> None:
+    # Use a disposable SQLite database so the UI/API persistence round trip remains
+    # isolated from normal application data and repeatable in CI.
     with tempfile.TemporaryDirectory() as directory:
         database_path = (
             Path(directory)
             / "stage5d_conversations.db"
         )
+        # Build the real FastAPI application against the temporary database so the
+        # test crosses the same HTTP persistence boundary used by Streamlit.
         application = create_app(
             database_path=database_path
         )
@@ -233,6 +255,8 @@ def test_conversation_ui_api_round_trip() -> None:
         with TestClient(
             application
         ) as client:
+            # Create a strategy-workflow conversation with its greeting through the
+            # public conversations API.
             created = client.post(
                 "/api/v1/conversations/sessions",
                 json={
@@ -252,6 +276,8 @@ def test_conversation_ui_api_round_trip() -> None:
                 ]
             )
 
+            # Persist one user/assistant exchange plus pending feedback metadata to
+            # confirm the UI-facing conversation state survives the API round trip.
             exchange = client.post(
                 (
                     "/api/v1/conversations/sessions/"
@@ -285,6 +311,8 @@ def test_conversation_ui_api_round_trip() -> None:
                 "Greeting, user and assistant messages were expected.",
             )
 
+            # Reload the latest workflow session and verify stored metadata is restored
+            # for the frontend after a later request or restart.
             latest = client.get(
                 "/api/v1/conversations/sessions/latest",
                 params={
@@ -306,11 +334,15 @@ def test_conversation_ui_api_round_trip() -> None:
 
 
 def test_streamlit_has_no_backend_imports() -> None:
+    # Inspect Streamlit source statically rather than importing it, avoiding UI
+    # side effects while checking architectural dependency boundaries.
     source_path = (
         PROJECT_ROOT
         / "app"
         / "streamlit_app.py"
     )
+    # Parse the module into an AST so direct imports can be checked reliably without
+    # brittle text matching.
     tree = ast.parse(
         source_path.read_text(
             encoding="utf-8"
@@ -318,6 +350,7 @@ def test_streamlit_has_no_backend_imports() -> None:
     )
     imported_modules: set[str] = set()
 
+    # Collect both ordinary imports and from-import module names from the syntax tree.
     for node in ast.walk(
         tree
     ):
@@ -337,6 +370,8 @@ def test_streamlit_has_no_backend_imports() -> None:
                 node.module
             )
 
+    # Backend implementation modules are forbidden here because Streamlit should
+    # communicate through the HTTP client instead of bypassing the API boundary.
     forbidden_prefixes = (
         "rag",
         "safety",
@@ -348,6 +383,7 @@ def test_streamlit_has_no_backend_imports() -> None:
         "app.strategy_workflow_service",
     )
 
+    # Reject any direct backend dependency while allowing the dedicated API client.
     for module in imported_modules:
         assert_true(
             not module.startswith(
@@ -367,6 +403,8 @@ def test_streamlit_has_no_backend_imports() -> None:
 
 
 def main() -> None:
+    # Keep integration regressions in a fixed order for deterministic local and CI
+    # progress output.
     tests = [
         (
             "record message rendering",
@@ -404,6 +442,8 @@ def main() -> None:
 
     passed = 0
 
+    # Any assertion failure stops the module with a non-zero exit status that the
+    # wider CI runner can detect.
     for name, test in tests:
         test()
         passed += 1
@@ -420,5 +460,6 @@ def main() -> None:
     )
 
 
+# Run the Streamlit/FastAPI integration regressions only when executed directly.
 if __name__ == "__main__":
     main()
