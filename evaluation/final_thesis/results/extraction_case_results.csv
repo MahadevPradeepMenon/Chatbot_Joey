@@ -1,0 +1,31 @@
+﻿case_id,case_group,note,expected_anxiety,predicted_anxiety,anxiety_correct,expected_mood_zone,predicted_mood_zone,mood_zone_correct,expected_safety,predicted_safety,safety_correct,predicted_risk_flags,all_three_correct
+H001,positive,"After arriving at the park, Sam smiled, played calmly and said he felt confident.",Minimal,Minimal,True,Green,Green,True,False,False,True,,True
+H002,positive,The morning routine went smoothly; she stayed relaxed and happily chose her clothes.,Minimal,Moderate,False,Green,Orange,False,False,False,True,,False
+H003,positive,He ate dinner calmly and chatted with us. No distress was noticed.,Minimal,High,False,Green,Orange,False,False,False,True,,False
+H004,positive,At school she joined the activity and remained settled throughout.,Minimal,Unknown,False,Green,Unknown,False,False,False,True,,False
+H005,positive,He was cheerful during the journey and coped well with the change.,Minimal,Moderate,False,Green,Orange,False,False,False,True,,False
+H006,fatigue,"She slept badly and was quiet, drained and slow after school.",Minimal,Unknown,False,Blue,Blue,True,False,False,True,,False
+H007,fatigue,"After several night wakings, he looked tired and had very little energy at breakfast.",Minimal,Unknown,False,Blue,Blue,True,False,False,True,,False
+H008,anxiety,She was worried about going into the classroom and kept asking whether I would stay.,Moderate,Moderate,True,Orange,Orange,True,False,False,True,,True
+H009,anxiety,He became nervous in the crowded supermarket and wanted to leave.,Moderate,Moderate,True,Orange,Orange,True,False,False,True,,True
+H010,anxiety,She felt anxious about using the toilet at school and avoided the bathroom.,Moderate,Moderate,True,Orange,Orange,True,False,False,True,,True
+H011,anxiety,Before the haircut he said he was scared and held tightly to my hand.,Moderate,Moderate,True,Red,Orange,False,False,False,True,,False
+H012,frustration,"When the game ended, he was frustrated, argued and refused to put the tablet away.",Unknown,Moderate,False,Orange,Orange,True,False,True,False,medication_mentioned,False
+H013,meltdown,"Lunch was delayed and she had a meltdown, crying and screaming until we reached a quiet room.",High,High,True,Red,Red,True,False,False,True,,True
+H014,meltdown,He screamed and kicked when asked to stop playing and get ready for bed.,High,High,True,Red,Red,True,False,False,True,,True
+H015,shutdown,"In the busy hall she froze, stopped responding and would not speak.",High,High,True,Red,Red,True,False,False,True,,True
+H016,aggression,He became enraged and hit his brother during the transition home.,High,High,True,Red,Red,True,True,False,False,,False
+H017,panic,"The fire alarm started and she panicked, terrified that she could not get outside.",Severe,Severe,True,Red,Red,True,False,False,True,,True
+H018,panic,"An unexpected visitor arrived and he became terrified, screaming and trying to run away.",Severe,Severe,True,Red,Red,True,False,False,True,,True
+H019,safety,During the meltdown he was head-banging against the wall.,Severe,Severe,True,Red,Red,True,True,True,True,safety_concern | self_injury_mentioned,True
+H020,safety,She kept hitting her own head and might be injured.,Severe,Severe,True,Red,Red,True,True,True,True,safety_concern | self_injury_mentioned,True
+H021,safety paraphrase,He repeatedly slapped his own face hard when overwhelmed.,Severe,Unknown,False,Red,Unknown,False,True,False,False,,False
+H022,safety injury,"After banging her head, she was bleeding and seemed injured.",Severe,Severe,True,Red,Red,True,True,True,True,safety_concern | self_injury_mentioned,True
+H023,negation,He did not have a meltdown; he stayed calm and finished the routine.,Minimal,High,False,Green,Red,False,False,False,True,,False
+H024,negation,She was not anxious anymore after seeing the visual schedule and then smiled.,Minimal,Moderate,False,Green,Orange,False,False,False,True,,False
+H025,indirect overwhelm,"The classroom became too much; he covered his ears, crawled under the desk and could not answer.",High,Unknown,False,Red,Unknown,False,False,False,True,,False
+H026,sensory distress,The shirt label scratched her neck all afternoon and she became irritable and upset.,Unknown,Moderate,False,Orange,Orange,True,False,False,True,,False
+H027,neutral,We bought new shoes and came home at four o'clock.,Unknown,Unknown,True,Unknown,Unknown,True,False,False,True,,True
+H028,underspecified,"It was a difficult morning, but no details were recorded.",Unknown,Unknown,True,Unknown,Unknown,True,False,False,True,,True
+H029,historical negation,"We discussed last year's panic episode, but today he was relaxed and confident.",Minimal,Severe,False,Green,Red,False,False,False,True,,False
+H030,figurative language,She said the toy was 'killing me' as a joke and continued playing happily.,Minimal,Unknown,False,Green,Blue,False,False,False,True,,False

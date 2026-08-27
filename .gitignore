@@ -234,7 +234,23 @@ data/private/
 *.db
 *.sqlite
 *.sqlite3
+
+# SQLite temporary and write-ahead-log files
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+
 *.pem
 *.key
+*.crt
+*.cer
+*.p12
+*.pfx
 stage7c_context.zip
 # END HEY JOEY PRIVATE RUNTIME DATA

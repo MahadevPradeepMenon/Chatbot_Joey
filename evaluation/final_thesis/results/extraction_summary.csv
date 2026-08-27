@@ -1,0 +1,5 @@
+﻿field,accuracy,macro_precision,macro_recall,macro_f1,weighted_f1
+anxiety_level,0.5333,0.6389,0.6448,0.5352,0.4755
+mood_zone,0.6333,0.677,0.7722,0.6041,0.5756
+safety_flag,0.9,0.75,0.6,0.6667,0.6667
+exact_all_three,0.4667,,,,

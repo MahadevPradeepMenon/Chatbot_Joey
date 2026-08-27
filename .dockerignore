@@ -28,12 +28,29 @@ data
 *.sqlite
 *.sqlite3
 
+# SQLite temporary and write-ahead-log files
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+
 # Local secrets
 .env
 .env.*
 !.env.example
 !.env.production.example
 .streamlit/secrets.toml
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
 
 # Large project documents and generated archives
 *.zip

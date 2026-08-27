@@ -1,0 +1,296 @@
+[
+  {
+    "case_id": "R001",
+    "collection_group": "friendship",
+    "query_style": "informal",
+    "query": "My child wants friends but cannot work out how to join games or keep a conversation going.",
+    "expected_keywords": [
+      "friendship"
+    ]
+  },
+  {
+    "case_id": "R002",
+    "collection_group": "friendship",
+    "query_style": "paraphrase",
+    "query": "What could help when a child is left out by peers and misses social cues?",
+    "expected_keywords": [
+      "friendship"
+    ]
+  },
+  {
+    "case_id": "R003",
+    "collection_group": "friendship",
+    "query_style": "direct",
+    "query": "Strategies for repairing a friendship after an argument.",
+    "expected_keywords": [
+      "friendship"
+    ]
+  },
+  {
+    "case_id": "R004",
+    "collection_group": "toilet training",
+    "query_style": "informal",
+    "query": "My child gets worried about the toilet and keeps having accidents.",
+    "expected_keywords": [
+      "toilet"
+    ]
+  },
+  {
+    "case_id": "R005",
+    "collection_group": "toilet training",
+    "query_style": "paraphrase",
+    "query": "How can we support using bathrooms away from home when they refuse to go in?",
+    "expected_keywords": [
+      "toilet"
+    ]
+  },
+  {
+    "case_id": "R006",
+    "collection_group": "toilet training",
+    "query_style": "direct",
+    "query": "Support for withholding bowel movements during toilet training.",
+    "expected_keywords": [
+      "toilet"
+    ]
+  },
+  {
+    "case_id": "R007",
+    "collection_group": "sensory processing",
+    "query_style": "informal",
+    "query": "Loud classroom sounds make my child cover their ears and become overwhelmed.",
+    "expected_keywords": [
+      "sensory"
+    ]
+  },
+  {
+    "case_id": "R008",
+    "collection_group": "sensory processing",
+    "query_style": "paraphrase",
+    "query": "Clothes labels and seams feel unbearable and lead to distress.",
+    "expected_keywords": [
+      "sensory"
+    ]
+  },
+  {
+    "case_id": "R009",
+    "collection_group": "sensory processing",
+    "query_style": "direct",
+    "query": "Strategies for sensitivity to bright lights and strong smells.",
+    "expected_keywords": [
+      "sensory"
+    ]
+  },
+  {
+    "case_id": "R010",
+    "collection_group": "behavioural regulation",
+    "query_style": "informal",
+    "query": "Stopping one activity to start another often leads to a meltdown.",
+    "expected_keywords": [
+      "behavioral",
+      "behavioural",
+      "emotional regulation"
+    ]
+  },
+  {
+    "case_id": "R011",
+    "collection_group": "behavioural regulation",
+    "query_style": "paraphrase",
+    "query": "What may help a child who becomes angry and cannot recover after frustration?",
+    "expected_keywords": [
+      "behavioral",
+      "behavioural",
+      "emotional regulation"
+    ]
+  },
+  {
+    "case_id": "R012",
+    "collection_group": "behavioural regulation",
+    "query_style": "direct",
+    "query": "Support for rigid refusal and emotional escalation during everyday demands.",
+    "expected_keywords": [
+      "behavioral",
+      "behavioural",
+      "emotional regulation"
+    ]
+  },
+  {
+    "case_id": "R013",
+    "collection_group": "crisis safety",
+    "query_style": "informal",
+    "query": "During extreme distress my child hits their own head. How should we plan for safety?",
+    "expected_keywords": [
+      "crisis",
+      "safety"
+    ]
+  },
+  {
+    "case_id": "R014",
+    "collection_group": "crisis safety",
+    "query_style": "paraphrase",
+    "query": "We need early warning signs and an escalation plan before a dangerous crisis.",
+    "expected_keywords": [
+      "crisis",
+      "safety"
+    ]
+  },
+  {
+    "case_id": "R015",
+    "collection_group": "crisis safety",
+    "query_style": "direct",
+    "query": "Crisis-management strategies when aggression creates immediate danger.",
+    "expected_keywords": [
+      "crisis",
+      "safety"
+    ]
+  },
+  {
+    "case_id": "R016",
+    "collection_group": "personal hygiene",
+    "query_style": "informal",
+    "query": "Brushing teeth causes arguments and my child avoids it every morning.",
+    "expected_keywords": [
+      "hygiene",
+      "self care",
+      "self-care"
+    ]
+  },
+  {
+    "case_id": "R017",
+    "collection_group": "personal hygiene",
+    "query_style": "paraphrase",
+    "query": "Hair washing and showering are difficult because the sensations feel too intense.",
+    "expected_keywords": [
+      "hygiene",
+      "self care",
+      "self-care"
+    ]
+  },
+  {
+    "case_id": "R018",
+    "collection_group": "personal hygiene",
+    "query_style": "direct",
+    "query": "Personal-care strategies for nail cutting and deodorant routines.",
+    "expected_keywords": [
+      "hygiene",
+      "self care",
+      "self-care"
+    ]
+  },
+  {
+    "case_id": "R019",
+    "collection_group": "eating mealtime",
+    "query_style": "informal",
+    "query": "Certain food textures make my child gag and refuse the meal.",
+    "expected_keywords": [
+      "eating",
+      "mealtime"
+    ]
+  },
+  {
+    "case_id": "R020",
+    "collection_group": "eating mealtime",
+    "query_style": "paraphrase",
+    "query": "How can we introduce unfamiliar foods when the diet is very restricted?",
+    "expected_keywords": [
+      "eating",
+      "mealtime"
+    ]
+  },
+  {
+    "case_id": "R021",
+    "collection_group": "eating mealtime",
+    "query_style": "direct",
+    "query": "Strategies for anxiety and distress during family mealtimes.",
+    "expected_keywords": [
+      "eating",
+      "mealtime"
+    ]
+  },
+  {
+    "case_id": "R022",
+    "collection_group": "communication",
+    "query_style": "informal",
+    "query": "My child knows what they want but struggles to tell us clearly.",
+    "expected_keywords": [
+      "communication",
+      "language"
+    ]
+  },
+  {
+    "case_id": "R023",
+    "collection_group": "communication",
+    "query_style": "paraphrase",
+    "query": "Would visual supports help with understanding and following spoken instructions?",
+    "expected_keywords": [
+      "communication",
+      "language"
+    ]
+  },
+  {
+    "case_id": "R024",
+    "collection_group": "communication",
+    "query_style": "direct",
+    "query": "Language-development support for reciprocal conversation.",
+    "expected_keywords": [
+      "communication",
+      "language"
+    ]
+  },
+  {
+    "case_id": "R025",
+    "collection_group": "sleep bedtime",
+    "query_style": "informal",
+    "query": "Bedtime takes hours because my child cannot settle to sleep.",
+    "expected_keywords": [
+      "sleep",
+      "bedtime"
+    ]
+  },
+  {
+    "case_id": "R026",
+    "collection_group": "sleep bedtime",
+    "query_style": "paraphrase",
+    "query": "What may help with repeated waking in the middle of the night?",
+    "expected_keywords": [
+      "sleep",
+      "bedtime"
+    ]
+  },
+  {
+    "case_id": "R027",
+    "collection_group": "sleep bedtime",
+    "query_style": "direct",
+    "query": "Predictable routines for early waking and bedtime anxiety.",
+    "expected_keywords": [
+      "sleep",
+      "bedtime"
+    ]
+  },
+  {
+    "case_id": "R028",
+    "collection_group": "social anxiety",
+    "query_style": "informal",
+    "query": "Group activities make my child so worried that they avoid joining in.",
+    "expected_keywords": [
+      "social anxiety"
+    ]
+  },
+  {
+    "case_id": "R029",
+    "collection_group": "social anxiety",
+    "query_style": "paraphrase",
+    "query": "Speaking to unfamiliar people feels frightening and they stay silent.",
+    "expected_keywords": [
+      "social anxiety"
+    ]
+  },
+  {
+    "case_id": "R030",
+    "collection_group": "social anxiety",
+    "query_style": "direct",
+    "query": "Gradual support for anxiety before parties and social events.",
+    "expected_keywords": [
+      "social anxiety"
+    ]
+  }
+]

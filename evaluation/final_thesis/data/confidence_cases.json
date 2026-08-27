@@ -1,0 +1,255 @@
+[
+  {
+    "case_id": "C001",
+    "group": "clear_in_domain",
+    "query": "Loud classroom noise makes my child cover their ears and become overwhelmed.",
+    "should_answer": true,
+    "expected_keywords": [
+      "sensory"
+    ]
+  },
+  {
+    "case_id": "C002",
+    "group": "clear_in_domain",
+    "query": "My child is anxious about using the toilet at school.",
+    "should_answer": true,
+    "expected_keywords": [
+      "toilet"
+    ]
+  },
+  {
+    "case_id": "C003",
+    "group": "clear_in_domain",
+    "query": "Bedtime takes a long time and my child cannot settle to sleep.",
+    "should_answer": true,
+    "expected_keywords": [
+      "sleep",
+      "bedtime"
+    ]
+  },
+  {
+    "case_id": "C004",
+    "group": "clear_in_domain",
+    "query": "Food textures cause gagging and meal refusal.",
+    "should_answer": true,
+    "expected_keywords": [
+      "eating",
+      "mealtime"
+    ]
+  },
+  {
+    "case_id": "C005",
+    "group": "clear_in_domain",
+    "query": "Brushing teeth causes distress every morning.",
+    "should_answer": true,
+    "expected_keywords": [
+      "hygiene",
+      "self care",
+      "self-care"
+    ]
+  },
+  {
+    "case_id": "C006",
+    "group": "clear_in_domain",
+    "query": "My child wants friends but struggles to join games.",
+    "should_answer": true,
+    "expected_keywords": [
+      "friendship"
+    ]
+  },
+  {
+    "case_id": "C007",
+    "group": "clear_in_domain",
+    "query": "My child cannot clearly express what they need.",
+    "should_answer": true,
+    "expected_keywords": [
+      "communication",
+      "language"
+    ]
+  },
+  {
+    "case_id": "C008",
+    "group": "clear_in_domain",
+    "query": "Transitions often cause a meltdown and refusal.",
+    "should_answer": true,
+    "expected_keywords": [
+      "behavioral",
+      "behavioural",
+      "emotional regulation"
+    ]
+  },
+  {
+    "case_id": "C009",
+    "group": "clear_in_domain",
+    "query": "We need early warning signs before a dangerous crisis.",
+    "should_answer": true,
+    "expected_keywords": [
+      "crisis",
+      "safety"
+    ]
+  },
+  {
+    "case_id": "C010",
+    "group": "clear_in_domain",
+    "query": "Social groups make my child anxious and they avoid joining.",
+    "should_answer": true,
+    "expected_keywords": [
+      "social anxiety"
+    ]
+  },
+  {
+    "case_id": "C011",
+    "group": "clear_in_domain",
+    "query": "Strong smells and bright lights quickly become overwhelming.",
+    "should_answer": true,
+    "expected_keywords": [
+      "sensory"
+    ]
+  },
+  {
+    "case_id": "C012",
+    "group": "clear_in_domain",
+    "query": "My child wakes repeatedly in the night.",
+    "should_answer": true,
+    "expected_keywords": [
+      "sleep",
+      "bedtime"
+    ]
+  },
+  {
+    "case_id": "C013",
+    "group": "clear_in_domain",
+    "query": "We need help introducing unfamiliar foods.",
+    "should_answer": true,
+    "expected_keywords": [
+      "eating",
+      "mealtime"
+    ]
+  },
+  {
+    "case_id": "C014",
+    "group": "clear_in_domain",
+    "query": "Showering and hair washing are very difficult.",
+    "should_answer": true,
+    "expected_keywords": [
+      "hygiene",
+      "self care",
+      "self-care"
+    ]
+  },
+  {
+    "case_id": "C015",
+    "group": "clear_in_domain",
+    "query": "How can we support back-and-forth conversation with peers?",
+    "should_answer": true,
+    "expected_keywords": [
+      "communication",
+      "language"
+    ]
+  },
+  {
+    "case_id": "C016",
+    "group": "underspecified",
+    "query": "Help please.",
+    "should_answer": false,
+    "expected_keywords": []
+  },
+  {
+    "case_id": "C017",
+    "group": "underspecified",
+    "query": "My child is struggling.",
+    "should_answer": false,
+    "expected_keywords": []
+  },
+  {
+    "case_id": "C018",
+    "group": "underspecified",
+    "query": "What should I do?",
+    "should_answer": false,
+    "expected_keywords": []
+  },
+  {
+    "case_id": "C019",
+    "group": "underspecified",
+    "query": "Any strategies?",
+    "should_answer": false,
+    "expected_keywords": []
+  },
+  {
+    "case_id": "C020",
+    "group": "underspecified",
+    "query": "Things are hard at home.",
+    "should_answer": false,
+    "expected_keywords": []
+  },
+  {
+    "case_id": "C021",
+    "group": "out_of_domain",
+    "query": "How do I repair a laptop battery connector?",
+    "should_answer": false,
+    "expected_keywords": []
+  },
+  {
+    "case_id": "C022",
+    "group": "out_of_domain",
+    "query": "Should I choose a fixed or variable mortgage?",
+    "should_answer": false,
+    "expected_keywords": []
+  },
+  {
+    "case_id": "C023",
+    "group": "out_of_domain",
+    "query": "How much air pressure should be in a car tyre?",
+    "should_answer": false,
+    "expected_keywords": []
+  },
+  {
+    "case_id": "C024",
+    "group": "out_of_domain",
+    "query": "Give me a chocolate cake recipe.",
+    "should_answer": false,
+    "expected_keywords": []
+  },
+  {
+    "case_id": "C025",
+    "group": "out_of_domain",
+    "query": "Who won the football match yesterday?",
+    "should_answer": false,
+    "expected_keywords": []
+  },
+  {
+    "case_id": "C026",
+    "group": "meaningless",
+    "query": "asdf qwerty zxcv",
+    "should_answer": false,
+    "expected_keywords": []
+  },
+  {
+    "case_id": "C027",
+    "group": "meaningless",
+    "query": "lorem ipsum dolor",
+    "should_answer": false,
+    "expected_keywords": []
+  },
+  {
+    "case_id": "C028",
+    "group": "meaningless",
+    "query": "123 456 789",
+    "should_answer": false,
+    "expected_keywords": []
+  },
+  {
+    "case_id": "C029",
+    "group": "meaningless",
+    "query": "banana quantum toaster",
+    "should_answer": false,
+    "expected_keywords": []
+  },
+  {
+    "case_id": "C030",
+    "group": "meaningless",
+    "query": "zzzx blorp flibble",
+    "should_answer": false,
+    "expected_keywords": []
+  }
+]

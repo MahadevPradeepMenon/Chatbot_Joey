@@ -1,0 +1,6 @@
+﻿class,support,true_positive,false_positive,false_negative,precision,recall,f1
+High,5,4,2,1,0.6667,0.8,0.7273
+Minimal,11,1,0,10,1.0,0.0909,0.1667
+Moderate,4,4,5,0,0.4444,1.0,0.6154
+Severe,6,5,1,1,0.8333,0.8333,0.8333
+Unknown,4,2,6,2,0.25,0.5,0.3333

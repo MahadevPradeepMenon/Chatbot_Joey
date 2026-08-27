@@ -1,0 +1,6 @@
+﻿class,support,true_positive,false_positive,false_negative,precision,recall,f1
+Blue,2,2,1,0,0.6667,1.0,0.8
+Green,9,1,0,8,1.0,0.1111,0.2
+Orange,5,5,5,0,0.5,1.0,0.6667
+Red,12,9,2,3,0.8182,0.75,0.7826
+Unknown,2,2,3,0,0.4,1.0,0.5714

@@ -67,7 +67,7 @@ The prototype includes:
 - Docker build-context exclusions;
 - pinned GitHub Actions dependencies;
 - least-privilege GitHub Actions permissions;
-- immutable, versioned container releases.
+- versioned container releases with commit-referenced tags, provenance, and an SBOM.
 
 ## Known production gaps
 

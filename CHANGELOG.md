@@ -6,6 +6,19 @@ The project follows semantic versioning for tagged releases.
 
 ## [Unreleased]
 
+### Added
+
+- MSc thesis-oriented repository documentation identifying the code used for
+  structured extraction, retrieval comparison, and confidence evaluation.
+
+### Changed
+
+- Updated project documentation to reflect the final hybrid retrieval,
+  confidence, safety, and production-style architecture.
+- Updated the README with the final thesis evaluation results.
+- Strengthened repository and Docker build-context exclusions for SQLite
+  runtime files and certificate material.
+
 ### Planned
 
 - Recruiter-facing screenshots and demonstration evidence.
@@ -40,7 +53,7 @@ The project follows semantic versioning for tagged releases.
 - Python regression workflow in GitHub Actions.
 - Docker build-validation workflow in GitHub Actions.
 - Versioned GitHub Container Registry release workflow.
-- Immutable `v0.1.0` production container release with version, commit, and
+- Versioned `v0.1.0` container release with version, commit, and `latest` tags.
   `latest` tags.
 - Automated regression suite covering 21 test modules.
 
@@ -55,7 +68,8 @@ The project follows semantic versioning for tagged releases.
 
 ### Security and privacy
 
-- Public release defaults are synthetic-data-only.
+- Production-style and public demonstration configurations default to
+  synthetic-data-only operation.
 - Real `.env` files, SQLite databases, private runtime directories, keys, and
   credentials are excluded from version control and Docker build contexts.
 - Production use with identifiable family or child data remains out of scope

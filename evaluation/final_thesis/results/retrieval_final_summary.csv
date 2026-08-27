@@ -1,0 +1,5 @@
+﻿method,queries,hit_at_1,hit_at_1_rate,hit_at_3,hit_at_3_rate,mrr,mean_latency_ms,median_latency_ms,stdev_latency_ms,display_name
+baseline,30,12,0.4,15,0.5,0.45,0.615,0.566,0.234,Rule-based
+bm25,30,20,0.6667,26,0.8667,0.7611,4.316,4.209,1.263,BM25-only
+semantic,30,26,0.8667,27,0.9,0.8833,28.765,28.197,6.862,Semantic-only
+hybrid,30,26,0.8667,27,0.9,0.8833,30.142,27.93,10.62,Hybrid RRF

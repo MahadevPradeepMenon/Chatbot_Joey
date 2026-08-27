@@ -346,9 +346,14 @@ Chatbot_Joey/
 │   ├── conversation_storage.py
 │   ├── strategy_feedback.py
 │   └── feedback_history_provider.py
-├── evaluation/
-│   ├── run_ci_suite.py
-│   └── test_*.py
+evaluation/
+├── final_thesis/
+│   ├── data/
+│   └── results/
+├── run_ci_suite.py
+├── run_extractor_on_dataset.py
+├── run_retrieval_comparison.py
+└── test_*.py
 ├── scripts/
 │   └── apply_repository_safety.py
 ├── docs/
@@ -396,6 +401,28 @@ The FastAPI, Streamlit, SQLite, Docker, CI/CD and production-configuration compo
 | Extraction evaluation | `evaluation/run_extractor_on_dataset.py` | Runs the deterministic extractor over the synthetic extraction evaluation data. |
 | Retrieval evaluation | `evaluation/run_retrieval_comparison.py` | Compares Rule-based, BM25-only, Semantic-only and Hybrid RRF retrieval under consistent evaluation conditions. |
 | Confidence regression checks | `evaluation/test_retrieval_confidence.py` | Tests strong, moderate and weak evidence behaviour and the resulting answer-or-abstain decisions. |
+
+### Final thesis evaluation artefacts
+
+The fixed datasets and result artefacts used for the final dissertation
+experiments are preserved separately under:
+
+```text
+evaluation/final_thesis/
+├── data/
+│   ├── holdout_extraction_cases.csv
+│   ├── retrieval_final_cases.json
+│   └── confidence_cases.json
+└── results/
+    ├── extraction_case_results.csv
+    ├── extraction_summary.csv
+    ├── retrieval_final_case_results.csv
+    ├── retrieval_final_results.json
+    ├── retrieval_final_summary.csv
+    ├── confidence_case_features.csv
+    ├── confidence_threshold_summary.csv
+    ├── confidence_pareto_frontier.csv
+    └── final_experiment_manifest.json
 
 ### Relationship to the dissertation
 

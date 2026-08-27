@@ -1,0 +1,6 @@
+﻿expected\predicted,Blue,Green,Orange,Red,Unknown
+Blue,2,0,0,0,0
+Green,1,1,4,2,1
+Orange,0,0,5,0,0
+Red,0,0,1,9,2
+Unknown,0,0,0,0,2
