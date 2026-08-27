@@ -1,8 +1,12 @@
-# Joey Final MVP Evaluation
+# Joey Integrated MVP Development Evaluation
+
+> **Status note:** This document records an earlier integrated MVP development and regression evaluation. It is retained as supporting engineering evidence, but it is **not** the final MSc dissertation experiment set. The final thesis experiments use three fixed 30-case synthetic datasets and are stored under `evaluation/final_thesis/`, together with the final experiment runner and result artefacts.
+
+> In particular, the ten-query retrieval comparison reported below is a development evaluation. The final dissertation retrieval experiment compares Rule-based, BM25-only, Semantic-only and Hybrid RRF retrieval on 30 synthetic queries.
 
 ## Evaluation Purpose
 
-This evaluation assesses the completed Joey MVP as an integrated local decision-support system rather than evaluating only one component.
+This evaluation assesses the Joey MVP as an integrated local decision-support system and records development/regression evidence across the wider workflow rather than the final dissertation experiments alone.
 
 The evaluated workflow is:
 
@@ -161,9 +165,9 @@ Verified behaviours:
 
 ---
 
-## Retrieval Comparison
+## Development Retrieval Comparison (10 Queries)
 
-A shared ten-case synthetic dataset compared:
+A shared ten-case synthetic development dataset compared:
 
 1. the original deterministic rule-based retriever;
 2. local semantic-only retrieval;
@@ -195,6 +199,22 @@ Detailed retrieval results are stored in:
 - `evaluation/retrieval_comparison_results.json`
 - `evaluation/retrieval_comparison_evaluation.md`
 
+
+### Relationship to the final thesis retrieval experiment
+
+The ten-query results above are retained as development evidence only. The final dissertation retrieval experiment is stored separately under `evaluation/final_thesis/` and uses 30 synthetic queries across ten strategy collections.
+
+The final thesis comparison includes four methods:
+
+| Retriever | Hit@1 | Hit@3 | MRR | Mean warm-run latency |
+|---|---:|---:|---:|---:|
+| Rule-based baseline | 40.0% | 50.0% | 0.4500 | 0.615 ms |
+| BM25-only | 66.7% | 86.7% | 0.7611 | 4.316 ms |
+| Semantic-only | 86.7% | 90.0% | 0.8833 | 28.765 ms |
+| Hybrid RRF | 86.7% | 90.0% | 0.8833 | 30.142 ms |
+
+Semantic-only and Hybrid RRF tied on the final synthetic ranking metrics. Hybrid RRF remained the application default because it combines lexical and semantic evidence without treating their raw scores as directly comparable.
+
 ---
 
 ## Successful Behaviours
@@ -217,9 +237,9 @@ The completed MVP demonstrated the following behaviours:
 
 ---
 
-## Final Streamlit Interface
+## Current Streamlit Interface
 
-The final prototype presents only the user-facing controls required for the chatbot workflow:
+The current prototype presents only the user-facing controls required for the chatbot workflow:
 
 1. **Record what happened**
 2. **Ask for a strategy**
@@ -320,11 +340,41 @@ The current synthetic context provider and local SQLite persistence layer demons
 
 The completed MVP demonstrates that a local, explainable and safety-aware system can transform parent/carer observations into structured journal drafts, ask targeted follow-up questions, retrieve source-backed support strategies, incorporate limited synthetic context and preserve human confirmation.
 
-The final regression results show that the implemented workflows operate consistently across the predefined synthetic tests.
+The regression results in this document show that the implemented workflows operate consistently across the predefined development tests.
 
-The retrieval comparison also shows that semantic and Hybrid retrieval substantially improve top-three coverage over the original rule-based baseline. Semantic-only retrieval performed best on the current ten-case ranking test, while Hybrid retrieval remains the selected architecture because it combines semantic and lexical evidence.
+The ten-query retrieval comparison is retained as historical development evidence. It showed stronger top-three coverage for embedding-based retrieval than for the original rule-based baseline, but it should not be interpreted as the final dissertation retrieval experiment. The final 30-query thesis evaluation is stored under `evaluation/final_thesis/` and reports Rule-based, BM25-only, Semantic-only and Hybrid RRF results separately.
 
-These results support the technical feasibility of Joey as a local support-management subsystem. They do not establish clinical effectiveness, universal retrieval accuracy or production readiness.
+Together, the regression and final thesis artefacts support the technical feasibility of Joey as a local support-management subsystem. They do not establish clinical effectiveness, universal retrieval accuracy or production readiness.
+
+---
+
+## Final Thesis Evaluation Artefacts
+
+The final MSc experiments are preserved separately from the development/regression files described above.
+
+```text
+evaluation/final_thesis/
+├── data/
+│   ├── confidence_cases.json
+│   ├── holdout_extraction_cases.csv
+│   ├── holdout_extraction_dataset.xlsx
+│   └── retrieval_final_cases.json
+├── results/
+│   ├── extraction_case_results.csv
+│   ├── extraction_summary.csv
+│   ├── retrieval_final_case_results.csv
+│   ├── retrieval_final_results.json
+│   ├── retrieval_final_summary.csv
+│   ├── confidence_case_features.csv
+│   ├── confidence_threshold_summary.csv
+│   ├── confidence_pareto_frontier.csv
+│   └── final_experiment_manifest.json
+└── run_final_ml_experiments.py
+```
+
+The final thesis experiment runner reproduces the 30-case extraction evaluation, the 30-query four-method retrieval comparison, and the 30-query confidence/abstention analysis using the fixed synthetic datasets stored alongside it.
+
+The older evaluation files directly under `evaluation/` remain useful as development and regression evidence, but they should not be used as the source for the final dissertation metrics.
 
 ---
 
