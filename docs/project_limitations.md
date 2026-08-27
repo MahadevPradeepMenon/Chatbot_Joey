@@ -2,56 +2,82 @@
 
 ## Rule-Based Extraction
 
-Structured extraction uses deterministic patterns rather than a
-general-purpose language model.
+Structured extraction uses deterministic rules, keywords and text patterns rather than a general-purpose generative language model.
 
-This makes the process transparent and reproducible, but it may miss:
+This makes the process transparent and reproducible, but the final evaluation showed that performance can fall when language varies beyond the predefined rules. Error patterns included:
 
-- unfamiliar language;
-- indirect descriptions;
-- spelling variations;
-- complex temporal relationships;
+- negation;
+- historical context;
+- indirect descriptions of distress;
+- positive or resolved wording;
+- unfamiliar paraphrases;
 - ambiguous context;
-- behaviours not represented in the rules.
+- spelling or wording variation not represented in the rules.
 
-The extractor may also infer fields too strongly from limited wording.
+The extractor may also infer a field too strongly from a limited keyword match. In the final 30-case extraction evaluation, anxiety classification achieved 53.3% accuracy and mood-zone classification achieved 63.3% accuracy. Safety classification was stronger at 90.0% accuracy, although recall was 60.0%, showing that some positive safety cases were still missed.
 
 ## Synthetic Evaluation Data
 
-The functional and retrieval evaluations use designed synthetic cases.
+The final thesis experiments use fixed synthetic evaluation datasets rather than genuine child or family information.
 
-The results demonstrate performance on those predefined tests only.
-They do not establish performance across all real parent observations.
+The extraction, retrieval and confidence datasets each contain 30 designed cases. These datasets support controlled and reproducible technical evaluation, but they may not represent the full linguistic and contextual variation found in real parent or carer observations.
 
-## Small Retrieval Evaluation Set
+The results therefore demonstrate behaviour on the evaluated synthetic cases only. They do not establish performance across all real-world users or situations.
 
-The rule-based and semantic retrieval comparison contains ten queries.
+## Small Evaluation Sets
 
-This is sufficient for a prototype comparison but is not a large
-independent benchmark.
+Each final experiment contains 30 cases.
 
-## Keyword-Based Relevance Judgements
+For retrieval, the same 30 synthetic queries across the ten strategy collections were used to compare:
 
-Expected retrieval relevance was assessed using predefined keywords
-matched against strategy metadata.
+- Rule-based retrieval;
+- BM25-only retrieval;
+- Semantic-only retrieval;
+- Hybrid Reciprocal Rank Fusion retrieval.
 
-Future evaluation should involve independent review by subject-matter
-experts, parents or Hey Joey stakeholders.
+This is sufficient for a prototype comparison, but it is not a large independent benchmark. Small changes in the test set could materially affect the reported percentages.
 
-## One Semantic Retrieval Miss
+Future work should use larger datasets with independently created and reviewed labels.
 
-The semantic retriever achieved Hit@3 on nine of ten evaluation
-queries, meaning one expected support area was not found within the
-first three results.
+## Researcher-Assigned Relevance Labels
 
-This should be investigated through:
+Retrieval relevance was evaluated at the Hey Joey strategy-collection level. Each synthetic query had an expected collection, and a retrieved result was considered relevant when its source chunk belonged to that collection.
+
+These expected labels were created for the project rather than independently judged by multiple domain experts. Collection-level relevance is also a simplification because more than one collection may sometimes contain useful support for the same query.
+
+Future evaluation should include independent relevance judgements from subject-matter experts, Hey Joey stakeholders, and, where ethically approved, parents or carers.
+
+## Retrieval Errors Remain
+
+Semantic-only and Hybrid RRF retrieval both achieved 86.7% Hit@1 and 90.0% Hit@3 on the final 30-query retrieval dataset. This means the expected collection was not found within the first three results for three of the 30 queries.
+
+The error analysis identified failures involving informal or paraphrased queries, including examples related to toilet training, communication and social anxiety.
+
+Possible areas for future investigation include:
 
 - improved query construction;
 - corpus review;
 - chunking refinement;
 - alternative embedding models;
-- hybrid semantic and keyword retrieval;
+- revised metadata weighting;
+- larger candidate pools;
 - expert-created relevance labels.
+
+Hybrid RRF matched Semantic-only retrieval on the final dataset but did not improve the ranking metrics further, so hybrid retrieval should not be assumed to outperform the strongest individual retriever in every setting.
+
+## Confidence and Abstention Trade-Off
+
+The confidence layer can abstain when retrieval evidence is weak, but confidence thresholds introduce a trade-off between coverage and reliability.
+
+In the final 30-query confidence evaluation:
+
+- the current configuration / overlap threshold of at least 1 produced 66.7% coverage and 76.7% overall decision accuracy;
+- an overlap threshold of at least 2 produced 46.7% coverage and the highest tested overall decision accuracy of 83.3%;
+- an overlap threshold of at least 3 produced 23.3% coverage and 73.3% overall decision accuracy.
+
+A stricter threshold therefore does not automatically improve the system. Excessive abstention can reduce usefulness even when accuracy among answered queries increases.
+
+The tested confidence signals are operational heuristics rather than calibrated probabilities.
 
 ## No Clinical Validation
 
@@ -61,71 +87,107 @@ The project has not undergone:
 - medical-device assessment;
 - safeguarding certification;
 - professional therapeutic validation;
-- testing with real families at scale.
+- controlled testing with real families;
+- validation of clinical outcomes.
 
-It must not be described as clinically effective.
+The system must not be described as clinically effective, diagnostic or therapeutic.
+
+Project-defined anxiety, mood-zone and safety labels are used for computational evaluation and should not be interpreted as clinical diagnoses.
 
 ## Strategy Corpus Scope
 
-Retrieval is limited to the ten approved Hey Joey strategy collections
-currently included in the local corpus.
+Retrieval is limited to the ten approved Hey Joey strategy documents included in the local corpus.
 
-Joey cannot retrieve support that is absent from those documents.
+The processed corpus contains 359 chunks, including 257 strategy chunks and 102 contextual chunks. Strategy retrieval can only return support represented in the supplied source material.
 
-## No Generative Language Model
+Joey cannot retrieve strategies that are absent from the corpus, and the usefulness of retrieval depends on the quality, coverage and maintenance of the approved documents.
 
-The current parent response is assembled deterministically from
-structured fields and retrieved passages.
+## No Generative Response Model
 
-This limits conversational flexibility, but avoids paid API dependence,
-reduces hallucination risk and keeps the central workflow verifiable.
+The current workflow does not depend on an external generative language-model API.
 
-## Local Command-Line Interface
+Structured extraction is deterministic, safety screening is rule-based, strategy retrieval uses local lexical and sentence-embedding methods, and parent-facing responses are assembled from structured fields and retrieved source passages.
 
-The current prototype uses a terminal interface.
+This limits conversational flexibility and natural-language rewriting, but it also keeps the main workflow inspectable, avoids paid model-API dependence and reduces the risk of unsupported generated content.
 
-It has not yet been integrated into:
+A future controlled generative rewriting component would require separate evaluation and should not be allowed to weaken deterministic safety, evidence or confirmation boundaries.
 
-- Bubble;
-- a production web application;
-- a mobile application;
-- a cloud backend;
-- an organisational database.
+## Prototype Interface and Product Integration
 
-## No Multi-Turn Field Editing
+The current prototype includes:
 
-Joey asks a follow-up question, but the current MVP does not yet
-automatically merge the answer into the existing structured record as
-a full multi-turn state machine.
+- a Streamlit frontend;
+- a FastAPI backend;
+- persistent SQLite storage;
+- HTTP-based separation between frontend and backend;
+- Docker and Docker Compose support.
 
-The rewrite option reruns the complete extraction process.
+It has not been integrated into:
 
-## Local Model Download
+- the live Hey Joey mobile application;
+- a production organisational database;
+- a deployed multi-user cloud service;
+- the final Hey Joey profile, journal or insights data contracts.
 
-The embedding model must be downloaded during initial setup.
+The Streamlit interface demonstrates the workflow but is not a finished consumer product.
 
-After installation, embedding and retrieval can operate locally, but
-the first setup requires internet access.
+## Multi-Turn Workflow Limitations
+
+The current system supports multi-turn record refinement, persistent conversation history, resumable draft state, explicit review and confirmation, and strategy-feedback persistence.
+
+However, the follow-up logic remains deterministic and may not always ask for the most important missing detail. The workflow is based on predefined fields and rules rather than open-ended conversational reasoning.
+
+Further work should evaluate:
+
+- follow-up-question quality;
+- user correction and editing behaviour;
+- interruption and resume scenarios;
+- longer conversations;
+- conflicting user answers;
+- usability with real users under an approved study.
+
+## Local Model Download and Runtime Requirements
+
+Semantic retrieval uses the local `sentence-transformers/all-MiniLM-L6-v2` model.
+
+For a local Python setup, the model must be downloaded during initial setup if it is not already available in the local cache. Docker builds preload the model into the image during the build process.
+
+After the model and indexes are available locally, normal retrieval does not require an external model API. Initial installation or image building may still require internet access to obtain dependencies and model files.
 
 ## Privacy and Governance
 
-The technical design keeps data local, but a production deployment
-would still require:
+The prototype includes privacy-oriented engineering controls such as local processing, repository secret checks, synthetic-only production-demo defaults, non-root containers and redacted application logging.
 
-- formal consent processes;
-- access controls;
+These controls do not make the system ready for processing identifiable family data on a public service.
+
+A real deployment involving private child or family information would still require, at minimum:
+
+- authentication and authorisation;
+- transport encryption;
+- encryption at rest;
+- managed secrets;
+- formal consent and privacy processes;
 - retention and deletion policies;
-- encryption;
-- audit logging;
+- backup and recovery procedures;
+- audit trails;
+- security testing;
+- monitoring and incident response;
 - safeguarding procedures;
 - privacy-impact assessment;
-- compliance review.
+- organisational and regulatory approval.
 
 ## Interpretation of Results
 
-The completed evaluations support the conclusion that the MVP functions
-as designed on its predefined test suite and that semantic retrieval
-outperformed the original baseline on the comparison set.
+The completed thesis evaluations support the conclusion that the prototype is technically feasible on its fixed synthetic datasets.
 
-They do not demonstrate universal accuracy, clinical benefit or
-production readiness.
+The results show that:
+
+- deterministic extraction is transparent but sensitive to linguistic variation;
+- BM25 improves over the original rule-based retrieval baseline;
+- Semantic-only retrieval produced the strongest improvement in ranking quality;
+- Hybrid RRF matched Semantic-only retrieval on the final 30-query dataset;
+- confidence-based abstention can improve decision accuracy at the cost of reduced coverage.
+
+These findings do not demonstrate universal accuracy, clinical benefit, real-world effectiveness or production readiness.
+
+The project should therefore be interpreted as an evaluated MSc decision-support prototype rather than a validated clinical or production system.

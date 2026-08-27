@@ -365,6 +365,48 @@ Chatbot_Joey/
 
 ---
 
+
+## Code Supporting the MSc Thesis
+
+This repository contains the wider Hey Joey engineering prototype as well as the code used for the MSc Data Science thesis:
+
+**Machine Learning Analysis of Well-Being and Behaviour Data for Hey Joey App**
+
+The dissertation evaluates a specific subset of the repository. Its three research areas are:
+
+1. deterministic extraction of structured information from synthetic parent or carer observations;
+2. comparison of Rule-based, BM25-only, Semantic-only and Hybrid Reciprocal Rank Fusion retrieval;
+3. confidence-based abstention when retrieved evidence is insufficient.
+
+The FastAPI, Streamlit, SQLite, Docker, CI/CD and production-configuration components support the wider prototype and reproducibility of the system, but they are not the primary experimental components evaluated in the dissertation.
+
+### Main thesis code
+
+| Thesis component | Main code | Purpose |
+|---|---|---|
+| Structured extraction | `app/extractor.py` | Converts free-text observations into project-defined structured fields using deterministic rules and patterns. |
+| Strategy-document loading | `rag/document_loader.py` | Loads and normalises the approved local strategy documents used by the retrieval pipeline. |
+| Corpus chunking | `rag/strategy_chunker.py` | Splits strategy documents into retrievable strategy and contextual chunks while retaining source metadata. |
+| Semantic index construction | `rag/build_embedding_index.py` | Generates the local sentence-embedding index used for semantic retrieval. |
+| Rule-based retrieval baseline | `rag/strategy_retriever.py` | Provides the deterministic retrieval baseline used for comparison. |
+| BM25 retrieval | `rag/bm25_retriever.py` | Implements the lexical BM25 retrieval method evaluated in the thesis. |
+| Semantic retrieval | `rag/semantic_retriever.py` | Retrieves strategy chunks using local `all-MiniLM-L6-v2` sentence embeddings. |
+| Hybrid RRF retrieval | `rag/hybrid_retriever.py` | Combines BM25 and semantic ranked lists using Reciprocal Rank Fusion. |
+| Confidence and abstention | `rag/retrieval_confidence.py` | Assesses retrieval evidence and allows the system to abstain when support is insufficient. |
+| Extraction evaluation | `evaluation/run_extractor_on_dataset.py` | Runs the deterministic extractor over the synthetic extraction evaluation data. |
+| Retrieval evaluation | `evaluation/run_retrieval_comparison.py` | Compares Rule-based, BM25-only, Semantic-only and Hybrid RRF retrieval under consistent evaluation conditions. |
+| Confidence regression checks | `evaluation/test_retrieval_confidence.py` | Tests strong, moderate and weak evidence behaviour and the resulting answer-or-abstain decisions. |
+
+### Relationship to the dissertation
+
+The thesis reports three experiments using fixed synthetic evaluation datasets. The extraction experiment evaluates anxiety level, mood zone and safety status. The retrieval experiment compares the four retrieval methods using Hit@1, Hit@3, Mean Reciprocal Rank and latency. The confidence experiment evaluates the trade-off between answer coverage and reliability using coverage, selective accuracy and overall decision accuracy.
+
+The wider application code in `api/`, `storage/`, and the remaining `app/` modules demonstrates how these research components can operate inside a complete local prototype. Those components provide workflow management, persistence, API access and the Streamlit interface, but the dissertation's quantitative results are based primarily on the extraction, retrieval and confidence components listed above.
+
+All thesis evaluation data are synthetic. No genuine child or family information was used for the reported experiments, and the project-defined labels should not be interpreted as clinical diagnoses.
+
+---
+
 ## Quick Start with Docker
 
 Docker is the simplest way to run both services with the same environment used by the automated Docker build.
@@ -473,19 +515,48 @@ See [`docs/production_configuration.md`](docs/production_configuration.md) for t
 
 ## Evaluation
 
+The dissertation reports three final experiments using fixed synthetic evaluation datasets: structured extraction, retrieval comparison and confidence-based abstention.
+
+### Structured extraction
+
+The final extraction evaluation used 30 synthetic hold-out parent or carer observations.
+
+| Field | Accuracy | Macro F1 / F1 |
+|---|---:|---:|
+| Anxiety level | 53.3% | 0.5352 Macro F1 |
+| Mood zone | 63.3% | 0.6041 Macro F1 |
+| Safety status | 90.0% | 0.6667 F1 |
+
+Safety classification achieved 75.0% precision and 60.0% recall. Exact three-field accuracy was 46.7%, meaning anxiety, mood zone and safety were all predicted correctly for 14 of the 30 observations.
+
+These results show that the deterministic extractor remained transparent and reproducible but was sensitive to linguistic variation, especially negation, historical context, indirect descriptions and positive or resolved wording.
+
 ### Retrieval comparison
 
-The same 10 synthetic support queries were used to compare the original deterministic baseline, semantic retrieval and hybrid retrieval with `top_k = 3`.
+The final thesis retrieval evaluation used the same 30 synthetic queries across the ten strategy collections to compare Rule-based, BM25-only, Semantic-only and Hybrid Reciprocal Rank Fusion retrieval with `top_k = 3`.
 
-| Retriever | Hit@1 | Hit@3 | MRR | Average latency | Errors |
-|---|---:|---:|---:|---:|---:|
-| Rule-based baseline | 3/10 | 5/10 | 0.4000 | 0.000938 s | 0 |
-| Semantic retrieval | 8/10 | 9/10 | 0.8333 | 0.065338 s | 0 |
-| Hybrid retrieval | 7/10 | 9/10 | 0.8000 | 0.064551 s | 0 |
+| Retriever | Hit@1 | Hit@3 | MRR | Mean warm-run latency |
+|---|---:|---:|---:|---:|
+| Rule-based baseline | 40.0% | 50.0% | 0.4500 | 0.615 ms |
+| BM25-only | 66.7% | 86.7% | 0.7611 | 4.316 ms |
+| Semantic-only | 86.7% | 90.0% | 0.8833 | 28.765 ms |
+| Hybrid RRF | 86.7% | 90.0% | 0.8833 | 30.142 ms |
 
-Semantic-only retrieval achieved the strongest rank-one result on this small synthetic set. Hybrid retrieval matched semantic retrieval at rank three and remains the application default because it combines semantic similarity with direct lexical evidence.
+Semantic-only and Hybrid RRF achieved the same ranking metrics on this dataset. Hybrid RRF therefore matched, rather than exceeded, Semantic-only retrieval. BM25 remained competitive at Hit@3 and provided useful lexical evidence, while Rule-based retrieval was the fastest but produced the weakest ranking performance.
 
-These results apply only to the designed 10-case synthetic evaluation. They do not establish universal retrieval quality or clinical effectiveness.
+These results apply only to the designed 30-case synthetic retrieval evaluation. They do not establish universal retrieval quality or clinical effectiveness.
+
+### Confidence and abstention
+
+The confidence evaluation used 30 synthetic queries to test whether the system should answer or abstain when retrieval evidence was weak.
+
+| Minimum overlap requirement | Coverage | Selective accuracy | Overall decision accuracy |
+|---|---:|---:|---:|
+| Current configuration / overlap ≥ 1 | 66.7% | 65.0% | 76.7% |
+| Overlap ≥ 2 | 46.7% | 78.6% | 83.3% |
+| Overlap ≥ 3 | 23.3% | 100.0% | 73.3% |
+
+Among the tested settings, an overlap requirement of at least two produced the highest overall decision accuracy at 83.3%, while reducing coverage to 46.7%. A stricter threshold of at least three increased selective accuracy to 100% but abstained too often, reducing overall decision accuracy.
 
 ### Current regression suite
 

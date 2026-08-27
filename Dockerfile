@@ -50,7 +50,8 @@ USER joey
 # Preload the local embedding model during image build so the first strategy
 # request does not need to download the model.
 RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('${EMBEDDING_MODEL}', device='cpu')"
-
+# The same image is used for the API and Streamlit services; Compose
+# overrides the command for the frontend service.
 EXPOSE 8000 8501
 
 CMD ["python", "-m", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
