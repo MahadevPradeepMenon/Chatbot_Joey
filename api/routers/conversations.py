@@ -32,11 +32,15 @@ from storage.conversation_storage import (
 )
 
 
+# Group the Streamlit-facing persistence endpoints under one versioned
+# conversation prefix, separate from the record and strategy APIs.
 router = APIRouter(
     prefix="/api/v1/conversations",
     tags=["conversation UI"],
 )
 
+# Literal aliases constrain workflow, status and role values exposed through
+# the frontend conversation contract.
 WorkflowValue = Literal[
     "record_observation",
     "ask_strategy",
@@ -57,6 +61,8 @@ RoleValue = Literal[
 ]
 
 
+# These conversion helpers reject unsupported stored values instead of
+# silently coercing them into the narrower HTTP response types.
 def _workflow_value(
     value: str,
 ) -> WorkflowValue:
@@ -107,6 +113,8 @@ def _role_value(
     )
 
 
+# Convert the storage-layer conversation object into the Pydantic response
+# model expected by the Streamlit client.
 def _response(
     conversation: StoredConversation,
 ) -> FrontendConversationResponse:
@@ -124,6 +132,8 @@ def _response(
         metadata=dict(
             conversation.metadata
         ),
+        # Preserve the stored message order and message metadata when rebuilding
+        # the frontend conversation history.
         messages=[
             ConversationMessageResponse(
                 id=message.id,
@@ -142,6 +152,8 @@ def _response(
     )
 
 
+# Centralise conversation lookup and 404 handling so each endpoint behaves
+# consistently for missing session IDs.
 def _require_conversation(
     session_id: int,
     database_path: Path,
@@ -151,6 +163,8 @@ def _require_conversation(
         database_path=database_path,
     )
 
+    # Missing frontend sessions are exposed as HTTP 404 rather than leaking a
+    # storage-layer None result into the route logic.
     if conversation is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -162,6 +176,8 @@ def _require_conversation(
     return conversation
 
 
+# Creating a frontend conversation persists both the workflow session and its
+# initial Joey greeting so Streamlit can restore the same chat later.
 @router.post(
     "/sessions",
     response_model=FrontendConversationResponse,
@@ -176,12 +192,15 @@ def create_frontend_conversation(
 ) -> FrontendConversationResponse:
     """Create a workflow session with one Joey greeting."""
 
+    # Persist the conversation first so the greeting can be attached to a
+    # stable session identifier.
     session_id = create_conversation_session(
         workflow=payload.workflow,
         metadata=payload.metadata,
         database_path=database_path,
     )
 
+    # Store the greeting as the first assistant message in the conversation.
     add_conversation_message(
         session_id=session_id,
         role="assistant",
@@ -200,6 +219,8 @@ def create_frontend_conversation(
     )
 
 
+# The latest-session endpoint is used by Streamlit to restore the most recent
+# chat for one workflow after a rerun or application restart.
 @router.get(
     "/sessions/latest",
     response_model=FrontendConversationResponse,
@@ -213,11 +234,14 @@ def get_latest_frontend_conversation(
 ) -> FrontendConversationResponse:
     """Restore the latest stored workflow chat for Streamlit."""
 
+    # Normalise the API workflow value into the storage-layer enum before
+    # querying persistent conversation sessions.
     workflow_value: ConversationWorkflow = (
         normalise_workflow(
             workflow
         )
     )
+    # Only the newest matching session is required for frontend restoration.
     conversations = list_conversation_sessions(
         workflow=workflow_value,
         limit=1,
@@ -237,6 +261,8 @@ def get_latest_frontend_conversation(
     )
 
 
+# Direct session lookup allows the frontend to reload a known conversation
+# using its persistent identifier.
 @router.get(
     "/sessions/{session_id}",
     response_model=FrontendConversationResponse,
@@ -248,6 +274,8 @@ def get_frontend_conversation(
         get_database_path
     ),
 ) -> FrontendConversationResponse:
+    # Reload the conversation after all writes so the response reflects the
+    # canonical state stored in SQLite.
     return _response(
         _require_conversation(
             session_id,
@@ -256,6 +284,8 @@ def get_frontend_conversation(
     )
 
 
+# One exchange stores the user message followed by every assistant message
+# produced for that frontend interaction.
 @router.post(
     "/sessions/{session_id}/exchanges",
     response_model=FrontendConversationResponse,
@@ -270,6 +300,7 @@ def append_frontend_exchange(
 ) -> FrontendConversationResponse:
     """Persist strategy chat or a UI-only validation exchange."""
 
+    # Verify the session exists before writing any part of the exchange.
     _require_conversation(
         session_id,
         database_path,
@@ -283,6 +314,8 @@ def append_frontend_exchange(
         database_path=database_path,
     )
 
+    # Assistant responses are stored individually to preserve their original
+    # ordering in the persistent chat history.
     for message in payload.assistant_messages:
         add_conversation_message(
             session_id=session_id,
@@ -294,6 +327,8 @@ def append_frontend_exchange(
             database_path=database_path,
         )
 
+    # Metadata updates are optional and are applied only when the caller
+    # explicitly supplies a new metadata payload.
     if payload.metadata is not None:
         update_conversation_session(
             session_id=session_id,

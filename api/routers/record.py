@@ -34,12 +34,14 @@ from app.schemas import StructuredJoeyRecord
 from safety.safety_guard import should_limit_strategy_suggestions
 
 
+# Group all journal-record endpoints under the versioned record workflow prefix.
 router = APIRouter(
     prefix="/api/v1/record",
     tags=["record workflow"],
 )
 
 
+# Small exception adapters keep HTTP status mapping consistent across routes.
 def _not_found(error: Exception) -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
@@ -59,9 +61,12 @@ def _draft_response(
 ) -> RecordDraftResponse | None:
     """Validate a stored JSON snapshot for the HTTP response."""
 
+    # Completed/placeholder conversations may legitimately have no draft snapshot.
     if draft_state is None:
         return None
 
+    # Re-validate the persisted structured record before exposing it through
+    # the HTTP response contract.
     record = StructuredJoeyRecord.model_validate(
         draft_state.get(
             "structured_record",
@@ -72,6 +77,8 @@ def _draft_response(
         draft_state
     )
     response_data["structured_record"] = record
+    # Recompute the safety-limited flag from the validated record so the API
+    # reflects the current safety rules rather than trusting stored metadata.
     response_data["safety_limited"] = (
         should_limit_strategy_suggestions(
             record
@@ -83,6 +90,8 @@ def _draft_response(
     )
 
 
+# Literal aliases make the values returned by persisted storage explicit
+# before they are passed into Pydantic response models.
 RecordWorkflowValue = Literal[
     "record_observation"
 ]
@@ -104,6 +113,8 @@ def _record_workflow_value(
 ) -> RecordWorkflowValue:
     """Validate the stored workflow before returning the API literal."""
 
+    # Reject a stored session from another workflow instead of coercing it
+    # into the record API contract.
     if value != "record_observation":
         raise RuntimeError(
             "The stored session is not a record-observation workflow."
@@ -117,6 +128,7 @@ def _record_status_value(
 ) -> RecordStatusValue:
     """Validate the stored status before returning the API literal."""
 
+    # Map only the record-workflow statuses supported by this HTTP endpoint.
     if value == "active":
         return "active"
 
@@ -139,6 +151,7 @@ def _next_action(
 ) -> RecordNextActionValue:
     """Map persistent status to the next explicit client action."""
 
+    # Expose the next client action directly from the persistent workflow state.
     if status_value == "active":
         return "answer_follow_up"
 
@@ -153,6 +166,8 @@ def _response(
 ) -> RecordSessionResponse:
     """Convert the framework-neutral service result to an API model."""
 
+    # Convert the framework-neutral service result into the public API model
+    # without changing the underlying workflow state.
     conversation = result.conversation
     workflow_value = _record_workflow_value(
         conversation.workflow.value
@@ -171,6 +186,8 @@ def _response(
         assistant_messages=list(
             result.assistant_messages
         ),
+        # Preserve stored message ordering and message types when serialising
+        # the conversation back to the frontend.
         messages=[
             ConversationMessageResponse(
                 id=message.id,
@@ -196,6 +213,8 @@ def _response(
     )
 
 
+# Creating a record session starts extraction and persists the first draft
+# through the application-layer workflow service.
 @router.post(
     "/sessions",
     response_model=RecordSessionResponse,
@@ -210,11 +229,14 @@ def create_session(
 ) -> RecordSessionResponse:
     """Create a persistent draft from the first parent observation."""
 
+    # Keep workflow logic in the service layer; the router is responsible
+    # only for request validation and mapping service errors to HTTP errors.
     try:
         result = create_record_workflow(
             request.note,
             database_path=database_path,
         )
+    # Convert invalid service input into HTTP 422 without exposing framework details.
     except ValueError as error:
         raise HTTPException(
             status_code=(
@@ -228,6 +250,8 @@ def create_session(
     )
 
 
+# Retrieval returns the persisted draft and full ordered message history for
+# an existing record conversation.
 @router.get(
     "/sessions/{session_id}",
     response_model=RecordSessionResponse,
@@ -254,10 +278,12 @@ def get_session(
             session_id,
             database_path=database_path,
         )
+    # Missing session IDs consistently become HTTP 404 responses.
     except RecordSessionNotFoundError as error:
         raise _not_found(
             error
         ) from error
+    # Valid sessions in the wrong workflow/state become HTTP 409 conflicts.
     except RecordWorkflowStateError as error:
         raise _conflict(
             error
@@ -268,6 +294,8 @@ def get_session(
     )
 
 
+# Follow-up answers are merged into the same draft rather than creating a
+# new journal record for each conversation turn.
 @router.post(
     "/sessions/{session_id}/messages",
     response_model=RecordSessionResponse,
@@ -296,14 +324,18 @@ def submit_message(
             message=request.message,
             database_path=database_path,
         )
+    # Missing session IDs consistently become HTTP 404 responses.
     except RecordSessionNotFoundError as error:
         raise _not_found(
             error
         ) from error
+    # Valid sessions in the wrong workflow/state become HTTP 409 conflicts.
     except RecordWorkflowStateError as error:
         raise _conflict(
             error
         ) from error
+    # Invalid follow-up content is also a request-validation problem, distinct
+    # from missing sessions or workflow-state conflicts.
     except ValueError as error:
         raise HTTPException(
             status_code=(
@@ -317,6 +349,8 @@ def submit_message(
     )
 
 
+# Confirmation is the explicit boundary that allows a reviewed draft to be
+# written as a journal entry by the service layer.
 @router.post(
     "/sessions/{session_id}/confirm",
     response_model=RecordSessionResponse,
@@ -343,10 +377,12 @@ def confirm_session(
             session_id,
             database_path=database_path,
         )
+    # Missing session IDs consistently become HTTP 404 responses.
     except RecordSessionNotFoundError as error:
         raise _not_found(
             error
         ) from error
+    # Valid sessions in the wrong workflow/state become HTTP 409 conflicts.
     except RecordWorkflowStateError as error:
         raise _conflict(
             error
@@ -357,6 +393,7 @@ def confirm_session(
     )
 
 
+# Rejection completes the reviewed workflow without creating a journal entry.
 @router.post(
     "/sessions/{session_id}/reject",
     response_model=RecordSessionResponse,
@@ -383,10 +420,12 @@ def reject_session(
             session_id,
             database_path=database_path,
         )
+    # Missing session IDs consistently become HTTP 404 responses.
     except RecordSessionNotFoundError as error:
         raise _not_found(
             error
         ) from error
+    # Valid sessions in the wrong workflow/state become HTTP 409 conflicts.
     except RecordWorkflowStateError as error:
         raise _conflict(
             error

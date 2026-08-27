@@ -18,9 +18,12 @@ from api.routers.strategies import router as strategies_router
 from api.routers.system import router as system_router
 
 
+# Keep service/version identifiers in one place for application metadata
+# and system-level responses.
 SERVICE_NAME = "Hey Joey API"
 APPLICATION_VERSION = "1.0.0"
 API_VERSION = "v1"
+# Use the application-owned logger namespace configured by logging_config.
 LOGGER = logging.getLogger("hey_joey.api")
 
 
@@ -31,27 +34,36 @@ def create_app(
 ) -> FastAPI:
     """Create an independently configurable Hey Joey API instance."""
 
+    # Allow tests or alternate launch contexts to inject settings; normal
+    # execution falls back to the cached process-wide configuration.
     resolved_settings = (
         settings
         if settings is not None
         else get_settings()
     )
+    # Configure Joey logging before the API starts serving requests.
     configure_logging(
         resolved_settings
     )
 
+    # A caller-provided database path overrides the configured default, which
+    # keeps tests and isolated API instances independent.
     resolved_database_path = (
         Path(database_path)
         if database_path is not None
         else resolved_settings.database_path
     )
 
+    # FastAPI lifespan logic provides one startup/shutdown boundary for local
+    # persistence and service-level logging.
     @asynccontextmanager
     async def lifespan(
         application: FastAPI,
     ) -> AsyncIterator[None]:
         """Initialise local persistence before accepting requests."""
 
+        # Initialise local storage before request handling and keep the resolved
+        # database path on application.state for dependency helpers.
         application.state.database_path = (
             initialise_local_storage(
                 resolved_database_path
@@ -65,8 +77,10 @@ def create_app(
             },
         )
 
+        # Control is returned to FastAPI while the application serves requests.
         yield
 
+        # Mark storage unavailable again during application shutdown.
         application.state.storage_initialised = False
         LOGGER.info(
             "Hey Joey API stopped",
@@ -75,6 +89,8 @@ def create_app(
             },
         )
 
+    # Build the API with validated settings and the lifespan hook defined above;
+    # interactive documentation can be disabled by configuration.
     application = FastAPI(
         title=SERVICE_NAME,
         summary=(
@@ -104,6 +120,8 @@ def create_app(
         ),
     )
 
+    # Store shared runtime objects on application.state so routers and dependency
+    # helpers can access one consistent configuration.
     application.state.database_path = (
         resolved_database_path
     )
@@ -118,6 +136,7 @@ def create_app(
         resolved_settings
     )
 
+    # Register each route group explicitly to assemble the complete API.
     application.include_router(
         system_router
     )
@@ -134,4 +153,6 @@ def create_app(
     return application
 
 
+# Expose the default application object expected by Uvicorn while keeping
+# create_app() available for isolated tests and alternate configuration.
 app = create_app()

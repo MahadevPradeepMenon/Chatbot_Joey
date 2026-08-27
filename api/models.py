@@ -13,6 +13,8 @@ from pydantic import (
 from app.schemas import StructuredJoeyRecord
 
 
+# System-response models define the small JSON contracts used by health,
+# readiness and version endpoints.
 class HealthResponse(BaseModel):
     """Lightweight liveness response."""
 
@@ -50,9 +52,13 @@ class VersionResponse(BaseModel):
     openapi_path: str
 
 
+# Shared request base centralises whitespace normalisation so every text
+# endpoint applies the same deterministic cleaning rule.
 class _CleanTextRequest(BaseModel):
     """Base request that rejects empty or whitespace-only text."""
 
+    # Collapse repeated whitespace and trim leading/trailing spaces before
+    # field-specific validation runs.
     @staticmethod
     def _clean(value: str) -> str:
         return " ".join(
@@ -60,6 +66,8 @@ class _CleanTextRequest(BaseModel):
         ).strip()
 
 
+# Record-workflow request models validate parent/carer input before it reaches
+# the conversation/extraction services.
 class RecordSessionCreateRequest(_CleanTextRequest):
     """Initial parent observation used to create a journal draft."""
 
@@ -79,6 +87,8 @@ class RecordSessionCreateRequest(_CleanTextRequest):
             value
         )
 
+        # Pydantic min_length does not reject whitespace-only input after
+        # normalisation, so an explicit empty check is still required.
         if not clean:
             raise ValueError(
                 "The parent/carer note cannot be empty."
@@ -133,6 +143,8 @@ class ConversationTurnResponse(BaseModel):
     field_name: str
 
 
+# Record response models expose both the conversational workflow state and
+# the validated StructuredJoeyRecord snapshot returned to clients.
 class RecordDraftResponse(BaseModel):
     """Validated snapshot of the current structured journal draft."""
 
@@ -189,6 +201,8 @@ class RecordSessionResponse(BaseModel):
     )
 
 
+# Strategy request models constrain query size and the number of displayed
+# evidence items before retrieval begins.
 class StrategySearchRequest(_CleanTextRequest):
     """One parent/carer question for the approved strategy library."""
 
@@ -197,6 +211,8 @@ class StrategySearchRequest(_CleanTextRequest):
         max_length=10_000,
         description="Natural-language strategy question.",
     )
+    # The API deliberately caps top_k at five to keep responses concise and
+    # bound the amount of evidence returned to the frontend.
     top_k: int = Field(
         default=3,
         ge=1,
@@ -222,6 +238,8 @@ class StrategySearchRequest(_CleanTextRequest):
         return clean
 
 
+# Feedback is tied to an accepted search ID and the displayed strategy rank,
+# preserving the connection between a rating and the evidence shown.
 class StrategyFeedbackRequest(_CleanTextRequest):
     """Explicit feedback for one strategy displayed by an accepted search."""
 
@@ -251,6 +269,8 @@ class StrategyFeedbackRequest(_CleanTextRequest):
         cls,
         value: str | None,
     ) -> str | None:
+        # Optional comments remain None when omitted; blank comments are
+        # normalised back to None rather than stored as empty strings.
         if value is None:
             return None
 
@@ -260,6 +280,8 @@ class StrategyFeedbackRequest(_CleanTextRequest):
         return clean or None
 
 
+# Confidence fields expose the evidence signals behind answer/abstention
+# decisions rather than presenting the level as an unexplained score.
 class StrategyConfidenceResponse(BaseModel):
     """Explainable retrieval-confidence decision."""
 
@@ -297,6 +319,8 @@ class StrategyConfidenceResponse(BaseModel):
     )
 
 
+# Context responses expose only the selected confirmed context categories and
+# the names of sensitive fields omitted by the context builder.
 class StrategyContextResponse(BaseModel):
     """Minimal confirmed context selected for a strategy question."""
 
@@ -320,6 +344,8 @@ class StrategyContextResponse(BaseModel):
     )
 
 
+# Evidence responses preserve original retrieval rank/score alongside the
+# later history adjustment and personalised ranking information.
 class StrategyEvidenceResponse(BaseModel):
     """One source-backed strategy with transparent history adjustment."""
 
@@ -362,6 +388,8 @@ class StrategyFeedbackResponse(BaseModel):
     created_at: str
 
 
+# One response model covers accepted results, confidence abstention and
+# safety-limited outcomes using an explicit outcome discriminator.
 class StrategySearchResponse(BaseModel):
     """Complete result of a strategy search or safety abstention."""
 
@@ -398,6 +426,8 @@ class StrategyFeedbackSubmissionResponse(BaseModel):
     feedback: StrategyFeedbackResponse
 
 
+# Generic frontend conversation models persist Streamlit chat state that is
+# separate from the record-specific workflow endpoints.
 class FrontendConversationCreateRequest(_CleanTextRequest):
     """Create a persistent UI conversation placeholder."""
 
@@ -452,6 +482,8 @@ class FrontendConversationExchangeRequest(_CleanTextRequest):
     )
     metadata: dict[str, Any] | None = None
 
+    # Apply the same non-empty normalisation rule to all required exchange
+    # text fields in one validator.
     @field_validator(
         "user_content",
         "user_message_type",
@@ -479,6 +511,8 @@ class FrontendConversationExchangeRequest(_CleanTextRequest):
         cls,
         values: list[str],
     ) -> list[str]:
+        # Clean every assistant message individually so whitespace-only items
+        # cannot be persisted inside an otherwise valid list.
         cleaned = [
             cls._clean(value)
             for value in values
@@ -495,6 +529,8 @@ class FrontendConversationExchangeRequest(_CleanTextRequest):
         return cleaned
 
 
+# The final frontend response mirrors the persistent conversation state used
+# to reconstruct Streamlit after reruns or restarts.
 class FrontendConversationResponse(BaseModel):
     """Persistent conversation state used by the Streamlit client."""
 

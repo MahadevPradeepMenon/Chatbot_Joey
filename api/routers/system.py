@@ -24,11 +24,14 @@ from api.models import (
 )
 
 
+# Group health, readiness and version endpoints under one system router.
 router = APIRouter(
     tags=["system"],
 )
 
 
+# The liveness endpoint is intentionally lightweight: it confirms that the
+# API process can respond without touching retrieval or persistent storage.
 @router.get(
     "/health",
     response_model=HealthResponse,
@@ -39,12 +42,15 @@ def health(
 ) -> HealthResponse:
     """Return a cheap response that does not run retrieval or storage work."""
 
+    # Read service/version metadata directly from the current FastAPI app.
     return HealthResponse(
         service=request.app.title,
         api_version=request.app.version,
     )
 
 
+# Readiness is stricter than liveness because it verifies that the local
+# SQLite schema required by the current API is actually available.
 @router.get(
     "/ready",
     response_model=ReadinessResponse,
@@ -64,10 +70,14 @@ def ready(
 ) -> ReadinessResponse:
     """Verify that every current Joey persistence table exists."""
 
+    # Inspect the configured database path supplied through FastAPI dependency
+    # injection rather than resolving configuration again inside the route.
     readiness = inspect_database_readiness(
         database_path
     )
 
+    # Return HTTP 503 when required persistence tables are missing so callers
+    # can distinguish an unavailable dependency from a live API process.
     if not readiness.ready:
         raise HTTPException(
             status_code=(
@@ -82,6 +92,8 @@ def ready(
             },
         )
 
+    # A ready response reports the number of tables checked and confirms that
+    # no required tables are missing.
     return ReadinessResponse(
         required_table_count=len(
             REQUIRED_DATABASE_TABLES
@@ -90,6 +102,8 @@ def ready(
     )
 
 
+# Version discovery exposes application/API versions and documentation paths
+# without running any business logic.
 @router.get(
     "/version",
     response_model=VersionResponse,
@@ -100,6 +114,8 @@ def version(
 ) -> VersionResponse:
     """Return application and HTTP API discovery information."""
 
+    # Pull discovery information from FastAPI/application state so the route
+    # reflects the configuration of the running API instance.
     return VersionResponse(
         service=request.app.title,
         application_version=(

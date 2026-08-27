@@ -38,14 +38,19 @@ from app.strategy_workflow_service import (
 from storage.strategy_feedback import StoredStrategyFeedback
 
 
+# Group all strategy-search and feedback endpoints under one versioned API prefix.
 router = APIRouter(
     prefix="/api/v1/strategies",
     tags=["strategy workflow"],
 )
 
+# Store the retrieval service under a stable application-state key so the
+# expensive local retrieval stack can be reused between requests.
 STRATEGY_SERVICE_STATE_KEY = "strategy_retrieval_service"
 
 
+# Literal aliases make the small set of supported API values explicit before
+# framework-neutral service results are converted into Pydantic responses.
 StrategyOutcomeValue = Literal[
     "results",
     "abstained",
@@ -72,12 +77,16 @@ def _strategy_service(
 ) -> StrategyRetrievalService:
     """Return a real service or a deterministic test factory product."""
 
+    # Tests may inject a deterministic service factory through FastAPI state;
+    # production execution falls back to the real local retrieval service.
     factory = getattr(
         request.app.state,
         "strategy_service_factory",
         None,
     )
 
+    # Build the injected service against the same database path used by the
+    # current API instance.
     if factory is not None:
         service = factory(
             database_path
@@ -87,12 +96,16 @@ def _strategy_service(
             service,
         )
 
+    # Reuse one retrieval service after first construction to avoid repeatedly
+    # loading local indexes/models on every search request.
     cached_service = getattr(
         request.app.state,
         STRATEGY_SERVICE_STATE_KEY,
         None,
     )
 
+    # Lazily construct and cache the real retrieval stack only when it is first
+    # needed by a strategy-search request.
     if cached_service is None:
         cached_service = build_strategy_retrieval_service(
             database_path
@@ -109,6 +122,8 @@ def _strategy_service(
     )
 
 
+# These helpers reject unsupported stored/service values rather than silently
+# coercing them into the narrower HTTP response contract.
 def _outcome_value(
     value: str,
 ) -> StrategyOutcomeValue:
@@ -163,6 +178,7 @@ def _feedback_rating(
     )
 
 
+# Convert typed storage-layer feedback into the public API response model.
 def _feedback_response(
     item: StoredStrategyFeedback,
 ) -> StrategyFeedbackResponse:
@@ -190,8 +206,12 @@ def _search_response(
 ) -> StrategySearchResponse:
     """Convert the framework-neutral result into the HTTP contract."""
 
+    # Confidence is optional because safety-limited or other non-retrieval
+    # outcomes may return before a confidence decision exists.
     confidence = None
 
+    # Preserve the individual evidence signals behind the confidence decision
+    # so abstention remains transparent to the client.
     if result.confidence is not None:
         decision = result.confidence
         confidence = StrategyConfidenceResponse(
@@ -222,6 +242,8 @@ def _search_response(
             ),
         )
 
+    # Context is also optional and is copied into plain lists for the API
+    # response without exposing internal service objects.
     context = None
 
     if result.context is not None:
@@ -247,6 +269,8 @@ def _search_response(
             ),
         )
 
+    # Serialise each ranked evidence item while retaining both the original
+    # retrieval score/rank and any history-aware adjustment.
     strategies = [
         StrategyEvidenceResponse(
             rank=item.rank,
@@ -277,6 +301,8 @@ def _search_response(
         for item in result.evidence
     ]
 
+    # Build one response shape for accepted results, confidence abstention and
+    # safety-limited outcomes.
     return StrategySearchResponse(
         outcome=_outcome_value(
             result.outcome
@@ -303,6 +329,8 @@ def _search_response(
     )
 
 
+# The search endpoint delegates safety screening, Hybrid RAG, confidence
+# gating, context use and persistence to the application-layer workflow.
 @router.post(
     "/search",
     response_model=StrategySearchResponse,
@@ -319,6 +347,8 @@ def search_strategies(
 ) -> StrategySearchResponse:
     """Run safety-first, confidence-gated Hybrid RAG."""
 
+    # Keep business logic outside the router; this layer validates input,
+    # supplies dependencies and maps service errors to HTTP responses.
     try:
         result = search_strategy_workflow(
             question=payload.question,
@@ -326,6 +356,7 @@ def search_strategies(
             database_path=database_path,
             retrieval_service=retrieval_service,
         )
+    # Invalid request/service input is exposed as HTTP 422.
     except ValueError as error:
         raise HTTPException(
             status_code=(
@@ -339,6 +370,8 @@ def search_strategies(
     )
 
 
+# Accepted searches can be reloaded later with the evidence and feedback that
+# were persisted for that specific search.
 @router.get(
     "/searches/{search_id}",
     response_model=StrategySearchResponse,
@@ -362,11 +395,13 @@ def get_strategy_search(
             search_id,
             database_path=database_path,
         )
+    # Unknown accepted-search IDs are reported consistently as HTTP 404.
     except StrategySearchNotFoundError as error:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(error),
         ) from error
+    # Invalid request/service input is exposed as HTTP 422.
     except ValueError as error:
         raise HTTPException(
             status_code=(
@@ -380,6 +415,8 @@ def get_strategy_search(
     )
 
 
+# Feedback is submitted against a persisted search ID and displayed rank so
+# the rating remains tied to the exact strategy evidence the user saw.
 @router.post(
     "/feedback",
     response_model=StrategyFeedbackSubmissionResponse,
@@ -402,6 +439,8 @@ def submit_feedback(
     """Insert or update explicit strategy feedback in local SQLite."""
 
     try:
+        # The workflow service validates that the search/rank pair is valid and
+        # performs the local insert-or-update operation.
         result: StrategyFeedbackWorkflowResult = (
             submit_strategy_feedback_workflow(
                 search_id=payload.search_id,
@@ -411,11 +450,14 @@ def submit_feedback(
                 database_path=database_path,
             )
         )
+    # Unknown accepted-search IDs are reported consistently as HTTP 404.
     except StrategySearchNotFoundError as error:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(error),
         ) from error
+    # A feedback rank that does not belong to the accepted search is a state
+    # conflict rather than a missing-resource error.
     except StrategyFeedbackStateError as error:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
