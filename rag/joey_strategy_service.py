@@ -8,6 +8,8 @@ from rag.hybrid_retriever import (
 )
 
 
+# Freeze the integration-facing evidence object so retrieved source metadata
+# cannot be mutated after conversion from the hybrid retriever.
 @dataclass(frozen=True)
 class JoeyStrategyEvidence:
     """Source-backed strategy evidence returned to Joey."""
@@ -32,6 +34,8 @@ def normalise_value(value: Any) -> str:
     if value is None:
         return ""
 
+    # Pydantic/schema enums are converted to their stored string value before
+    # being added to the retrieval query.
     if isinstance(value, Enum):
         value = value.value
 
@@ -48,6 +52,7 @@ def normalise_list(value: Any) -> list[str]:
         clean_value = value.strip()
         return [clean_value] if clean_value else []
 
+    # Accept common collection types and normalise each non-empty item separately.
     if isinstance(value, (list, tuple, set)):
         values: list[str] = []
 
@@ -66,6 +71,7 @@ def normalise_list(value: Any) -> list[str]:
 def record_to_dict(record: Any) -> dict[str, Any]:
     """Convert either a Pydantic record or dictionary."""
 
+    # Support plain dictionaries first, then Pydantic v2 and v1 model APIs.
     if isinstance(record, Mapping):
         return dict(record)
 
@@ -88,6 +94,8 @@ def add_query_field(
 ) -> None:
     """Add a non-empty field to the retrieval query."""
 
+    # Query fields are added only when they contain meaningful text, avoiding
+    # empty labels that could add noise to retrieval.
     values = normalise_list(value)
 
     if values:
@@ -105,9 +113,13 @@ def build_retrieval_query(
     excluded because they do not describe the child's support needs.
     """
 
+    # Convert the incoming structured record into one mapping before selecting
+    # only support-relevant fields for retrieval.
     data = record_to_dict(record)
     query_parts: list[str] = []
 
+    # Preserve the parent's original wording when available because it may contain
+    # useful detail not captured by deterministic structured fields.
     if original_note:
         clean_note = " ".join(
             original_note.split()
@@ -118,6 +130,8 @@ def build_retrieval_query(
                 f"Original parent note: {clean_note}"
             )
 
+    # Build a labelled, human-readable retrieval query from behavioural,
+    # contextual and support-category fields while excluding administrative data.
     add_query_field(
         query_parts,
         "Parent observation",
@@ -164,12 +178,16 @@ def build_retrieval_query(
         data.get("strategy_categories"),
     )
 
+    # Refuse retrieval when neither the note nor structured record contains
+    # enough descriptive information to form a query.
     if not query_parts:
         raise ValueError(
             "The structured record does not contain enough "
             "information for strategy retrieval."
         )
 
+    # Keep each labelled field on its own line so the generated query remains
+    # inspectable while still being plain text for hybrid retrieval.
     return "\n".join(query_parts)
 
 
@@ -179,6 +197,8 @@ class JoeyStrategyService:
     """
 
     def __init__(self) -> None:
+        # Reuse the local semantic + BM25 hybrid retriever behind a smaller
+        # application-facing service interface.
         self.retriever = HybridStrategyRetriever()
 
     def retrieve_for_text(
@@ -188,6 +208,8 @@ class JoeyStrategyService:
     ) -> list[JoeyStrategyEvidence]:
         """Retrieve strategies directly from parent-written text."""
 
+        # Direct-text retrieval is kept strategy-only so contextual corpus chunks
+        # are not returned as user-facing strategy evidence.
         results = self.retriever.search(
             query=text,
             top_k=top_k,
@@ -204,6 +226,8 @@ class JoeyStrategyService:
     ) -> list[JoeyStrategyEvidence]:
         """Retrieve strategies from a Joey structured record."""
 
+        # Structured-record retrieval first converts selected fields into the same
+        # plain-text query interface consumed by the hybrid retriever.
         retrieval_query = build_retrieval_query(
             record,
             original_note=original_note,
@@ -223,6 +247,8 @@ class JoeyStrategyService:
     ) -> list[JoeyStrategyEvidence]:
         """Convert retriever results into integration-safe evidence."""
 
+        # Expose only the evidence fields needed by downstream Joey services while
+        # preserving source, chunk and passage provenance from retrieval.
         return [
             JoeyStrategyEvidence(
                 rank=result.rank,
@@ -245,6 +271,8 @@ def preview_text(
 ) -> str:
     """Create a readable terminal preview."""
 
+    # Preview formatting affects terminal display only and does not alter the
+    # passage stored in evidence objects.
     clean_text = " ".join(text.split())
 
     if len(clean_text) <= maximum_characters:
@@ -263,6 +291,8 @@ def preview_text(
 def main() -> None:
     """Test structured-record hybrid retrieval."""
 
+    # Fixed sensory-related record exercises the same structured-query path used
+    # by the application without requiring interactive input.
     sample_record = {
         "summary": (
             "The child covered their ears and became "
@@ -289,6 +319,8 @@ def main() -> None:
         ],
     }
 
+    # Display the generated retrieval query before running the hybrid search so
+    # the record-to-query transformation can be inspected manually.
     query = build_retrieval_query(sample_record)
 
     print("\nSTRUCTURED RETRIEVAL QUERY")
@@ -325,5 +357,6 @@ def main() -> None:
         )
 
 
+# Run the service smoke test only when this module is executed directly.
 if __name__ == "__main__":
     main()

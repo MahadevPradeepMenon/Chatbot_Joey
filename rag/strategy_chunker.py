@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import Any
 
 
+# Resolve all corpus paths relative to the repository so chunking is reproducible
+# regardless of the current working directory.
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 INPUT_DIR = (
@@ -32,6 +34,8 @@ OUTPUT_MANIFEST = OUTPUT_DIR / "strategy_chunk_manifest.json"
 
 # A chunk should be focused enough for retrieval but still contain
 # enough context to understand the strategy.
+# Fixed chunk-size parameters keep preprocessing consistent across runs and
+# preserve one paragraph of local context between neighbouring chunks.
 MAX_CHARACTERS = 2200
 OVERLAP_PARAGRAPHS = 1
 
@@ -39,12 +43,14 @@ OVERLAP_PARAGRAPHS = 1
 def strip_heading_marks(text: str) -> str:
     """Remove Markdown heading markers produced by the document loader."""
 
+    # Remove only the loader-added heading marker while preserving the heading text.
     return re.sub(r"^#{1,6}\s*", "", text).strip()
 
 
 def slugify(text: str) -> str:
     """Convert text into a safe identifier."""
 
+    # Produce stable lowercase identifiers using only letters, digits and underscores.
     value = text.lower()
     value = re.sub(r"[^a-z0-9]+", "_", value)
     value = value.strip("_")
@@ -60,6 +66,7 @@ def detect_theme(text: str) -> str | None:
     A. Performance Anxiety Strategies
     """
 
+    # Theme detection uses deterministic heading patterns found in the source corpus.
     clean_text = strip_heading_marks(text)
 
     if re.match(
@@ -93,6 +100,8 @@ def detect_strategy(text: str) -> tuple[str, str] | None:
 
     clean_text = strip_heading_marks(text)
 
+    # Accept the strategy-title variants used across the source documents and
+    # extract a canonical strategy code plus title.
     match = re.match(
         r"^(?:Strategy\s+)?"
         r"([A-Z]\d+)\b"
@@ -122,6 +131,8 @@ def looks_like_context_heading(text: str) -> bool:
 
     clean_text = strip_heading_marks(text)
 
+    # Preserved Markdown-style headings are treated as contextual structure unless
+    # they have already matched a theme or strategy pattern.
     if text.lstrip().startswith("#"):
         return True
 
@@ -131,6 +142,7 @@ def looks_like_context_heading(text: str) -> bool:
     if clean_text.endswith((".", ";", ",")):
         return False
 
+    # Short non-strategy headings are recognised through a conservative allow-list.
     common_heading_prefixes = (
         "Introduction",
         "Implementation Guide",
@@ -160,6 +172,7 @@ def split_long_paragraph(
     if len(text) <= max_characters:
         return [text]
 
+    # Prefer sentence boundaries when splitting oversized paragraphs.
     sentences = re.split(r"(?<=[.!?])\s+", text)
 
     pieces: list[str] = []
@@ -172,6 +185,7 @@ def split_long_paragraph(
             continue
 
         # Fall back to word-based splitting if one sentence is extremely long.
+        # Fall back to word-level splitting only when a single sentence is too long.
         if len(sentence) > max_characters:
             words = sentence.split()
             word_piece = ""
@@ -222,6 +236,7 @@ def split_paragraphs(
     limited contextual continuity.
     """
 
+    # First split any oversized paragraphs, then group the resulting units into chunks.
     expanded_paragraphs: list[str] = []
 
     for paragraph in paragraphs:
@@ -240,12 +255,15 @@ def split_paragraphs(
         separator_length = 2 if current_group else 0
         extra_length = len(paragraph) + separator_length
 
+        # Finalise the current chunk before adding a paragraph that would exceed
+        # the configured character ceiling.
         if (
             current_group
             and current_length + extra_length > MAX_CHARACTERS
         ):
             groups.append(current_group)
 
+            # Carry trailing paragraph(s) into the next chunk to preserve limited context.
             if OVERLAP_PARAGRAPHS:
                 current_group = current_group[
                     -OVERLAP_PARAGRAPHS:
@@ -283,6 +301,8 @@ def load_source_manifest() -> dict[str, dict[str, Any]]:
     This lets every chunk retain the original source filename and hash.
     """
 
+    # Missing provenance metadata does not block chunking; source fields can fall back
+    # to the processed filename where necessary.
     if not DOCUMENT_MANIFEST.exists():
         return {}
 
@@ -292,6 +312,7 @@ def load_source_manifest() -> dict[str, dict[str, Any]]:
         )
     )
 
+    # Index only successfully processed manifest entries by processed filename.
     return {
         item.get("output_file", ""): item
         for item in manifest_items
@@ -309,6 +330,8 @@ def process_document(
         encoding="utf-8"
     )
 
+    # Reconstruct paragraph units from the double-newline structure produced by
+    # the document-loader preprocessing stage.
     paragraphs = [
         paragraph.strip()
         for paragraph in re.split(
@@ -321,6 +344,8 @@ def process_document(
     if not paragraphs:
         return []
 
+    # The first paragraph is treated as the collection title; later headings drive
+    # theme, strategy and contextual section boundaries.
     collection_title = strip_heading_marks(
         paragraphs[0]
     )
@@ -335,6 +360,8 @@ def process_document(
 
     section_number = 0
 
+    # Close the current logical section using the surrounding theme/strategy state
+    # and emit one or more bounded retrieval chunks.
     def save_current_section() -> None:
         """Create chunks from the current section."""
 
@@ -346,6 +373,7 @@ def process_document(
 
         section_number += 1
 
+        # Long sections may become multiple chunks while retaining the same metadata.
         paragraph_groups = split_paragraphs(
             current_paragraphs
         )
@@ -358,6 +386,8 @@ def process_document(
                 paragraph_group
             ).strip()
 
+            # A detected strategy code marks the chunk as strategy evidence;
+            # otherwise it remains contextual material.
             section_type = (
                 "strategy"
                 if current_strategy_code
@@ -370,6 +400,8 @@ def process_document(
                 or f"context_{section_number}"
             )
 
+            # Build deterministic IDs from source, section identity, section number
+            # and the chunk part within that section.
             chunk_id = (
                 f"{slugify(file_path.stem)}"
                 f"__{slugify(identifier)}"
@@ -377,6 +409,8 @@ def process_document(
                 f"_{chunk_part:02d}"
             )
 
+            # Add collection/theme/strategy metadata to search_text so retrieval can
+            # use document structure as well as the passage itself.
             metadata_text = [collection_title]
 
             if current_theme:
@@ -399,6 +433,8 @@ def process_document(
                 metadata_text + [body_text]
             )
 
+            # Preserve provenance, section metadata and basic size statistics with
+            # each generated chunk.
             chunk_records.append(
                 {
                     "chunk_id": chunk_id,
@@ -426,10 +462,13 @@ def process_document(
 
         current_paragraphs = []
 
+    # Walk the document in order and flush the previous section whenever a new
+    # structural heading is detected.
     for paragraph in paragraphs[1:]:
         detected_theme = detect_theme(paragraph)
         detected_strategy = detect_strategy(paragraph)
 
+        # A theme starts a new contextual section and clears any active strategy.
         if detected_theme:
             save_current_section()
 
@@ -441,6 +480,8 @@ def process_document(
 
             continue
 
+        # A strategy heading starts a new strategy section whose following paragraphs
+        # inherit the detected code and title.
         if detected_strategy:
             save_current_section()
 
@@ -458,6 +499,7 @@ def process_document(
 
             continue
 
+        # A non-strategy heading resets strategy state so following text is contextual.
         if looks_like_context_heading(paragraph):
             save_current_section()
 
@@ -474,6 +516,7 @@ def process_document(
             strip_heading_marks(paragraph)
         )
 
+    # Flush the final open section after the document loop ends.
     save_current_section()
 
     return chunk_records
@@ -485,11 +528,13 @@ def save_outputs(
 ) -> None:
     """Save chunks in JSONL, CSV and manifest formats."""
 
+    # Ensure the chunk-output directory exists before writing any artifacts.
     OUTPUT_DIR.mkdir(
         parents=True,
         exist_ok=True,
     )
 
+    # JSONL is the machine-oriented corpus format used by downstream indexing.
     with OUTPUT_JSONL.open(
         "w",
         encoding="utf-8",
@@ -503,6 +548,8 @@ def save_outputs(
                 + "\n"
             )
 
+    # CSV is an inspection-friendly companion export and is written only when
+    # there is at least one chunk.
     if chunk_records:
         with OUTPUT_CSV.open(
             "w",
@@ -519,6 +566,7 @@ def save_outputs(
             writer.writeheader()
             writer.writerows(chunk_records)
 
+    # Record corpus totals and chunking parameters in a manifest for reproducibility.
     summary = {
         "documents_processed": len(
             chunks_per_document
@@ -550,6 +598,7 @@ def save_outputs(
 def main() -> None:
     """Chunk all processed strategy documents."""
 
+    # Require the document-loader stage to have completed before chunking begins.
     if not INPUT_DIR.exists():
         raise FileNotFoundError(
             f"Processed strategy folder not found: "
@@ -558,6 +607,7 @@ def main() -> None:
 
     source_manifest = load_source_manifest()
 
+    # Sort inputs to keep chunk-generation order deterministic across runs.
     processed_files = sorted(
         file_path
         for file_path in INPUT_DIR.glob("*.txt")
@@ -575,6 +625,7 @@ def main() -> None:
     print("\nHEY JOEY STRATEGY CHUNKER")
     print("=" * 60)
 
+    # Process each cleaned document while carrying forward available provenance data.
     for file_path in processed_files:
         source_metadata = source_manifest.get(
             file_path.name,
@@ -603,6 +654,7 @@ def main() -> None:
             f"({strategy_chunk_count} strategy chunks)"
         )
 
+    # Write the complete corpus only after every processed document has been chunked.
     save_outputs(
         all_chunks,
         chunks_per_document,
@@ -629,5 +681,6 @@ def main() -> None:
     print(f"Manifest: {OUTPUT_MANIFEST}")
 
 
+# Run the chunking pipeline only when this module is executed directly.
 if __name__ == "__main__":
     main()

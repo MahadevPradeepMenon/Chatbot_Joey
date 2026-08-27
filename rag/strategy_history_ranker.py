@@ -9,6 +9,8 @@ from typing import Any, Iterable
 from rag.joey_strategy_service import JoeyStrategyEvidence
 
 
+# Resolve the default history path relative to the repository so reranking is
+# independent of the current working directory.
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_HISTORY_FILE = (
     PROJECT_ROOT
@@ -17,8 +19,11 @@ DEFAULT_HISTORY_FILE = (
     / "synthetic_strategy_history.json"
 )
 
+# Use cautious lowercase alphanumeric title normalisation for fallback matching.
 TITLE_NORMALISER = re.compile(r"[^a-z0-9]+")
 
+# Lifecycle and outcome weights are deliberately small so retrieval relevance
+# remains the dominant ranking signal.
 STATUS_ADJUSTMENTS: dict[str, float] = {
     "active": 0.0025,
     "paused": -0.0005,
@@ -35,6 +40,7 @@ OUTCOME_ADJUSTMENTS: dict[str, float] = {
 }
 
 
+# Freeze parsed history records so matching and reranking cannot mutate them.
 @dataclass(frozen=True)
 class StrategyHistoryRecord:
     """Synthetic or database-backed history for one strategy."""
@@ -52,6 +58,7 @@ class StrategyHistoryRecord:
         cls,
         data: dict[str, Any],
     ) -> "StrategyHistoryRecord":
+        # Normalise optional fields and clamp usage counts when creating the typed record.
         return cls(
             strategy_code=data.get("strategy_code"),
             strategy_title=str(
@@ -91,6 +98,7 @@ class StrategyHistoryRecord:
         )
 
 
+# Preserve original Hybrid fields alongside history-adjusted fields for transparency.
 @dataclass(frozen=True)
 class HistoryAwareStrategyEvidence:
     """One Hybrid result with a transparent history adjustment."""
@@ -124,6 +132,7 @@ def normalise_title(
     if not title:
         return ""
 
+    # Replace punctuation and spacing differences without aggressive fuzzy matching.
     return TITLE_NORMALISER.sub(
         " ",
         title.lower(),
@@ -135,6 +144,7 @@ def load_strategy_history(
 ) -> list[StrategyHistoryRecord]:
     """Load synthetic strategy history records."""
 
+    # Fail clearly when the configured synthetic history source is unavailable.
     if not path.exists():
         raise FileNotFoundError(
             f"Synthetic strategy history not found: {path}"
@@ -146,6 +156,7 @@ def load_strategy_history(
     ) as file:
         data = json.load(file)
 
+    # Accept either a top-level list or an object containing strategy_history.
     records = data.get(
         "strategy_history",
         data,
@@ -182,6 +193,7 @@ class StrategyHistoryRanker:
             StrategyHistoryRecord
         ] | None = None,
     ) -> None:
+        # Allow injected history for tests/integration, otherwise load the default file.
         self.history_records = list(
             history_records
             if history_records is not None
@@ -208,6 +220,7 @@ class StrategyHistoryRanker:
             ]
         ] = []
 
+        # Match each retrieved strategy to history and calculate a small additive adjustment.
         for item in evidence:
             history = self.find_history(
                 item
@@ -217,6 +230,7 @@ class StrategyHistoryRanker:
                     history
                 )
             )
+            # Add history to the original Hybrid score rather than replacing relevance.
             personalised_score = (
                 item.score
                 + adjustment
@@ -235,6 +249,7 @@ class StrategyHistoryRanker:
                 )
             )
 
+        # Rank by personalised score, then use original score/rank as tie-breakers.
         scored.sort(
             key=lambda row: (
                 row[0],
@@ -248,6 +263,7 @@ class StrategyHistoryRanker:
             HistoryAwareStrategyEvidence
         ] = []
 
+        # Rebuild immutable results with the new rank while retaining original provenance.
         for new_rank, (
             personalised_score,
             item,
@@ -315,6 +331,7 @@ class StrategyHistoryRanker:
             StrategyHistoryRecord
         ] = []
 
+        # Match cautiously using strategy code/title plus collection or source metadata.
         for record in self.history_records:
             code_matches = (
                 bool(item.strategy_code)
@@ -345,6 +362,7 @@ class StrategyHistoryRanker:
                 )
             )
 
+            # Code plus collection/source agreement is the strongest identity match.
             if code_matches and (
                 collection_matches
                 or source_matches
@@ -354,6 +372,7 @@ class StrategyHistoryRanker:
                 )
                 continue
 
+            # Title plus collection/source agreement is the next fallback match.
             if title_matches and (
                 collection_matches
                 or source_matches
@@ -363,6 +382,7 @@ class StrategyHistoryRanker:
                 )
                 continue
 
+            # Title-only matching remains as a final fallback for sparse history records.
             if title_matches:
                 exact_matches.append(
                     record
@@ -371,6 +391,7 @@ class StrategyHistoryRanker:
         if not exact_matches:
             return None
 
+        # Prefer active and previously successful matches, then greater confirmed use.
         exact_matches.sort(
             key=lambda record: (
                 record.lifecycle_status
@@ -396,6 +417,7 @@ class StrategyHistoryRanker:
         if history is None:
             return 0.0
 
+        # Unknown lifecycle/outcome values contribute no adjustment through dict defaults.
         status_adjustment = (
             STATUS_ADJUSTMENTS.get(
                 history.lifecycle_status,
@@ -408,17 +430,20 @@ class StrategyHistoryRanker:
                 0.0,
             )
         )
+        # Usage adds only a tiny bonus and is capped after three confirmed uses.
         usage_adjustment = min(
             history.times_used,
             3,
         ) * 0.0001
 
+        # Combine lifecycle, outcome and bounded usage into one transparent signal.
         adjustment = (
             status_adjustment
             + outcome_adjustment
             + usage_adjustment
         )
 
+        # Clamp the final adjustment so history only nudges otherwise similar candidates.
         return max(
             min(
                 adjustment,
@@ -440,6 +465,7 @@ class StrategyHistoryRanker:
                 "in the available history."
             )
 
+        # Build separate lifecycle, outcome and usage statements for cautious reporting.
         messages: list[str] = []
 
         if (
@@ -498,6 +524,7 @@ class StrategyHistoryRanker:
                 "presented as a first option without parent review."
             )
 
+        # Usage count is reported as context, not as proof of future effectiveness.
         if history.times_used > 0:
             messages.append(
                 f"It has {history.times_used} confirmed use "
@@ -510,4 +537,6 @@ class StrategyHistoryRanker:
                 "confirmed outcome has been recorded."
             )
 
+        # Join the available history signals into one parent-facing explanation.
         return " ".join(messages)
+

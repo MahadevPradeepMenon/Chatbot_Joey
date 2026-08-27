@@ -8,6 +8,8 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 
 
+# Resolve index paths relative to the repository so retrieval works consistently
+# regardless of the current working directory.
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 INDEX_DIR = PROJECT_ROOT / "data" / "indexes"
@@ -16,6 +18,7 @@ EMBEDDINGS_FILE = INDEX_DIR / "strategy_embeddings.npy"
 METADATA_FILE = INDEX_DIR / "strategy_index_metadata.jsonl"
 MANIFEST_FILE = INDEX_DIR / "strategy_index_manifest.json"
 
+# Keep default retrieval size and local CPU execution explicit for predictable use.
 DEFAULT_TOP_K = 5
 DEFAULT_DEVICE = "cpu"
 
@@ -63,14 +66,19 @@ class SemanticStrategyRetriever:
         self.manifest_file = manifest_file
         self.device = device
 
+        # Validate that all index artifacts exist before attempting to load or query them.
         self._check_required_files()
 
+        # Load manifest, embeddings and metadata together so their alignment can
+        # be checked before the model is used.
         self.manifest = self._load_manifest()
         self.embeddings = self._load_embeddings()
         self.metadata = self._load_metadata()
 
         self._validate_index()
 
+        # Use the exact model recorded when the index was built to keep query and
+        # corpus embeddings in the same vector space.
         model_name = str(self.manifest["model_name"])
 
         print(f"Loading local semantic model: {model_name}")
@@ -83,6 +91,8 @@ class SemanticStrategyRetriever:
     def _check_required_files(self) -> None:
         """Confirm that the index files created in Step 13 exist."""
 
+        # The semantic index is only usable when embeddings, metadata and manifest
+        # are all present as a matching artifact set.
         required_files = [
             self.embeddings_file,
             self.metadata_file,
@@ -110,6 +120,7 @@ class SemanticStrategyRetriever:
     def _load_manifest(self) -> dict[str, Any]:
         """Load the index manifest."""
 
+        # Parse the manifest as UTF-8 JSON and surface malformed content clearly.
         try:
             return json.loads(
                 self.manifest_file.read_text(
@@ -124,6 +135,8 @@ class SemanticStrategyRetriever:
     def _load_embeddings(self) -> np.ndarray:
         """Load the saved embedding matrix."""
 
+        # Load the numeric embedding matrix with pickle disabled for a narrow,
+        # predictable data-loading path.
         embeddings = np.load(
             self.embeddings_file,
             allow_pickle=False,
@@ -139,6 +152,8 @@ class SemanticStrategyRetriever:
 
         records: list[dict[str, Any]] = []
 
+        # Read metadata line-by-line so malformed JSON can be reported with its
+        # exact line number.
         with self.metadata_file.open(
             "r",
             encoding="utf-8",
@@ -162,6 +177,8 @@ class SemanticStrategyRetriever:
 
                 records.append(record)
 
+        # Restore embedding-position order so metadata row N corresponds to
+        # embedding row N.
         records.sort(
             key=lambda record: int(
                 record.get(
@@ -176,6 +193,8 @@ class SemanticStrategyRetriever:
     def _validate_index(self) -> None:
         """Validate alignment between embeddings and metadata."""
 
+        # Validate dimensionality, row alignment, manifest counts and numeric
+        # integrity before allowing any search requests.
         if self.embeddings.ndim != 2:
             raise ValueError(
                 "Expected a two-dimensional embedding array, "
@@ -195,6 +214,8 @@ class SemanticStrategyRetriever:
                 f"{metadata_count} metadata records."
             )
 
+        # Require contiguous zero-based metadata positions to prevent row/chunk
+        # mismatches during retrieval.
         expected_positions = list(
             range(metadata_count)
         )
@@ -215,6 +236,7 @@ class SemanticStrategyRetriever:
                 "duplicated or out of order."
             )
 
+        # Cross-check manifest counts and dimensions against the loaded array.
         manifest_chunk_count = int(
             self.manifest.get(
                 "chunk_count",
@@ -260,6 +282,8 @@ class SemanticStrategyRetriever:
     ) -> np.ndarray:
         """Convert one parent query into a normalised local embedding."""
 
+        # Collapse repeated whitespace before embedding so semantically identical
+        # queries are treated consistently.
         clean_query = " ".join(
             query.split()
         ).strip()
@@ -269,6 +293,8 @@ class SemanticStrategyRetriever:
                 "The search query cannot be empty."
             )
 
+        # Normalise the query vector just like the stored corpus embeddings so
+        # cosine similarity can be computed as a dot product.
         query_embedding = self.model.encode(
             [clean_query],
             convert_to_numpy=True,
@@ -281,6 +307,7 @@ class SemanticStrategyRetriever:
             dtype=np.float32,
         )
 
+        # Guard against model/index incompatibility by checking vector dimension.
         expected_dimension = int(
             self.embeddings.shape[1]
         )
@@ -305,6 +332,8 @@ class SemanticStrategyRetriever:
         from the same strategy dominating the results.
         """
 
+        # Source file, strategy code and strategy title together provide a stable
+        # identity for strategy-level deduplication.
         return (
             str(record.get("source_file", "")),
             str(record.get("strategy_code", "")),
@@ -326,6 +355,7 @@ class SemanticStrategyRetriever:
         the index and query embeddings are unit-normalised.
         """
 
+        # Validate retrieval parameters before embedding and ranking the query.
         if top_k < 1:
             raise ValueError(
                 "top_k must be at least 1."
@@ -335,11 +365,14 @@ class SemanticStrategyRetriever:
             query
         )
 
+        # Both sides are unit-normalised, so matrix-vector dot products are
+        # cosine-similarity scores.
         similarity_scores = (
             self.embeddings
             @ query_embedding
         )
 
+        # Sort embedding positions by descending semantic similarity.
         ranked_positions = np.argsort(
             similarity_scores
         )[::-1]
@@ -362,6 +395,7 @@ class SemanticStrategyRetriever:
                 )
             )
 
+            # Exclude contextual chunks when the caller requests strategy-only retrieval.
             if (
                 strategy_only
                 and section_type != "strategy"
@@ -374,12 +408,15 @@ class SemanticStrategyRetriever:
                 ]
             )
 
+            # Optional score filtering can remove weak semantic matches before display.
             if (
                 minimum_score is not None
                 and score < minimum_score
             ):
                 continue
 
+            # Keep only the highest-ranked chunk from each strategy when deduplication
+            # is enabled.
             if deduplicate_strategies:
                 strategy_identity = (
                     self._strategy_identity(
@@ -394,6 +431,8 @@ class SemanticStrategyRetriever:
                     strategy_identity
                 )
 
+            # Convert the aligned metadata row into a typed result using the final
+            # post-filter rank.
             result = SemanticSearchResult(
                 rank=len(results) + 1,
                 score=score,
@@ -445,6 +484,7 @@ class SemanticStrategyRetriever:
 
             results.append(result)
 
+            # Stop once the requested number of final results has been collected.
             if len(results) >= top_k:
                 break
 
@@ -457,6 +497,7 @@ def shorten_text(
 ) -> str:
     """Create a readable terminal preview of a retrieved passage."""
 
+    # Collapse whitespace only for terminal display; retrieval content is unchanged.
     clean_text = " ".join(
         text.split()
     )
@@ -529,6 +570,8 @@ def print_results(
 def parse_arguments() -> argparse.Namespace:
     """Read command-line arguments."""
 
+    # The CLI exposes retrieval controls for manual testing without changing
+    # the underlying retriever defaults.
     parser = argparse.ArgumentParser(
         description=(
             "Search the local Hey Joey strategy "
@@ -588,6 +631,7 @@ def parse_arguments() -> argparse.Namespace:
 def main() -> None:
     """Run semantic retrieval from the terminal."""
 
+    # Parse CLI options, build the local retriever once, then execute one query.
     arguments = parse_arguments()
 
     retriever = SemanticStrategyRetriever()
@@ -609,5 +653,6 @@ def main() -> None:
     )
 
 
+# Run terminal retrieval only when this module is executed directly.
 if __name__ == "__main__":
     main()

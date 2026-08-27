@@ -19,12 +19,16 @@ from storage.feedback_history_provider import (
 )
 
 
+# Define the injectable stored-history loader contract so tests can replace
+# SQLite-backed feedback loading with a deterministic in-memory function.
 StoredHistoryLoader = Callable[
     [],
     list[StrategyHistoryRecord],
 ]
 
 
+# Keep the complete history-aware retrieval response immutable while preserving
+# the original question, selected context, query and reranked evidence.
 @dataclass(frozen=True)
 class HistoryAwareRetrieval:
     """Context-aware retrieval with transparent history adjustments."""
@@ -56,6 +60,8 @@ class HistoryAwareStrategyService:
         | None = None,
         use_stored_feedback: bool = True,
     ) -> None:
+        # Use injected components when supplied; otherwise construct the project
+        # defaults for context-aware retrieval and history reranking.
         self.base_service = (
             base_service
             if base_service is not None
@@ -68,14 +74,20 @@ class HistoryAwareStrategyService:
             else StrategyHistoryRanker()
         )
 
+        # Snapshot the ranker's initial history so fresh stored feedback can be
+        # merged into the same stable base on every retrieval.
         self.base_history_records = list(
             self.history_ranker.history_records
         )
 
+        # An explicitly supplied loader takes priority, which keeps dependency
+        # injection predictable for tests and alternative storage backends.
         if stored_history_loader is not None:
             self.stored_history_loader = (
                 stored_history_loader
             )
+        # In normal application use, reload current SQLite feedback before each
+        # search so newly saved ratings can affect the next related retrieval.
         elif (
             use_stored_feedback
             and history_ranker is None
@@ -84,6 +96,8 @@ class HistoryAwareStrategyService:
                 load_stored_feedback_history
             )
         else:
+            # When feedback loading is disabled—or a custom ranker is injected
+            # without a loader—use an empty source to avoid hidden state changes.
             # Injected rankers remain deterministic unless a loader is
             # explicitly supplied by the caller.
             self.stored_history_loader = (
@@ -95,10 +109,14 @@ class HistoryAwareStrategyService:
     ) -> StrategyHistoryRanker:
         """Build a ranker from base history plus current SQLite feedback."""
 
+        # Load the latest persisted feedback at call time rather than caching it
+        # for the lifetime of the service.
         stored_history = (
             self.stored_history_loader()
         )
 
+        # Merge current stored feedback with the initial history snapshot before
+        # constructing a fresh ranker for this request.
         combined_history = (
             merge_strategy_history(
                 self.base_history_records,
@@ -106,6 +124,8 @@ class HistoryAwareStrategyService:
             )
         )
 
+        # A new ranker ensures the current request uses the just-merged history
+        # without mutating the service's original ranker object.
         return StrategyHistoryRanker(
             history_records=(
                 combined_history
@@ -120,11 +140,15 @@ class HistoryAwareStrategyService:
     ) -> HistoryAwareRetrieval:
         """Retrieve a relevant pool, then apply current history signals."""
 
+        # Retrieve at least top_k candidates, but normally use a wider pool so
+        # history signals have room to reorder otherwise relevant strategies.
         pool_size = max(
             candidate_pool,
             top_k,
         )
 
+        # Run context-aware Hybrid retrieval first; history is applied only after
+        # the relevance-based candidate pool has been established.
         base_result: ContextAwareRetrieval = (
             self.base_service.retrieve(
                 question=question,
@@ -132,12 +156,15 @@ class HistoryAwareStrategyService:
             )
         )
 
+        # Apply the latest combined history signals to the relevance-ranked pool.
         reranked = (
             self._current_ranker().rerank(
                 base_result.evidence
             )
         )
 
+        # Preserve the base question/context/query and expose only the requested
+        # number of history-aware results after reranking.
         return HistoryAwareRetrieval(
             question=base_result.question,
             context=base_result.context,

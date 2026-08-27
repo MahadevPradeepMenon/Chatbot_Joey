@@ -8,10 +8,13 @@ from enum import Enum
 from typing import Any, Iterable, Protocol
 
 
+# Use simple lowercase alphanumeric tokenisation so overlap calculations remain
+# deterministic and easy to explain.
 TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
 SPACE_PATTERN = re.compile(r"\s+")
 
 # Common words that do not help distinguish one support need from another.
+# Removing these words keeps the confidence signal focused on support-specific content.
 STOP_WORDS = {
     "a",
     "about",
@@ -100,6 +103,7 @@ STOP_WORDS = {
 }
 
 # Small, transparent normalisation map for common support-domain wording.
+# The mapping is intentionally limited so token equivalence remains inspectable.
 TOKEN_ALIASES = {
     "anxious": "anxiety",
     "anxieties": "anxiety",
@@ -131,6 +135,8 @@ TOKEN_ALIASES = {
 }
 
 
+# Confidence is expressed as a small categorical evidence-quality scale rather
+# than as a calibrated probability.
 class ConfidenceLevel(str, Enum):
     """Internal evidence-quality categories."""
 
@@ -139,6 +145,8 @@ class ConfidenceLevel(str, Enum):
     weak = "weak"
 
 
+# A structural protocol lets this module assess different evidence dataclasses
+# without depending on one concrete retrieval-result implementation.
 class StrategyEvidenceLike(Protocol):
     """
     Read-only fields required from strategy evidence.
@@ -184,6 +192,8 @@ class StrategyEvidenceLike(Protocol):
         ...
 
 
+# Freeze confidence decisions so the evidence-quality assessment is immutable
+# after it has been calculated.
 @dataclass(frozen=True)
 class RetrievalConfidenceDecision:
     """Transparent decision about whether evidence should be shown."""
@@ -212,10 +222,13 @@ def _normalise_token(token: str) -> str:
     if not clean:
         return ""
 
+    # Apply explicit domain aliases before light suffix handling.
     if clean in TOKEN_ALIASES:
         return TOKEN_ALIASES[clean]
 
     # Light plural normalisation. Avoid aggressive stemming because
+    # explainability is more important than maximum recall here.
+    # Only a few transparent suffix rules are applied before a second alias lookup.
     # explainability is more important than maximum recall here.
     if len(clean) > 4 and clean.endswith("ies"):
         clean = clean[:-3] + "y"
@@ -230,6 +243,7 @@ def _normalise_token(token: str) -> str:
 def content_tokens(text: str | None) -> set[str]:
     """Return meaningful, normalised tokens from user or evidence text."""
 
+    # Tokenise first, then remove stop words and normalise the remaining content terms.
     raw_tokens = TOKEN_PATTERN.findall(
         str(text or "").lower()
     )
@@ -240,6 +254,8 @@ def content_tokens(text: str | None) -> set[str]:
         if token not in STOP_WORDS
     }
 
+    # Filter again after normalisation because aliases/stemming can produce words
+    # that should still be excluded from the overlap signal.
     return {
         token
         for token in tokens
@@ -252,6 +268,8 @@ def content_tokens(text: str | None) -> set[str]:
 def evidence_text(item: StrategyEvidenceLike) -> str:
     """Combine source-backed fields used only for overlap assessment."""
 
+    # Assess overlap against both passage text and provenance/strategy metadata so
+    # a relevant collection or title can contribute to the evidence match.
     values = [
         item.strategy_code,
         item.strategy_title,
@@ -280,6 +298,7 @@ def _overlap_metrics(
     if not query_tokens:
         return 0, 0.0
 
+    # Compare normalised content-token sets so repeated words do not inflate overlap.
     item_tokens = content_tokens(
         evidence_text(item)
     )
@@ -288,6 +307,8 @@ def _overlap_metrics(
     )
 
     # Cap the denominator so longer natural-language questions are not
+    # unfairly penalised for containing additional useful detail.
+    # The ratio therefore measures overlap against at most eight query content tokens.
     # unfairly penalised for containing additional useful detail.
     denominator = max(
         min(len(query_tokens), 8),
@@ -312,6 +333,8 @@ def assess_retrieval_confidence(
     weak retrieval evidence into apparently strong evidence.
     """
 
+    # Normalise whitespace and materialise the evidence iterable once so the same
+    # ordered evidence can be reused for all confidence calculations.
     clean_question = SPACE_PATTERN.sub(
         " ",
         str(question or ""),
@@ -321,6 +344,7 @@ def assess_retrieval_confidence(
         clean_question
     )
 
+    # Empty questions always abstain because there is no user evidence to match.
     if not clean_question:
         return RetrievalConfidenceDecision(
             level=ConfidenceLevel.weak,
@@ -334,6 +358,7 @@ def assess_retrieval_confidence(
             overlapping_evidence_count=0,
         )
 
+    # No retrieved evidence also forces abstention, regardless of the question.
     if not items:
         return RetrievalConfidenceDecision(
             level=ConfidenceLevel.weak,
@@ -350,6 +375,7 @@ def assess_retrieval_confidence(
             overlapping_evidence_count=0,
         )
 
+    # Calculate transparent lexical-overlap signals for every retrieved evidence item.
     overlap_rows = [
         _overlap_metrics(
             query_tokens,
@@ -358,18 +384,24 @@ def assess_retrieval_confidence(
         for item in items
     ]
 
+    # Confidence uses the leading retrieved item plus a count of how many returned
+    # items have any direct overlap with the question.
     top_overlap_count, top_overlap_ratio = overlap_rows[0]
     overlapping_evidence_count = sum(
         count > 0
         for count, _ in overlap_rows
     )
 
+    # Use the original Hybrid retrieval score rather than any later history-based
+    # adjustment so personalisation cannot strengthen weak underlying evidence.
     top_original_score = max(
         float(items[0].original_score),
         0.0,
     )
 
     # Very short or content-free questions should not be answered merely
+    # because the retriever can always rank something first.
+    # Fewer than two meaningful content tokens is treated as insufficient context.
     # because the retriever can always rank something first.
     if len(query_tokens) < 2:
         return RetrievalConfidenceDecision(
@@ -392,6 +424,8 @@ def assess_retrieval_confidence(
             ),
         )
 
+    # Strong evidence requires substantial direct overlap, or a combination of
+    # moderate overlap and a sufficiently high original Hybrid score.
     strong = (
         top_overlap_count >= 3
         or (
@@ -425,6 +459,8 @@ def assess_retrieval_confidence(
             ),
         )
 
+    # Moderate evidence accepts a weaker match only when supported by the original
+    # Hybrid score or corroborating overlap across multiple evidence items.
     moderate = (
         (
             top_overlap_count >= 1
@@ -457,6 +493,8 @@ def assess_retrieval_confidence(
             ),
         )
 
+    # Anything that fails the strong and moderate rules abstains rather than
+    # presenting a strategy with weak direct support.
     return RetrievalConfidenceDecision(
         level=ConfidenceLevel.weak,
         should_abstain=True,
@@ -476,6 +514,8 @@ def assess_retrieval_confidence(
     )
 
 
+# Keep abstention wording separate from the scoring rule so the user-facing
+# response remains consistent wherever weak evidence is handled.
 def build_abstention_message() -> str:
     """Return cautious user-facing wording for weak retrieval evidence."""
 
@@ -485,3 +525,4 @@ def build_abstention_message() -> str:
         "Could you describe what happens, where it happens and what "
         "seems to happen beforehand?"
     )
+

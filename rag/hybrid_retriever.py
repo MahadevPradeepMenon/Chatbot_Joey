@@ -11,6 +11,8 @@ from rag.semantic_retriever import (
 )
 
 
+# Keep the final result count, candidate-pool size and RRF constant explicit
+# so hybrid retrieval behaviour is reproducible across runs.
 DEFAULT_TOP_K = 5
 DEFAULT_CANDIDATE_POOL = 30
 DEFAULT_RRF_K = 60
@@ -41,6 +43,8 @@ class HybridSearchResult:
         return asdict(self)
 
 
+# Use the same strategy-level identity across semantic and lexical result sets
+# so both rankings can be fused without duplicating the same strategy.
 def result_identity(
     source_file: str,
     strategy_code: str | None,
@@ -52,6 +56,8 @@ def result_identity(
     code = str(strategy_code or "")
     title = str(strategy_title or "")
 
+    # Prefer source + strategy metadata when available; fall back to chunk ID
+    # when a record does not have strategy-level identifiers.
     if code or title:
         return source_file, code, title
 
@@ -67,9 +73,13 @@ class HybridStrategyRetriever:
         self,
         rrf_k: int = DEFAULT_RRF_K,
     ) -> None:
+        # RRF requires a positive rank constant; the default value of 60 is the
+        # fixed fusion parameter used by the project.
         if rrf_k < 1:
             raise ValueError("rrf_k must be at least 1.")
 
+        # Initialise both local retrievers once so each search can obtain two
+        # independent ranked candidate lists over the same strategy corpus.
         self.semantic = SemanticStrategyRetriever()
         self.lexical = BM25StrategyRetriever()
         self.rrf_k = rrf_k
@@ -105,11 +115,16 @@ class HybridStrategyRetriever:
     ) -> list[HybridSearchResult]:
         """Return final hybrid strategy results."""
 
+        # Validate the requested final result count before running either retriever.
         if top_k < 1:
             raise ValueError("top_k must be at least 1.")
 
+        # Retrieve a wider candidate set than the final top_k so fusion has enough
+        # alternatives from both ranking methods to combine meaningfully.
         pool_size = max(candidate_pool, top_k * 5)
 
+        # Semantic retrieval contributes meaning-based candidates; strategy-level
+        # deduplication is applied before fusion.
         semantic_results = self.semantic.search(
             query=query,
             top_k=pool_size,
@@ -117,6 +132,8 @@ class HybridStrategyRetriever:
             deduplicate_strategies=True,
         )
 
+        # BM25 contributes exact lexical candidates over the same strategy-only
+        # candidate space when requested.
         lexical_results = self.lexical.search(
             query=query,
             top_k=pool_size,
@@ -124,11 +141,14 @@ class HybridStrategyRetriever:
             deduplicate_strategies=True,
         )
 
+        # Build one fusion entry per stable strategy identity, with optional
+        # semantic and lexical results attached to that identity.
         fused: dict[
             tuple[str, str, str],
             dict[str, Any],
         ] = {}
 
+        # Record each strategy's position in the semantic ranking.
         for result in semantic_results:
             identity = self._semantic_identity(result)
 
@@ -137,6 +157,7 @@ class HybridStrategyRetriever:
                 {"semantic": None, "lexical": None},
             )["semantic"] = result
 
+        # Add the corresponding BM25 result to the same identity when available.
         for result in lexical_results:
             identity = self._lexical_identity(result)
 
@@ -147,11 +168,15 @@ class HybridStrategyRetriever:
 
         ranked_items: list[tuple[float, dict[str, Any]]] = []
 
+        # Reciprocal Rank Fusion uses rank positions rather than raw semantic/BM25
+        # scores, avoiding the need to directly calibrate two different score scales.
         for item in fused.values():
             semantic_result = item["semantic"]
             lexical_result = item["lexical"]
             hybrid_score = 0.0
 
+            # Each retriever contributes 1 / (k + rank) when the strategy appears
+            # in that ranked list.
             if semantic_result is not None:
                 hybrid_score += (
                     1.0
@@ -166,6 +191,8 @@ class HybridStrategyRetriever:
 
             ranked_items.append((hybrid_score, item))
 
+        # Sort primarily by fused RRF score; semantic then lexical raw scores are
+        # deterministic tie-breakers when fusion scores are equal.
         ranked_items.sort(
             key=lambda item: (
                 item[0],
@@ -185,10 +212,13 @@ class HybridStrategyRetriever:
 
         results: list[HybridSearchResult] = []
 
+        # Convert only the highest-ranked fused strategies into final typed results.
         for hybrid_score, item in ranked_items[:top_k]:
             semantic_result = item["semantic"]
             lexical_result = item["lexical"]
 
+            # Use the semantic result as the metadata representative when present;
+            # otherwise fall back to the BM25 result for the same strategy.
             representative = (
                 semantic_result
                 if semantic_result is not None
@@ -198,6 +228,8 @@ class HybridStrategyRetriever:
             if representative is None:
                 continue
 
+            # Preserve both component ranks/scores alongside the final RRF score so
+            # the hybrid decision remains inspectable.
             results.append(
                 HybridSearchResult(
                     rank=len(results) + 1,
@@ -251,6 +283,7 @@ class HybridStrategyRetriever:
 def main() -> None:
     """Run a hybrid retrieval smoke test."""
 
+    # Fixed sensory-related query used as a lightweight hybrid retrieval smoke test.
     query = (
         "What can help a child who becomes overwhelmed "
         "by loud classroom noise and covers their ears?"
@@ -281,5 +314,6 @@ def main() -> None:
         print(f"Source: {result.source_file}")
 
 
+# Run the smoke test only when this module is executed directly.
 if __name__ == "__main__":
     main()

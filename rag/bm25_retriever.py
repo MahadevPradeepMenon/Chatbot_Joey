@@ -8,8 +8,10 @@ from typing import Any
 from rag.semantic_retriever import METADATA_FILE
 
 
+# Use a deterministic lowercase lexical tokenizer that preserves internal apostrophes.
 TOKEN_PATTERN = re.compile(r"[a-z0-9]+(?:'[a-z0-9]+)?")
 DEFAULT_TOP_K = 5
+# Fixed BM25 parameters keep lexical scoring reproducible across runs.
 BM25_K1 = 1.5
 BM25_B = 0.75
 
@@ -41,6 +43,7 @@ def tokenize(text: str) -> list[str]:
     return TOKEN_PATTERN.findall(text.lower())
 
 
+# Build a stable strategy identity so multiple chunks from one strategy can be deduplicated.
 def strategy_identity(
     record: dict[str, Any],
 ) -> tuple[str, str, str]:
@@ -50,6 +53,7 @@ def strategy_identity(
     strategy_code = str(record.get("strategy_code") or "")
     strategy_title = str(record.get("strategy_title") or "")
 
+    # Prefer source + strategy metadata when available; otherwise fall back to chunk ID.
     if strategy_code or strategy_title:
         return source_file, strategy_code, strategy_title
 
@@ -60,11 +64,13 @@ class BM25StrategyRetriever:
     """Search the existing local strategy chunks with BM25."""
 
     def __init__(self) -> None:
+        # Prepare corpus statistics once at initialisation so searches only need scoring.
         self.metadata = self._load_metadata()
         self.documents = [
             tokenize(self._build_document_text(record))
             for record in self.metadata
         ]
+        # Cache per-document term frequencies and lengths required by BM25.
         self.term_frequencies = [
             Counter(document)
             for document in self.documents
@@ -77,10 +83,12 @@ class BM25StrategyRetriever:
         if not self.documents:
             raise ValueError("The strategy metadata is empty.")
 
+        # BM25 length normalisation compares each chunk with the corpus average length.
         self.average_document_length = (
             sum(self.document_lengths) / len(self.document_lengths)
         )
 
+        # Count each term once per document when building document frequencies for IDF.
         self.document_frequencies: Counter[str] = Counter()
         for document in self.documents:
             self.document_frequencies.update(set(document))
@@ -91,6 +99,7 @@ class BM25StrategyRetriever:
     def _load_metadata() -> list[dict[str, Any]]:
         """Load metadata in embedding-position order."""
 
+        # Reuse semantic-index metadata so lexical and semantic retrieval share one corpus.
         if not METADATA_FILE.exists():
             raise FileNotFoundError(
                 f"Strategy metadata not found: {METADATA_FILE}. "
@@ -99,6 +108,7 @@ class BM25StrategyRetriever:
 
         records: list[dict[str, Any]] = []
 
+        # Read metadata line-by-line and report malformed JSON with its source line number.
         with METADATA_FILE.open("r", encoding="utf-8") as file:
             for line_number, line in enumerate(file, start=1):
                 clean_line = line.strip()
@@ -114,6 +124,7 @@ class BM25StrategyRetriever:
                         f"line {line_number}: {error}"
                     ) from error
 
+        # Restore embedding-position order for alignment with the semantic index metadata.
         records.sort(
             key=lambda record: int(
                 record.get("embedding_position", -1)
@@ -131,6 +142,7 @@ class BM25StrategyRetriever:
         those fields slightly more importance than ordinary passage text.
         """
 
+        # Repeat selected metadata fields to give exact lexical matches extra weight.
         collection = str(record.get("collection_title", ""))
         theme = str(record.get("theme") or "")
         strategy_title = str(record.get("strategy_title") or "")
@@ -155,6 +167,7 @@ class BM25StrategyRetriever:
     def _idf(self, term: str) -> float:
         """Calculate BM25 inverse document frequency."""
 
+        # Rarer corpus terms receive a larger inverse-document-frequency contribution.
         document_frequency = self.document_frequencies.get(term, 0)
 
         return math.log(
@@ -181,12 +194,14 @@ class BM25StrategyRetriever:
         document_length = self.document_lengths[position]
         score = 0.0
 
+        # Score each distinct query term once using BM25 term frequency, IDF and length normalisation.
         for term in set(query_terms):
             term_frequency = frequencies.get(term, 0)
 
             if term_frequency == 0:
                 continue
 
+            # BM25_B controls how strongly document length adjusts the term contribution.
             length_normalisation = (
                 1.0
                 - BM25_B
@@ -221,9 +236,11 @@ class BM25StrategyRetriever:
     ) -> list[BM25SearchResult]:
         """Return the highest-scoring lexical strategy passages."""
 
+        # Validate retrieval parameters before scoring the corpus.
         if top_k < 1:
             raise ValueError("top_k must be at least 1.")
 
+        # Tokenise the query with the same lexical rules used for the corpus.
         query_terms = tokenize(query)
 
         if not query_terms:
@@ -231,6 +248,7 @@ class BM25StrategyRetriever:
 
         scored_positions: list[tuple[float, int]] = []
 
+        # Score eligible chunks; strategy_only excludes contextual chunks when requested.
         for position, record in enumerate(self.metadata):
             section_type = str(
                 record.get("section_type", "context")
@@ -244,9 +262,11 @@ class BM25StrategyRetriever:
                 position=position,
             )
 
+            # Keep only chunks with a positive lexical match to the query.
             if score > 0.0:
                 scored_positions.append((score, position))
 
+        # Rank candidates by descending BM25 score before strategy-level deduplication.
         scored_positions.sort(
             key=lambda item: item[0],
             reverse=True,
@@ -258,6 +278,7 @@ class BM25StrategyRetriever:
         for score, position in scored_positions:
             record = self.metadata[position]
 
+            # Keep only the highest-scoring chunk for each stable strategy identity.
             if deduplicate_strategies:
                 identity = strategy_identity(record)
 
@@ -266,6 +287,7 @@ class BM25StrategyRetriever:
 
                 seen_strategies.add(identity)
 
+            # Build the typed result after filtering so ranks reflect the final result order.
             results.append(
                 BM25SearchResult(
                     rank=len(results) + 1,
@@ -289,6 +311,7 @@ class BM25StrategyRetriever:
                 )
             )
 
+            # Stop once the requested number of final strategy results has been collected.
             if len(results) >= top_k:
                 break
 
@@ -298,6 +321,7 @@ class BM25StrategyRetriever:
 def main() -> None:
     """Run a small BM25 smoke test."""
 
+    # Fixed sensory-related query used as a lightweight manual smoke test.
     query = (
         "child overwhelmed by loud classroom noise "
         "and covering their ears"
@@ -321,5 +345,6 @@ def main() -> None:
         print(f"Source: {result.source_file}")
 
 
+# Run the smoke test only when this module is executed directly.
 if __name__ == "__main__":
     main()
