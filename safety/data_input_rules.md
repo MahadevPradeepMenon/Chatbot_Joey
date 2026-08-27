@@ -39,9 +39,20 @@ Safe wording:
 
 ## Crisis/Safety Rule
 
-If the note mentions self-injury, harm, severe distress, unsafe behaviour, choking, serious injury, or immediate danger, Joey should not treat it as a normal journal entry.
+If the structured record contains a safety-related concern, Joey should
+prioritise safety signposting rather than ordinary strategy suggestions.
 
-Joey should flag it as:
+Safety-related flags currently recognised by the safety layer include:
+
+- `safety_concern`
+- `self_injury_mentioned`
+
+Joey should advise the parent/carer to seek urgent help if there is
+immediate danger or risk of harm and should suggest contacting an
+appropriate healthcare professional or support service.
+
+Ordinary strategy suggestions should be limited when a safety concern
+has been detected.
 
 `risk_flags: ["safety_concern"]`
 
