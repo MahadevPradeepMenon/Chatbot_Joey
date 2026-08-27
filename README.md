@@ -398,9 +398,12 @@ The FastAPI, Streamlit, SQLite, Docker, CI/CD and production-configuration compo
 | Semantic retrieval | `rag/semantic_retriever.py` | Retrieves strategy chunks using local `all-MiniLM-L6-v2` sentence embeddings. |
 | Hybrid RRF retrieval | `rag/hybrid_retriever.py` | Combines BM25 and semantic ranked lists using Reciprocal Rank Fusion. |
 | Confidence and abstention | `rag/retrieval_confidence.py` | Assesses retrieval evidence and allows the system to abstain when support is insufficient. |
-| Extraction evaluation | `evaluation/run_extractor_on_dataset.py` | Runs the deterministic extractor over the synthetic extraction evaluation data. |
-| Retrieval evaluation | `evaluation/run_retrieval_comparison.py` | Compares Rule-based, BM25-only, Semantic-only and Hybrid RRF retrieval under consistent evaluation conditions. |
-| Confidence regression checks | `evaluation/test_retrieval_confidence.py` | Tests strong, moderate and weak evidence behaviour and the resulting answer-or-abstain decisions. |
+| Final thesis experiment runner | `evaluation/final_thesis/run_final_ml_experiments.py` | Runs the final 30-case extraction, four-method retrieval and confidence/abstention experiments reported in the dissertation. |
+| Final thesis datasets | `evaluation/final_thesis/data/` | Contains the fixed synthetic extraction, retrieval and confidence datasets used for the final dissertation experiments. |
+| Final thesis results | `evaluation/final_thesis/results/` | Contains the case-level outputs, summary metrics and experiment manifest produced by the final dissertation experiments. |
+| Development extraction evaluation | `evaluation/run_extractor_on_dataset.py` | Earlier development evaluation using the broader synthetic journal dataset rather than the final 30-case hold-out set. |
+| Development retrieval evaluation | `evaluation/run_retrieval_comparison.py` | Earlier development comparison using the smaller retrieval dataset rather than the final 30-query thesis dataset. |
+| Confidence regression checks | `evaluation/test_retrieval_confidence.py` | Tests strong, moderate and weak evidence behaviour as a regression check rather than running the final dissertation confidence experiment. |
 
 ### Final thesis evaluation artefacts
 
@@ -410,19 +413,21 @@ experiments are preserved separately under:
 ```text
 evaluation/final_thesis/
 ├── data/
+│   ├── confidence_cases.json
 │   ├── holdout_extraction_cases.csv
-│   ├── retrieval_final_cases.json
-│   └── confidence_cases.json
-└── results/
-    ├── extraction_case_results.csv
-    ├── extraction_summary.csv
-    ├── retrieval_final_case_results.csv
-    ├── retrieval_final_results.json
-    ├── retrieval_final_summary.csv
-    ├── confidence_case_features.csv
-    ├── confidence_threshold_summary.csv
-    ├── confidence_pareto_frontier.csv
-    └── final_experiment_manifest.json
+│   ├── holdout_extraction_dataset.xlsx
+│   └── retrieval_final_cases.json
+├── results/
+│   ├── extraction_case_results.csv
+│   ├── extraction_summary.csv
+│   ├── retrieval_final_case_results.csv
+│   ├── retrieval_final_results.json
+│   ├── retrieval_final_summary.csv
+│   ├── confidence_case_features.csv
+│   ├── confidence_threshold_summary.csv
+│   ├── confidence_pareto_frontier.csv
+│   └── final_experiment_manifest.json
+└── run_final_ml_experiments.py
 
 ### Relationship to the dissertation
 
