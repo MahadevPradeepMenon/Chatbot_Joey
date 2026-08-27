@@ -17,6 +17,8 @@ from storage.database import (
 )
 
 
+# Enums constrain the workflow, persistence status and message roles stored
+# in SQLite so application code does not rely on free-form strings.
 class ConversationWorkflow(str, Enum):
     """Supported Joey conversation workflows."""
 
@@ -42,6 +44,8 @@ class ConversationRole(str, Enum):
     assistant = "assistant"
 
 
+# Frozen dataclasses provide typed, read-only views of persisted rows after
+# they have been reconstructed from SQLite.
 @dataclass(frozen=True)
 class StoredConversationMessage:
     """One ordered message belonging to a persisted session."""
@@ -55,6 +59,7 @@ class StoredConversationMessage:
     created_at: str
 
     def to_dict(self) -> dict[str, Any]:
+        # Convert the enum role to its stable string value for JSON/API use.
         data = asdict(self)
         data["role"] = self.role.value
         return data
@@ -94,6 +99,8 @@ def _database_path(
 ) -> Path:
     """Resolve the configured SQLite path."""
 
+    # Default to the repository-local database unless a caller injects a
+    # different path for testing or isolated execution.
     if database_path is None:
         return DEFAULT_DATABASE_PATH
 
@@ -106,6 +113,8 @@ def _connection(
 ) -> Iterator[sqlite3.Connection]:
     """Open, commit or roll back, and always close a connection."""
 
+    # Create the parent directory before opening SQLite so first-run storage
+    # works without separate directory setup.
     path = _database_path(database_path)
     path.parent.mkdir(
         parents=True,
@@ -116,11 +125,15 @@ def _connection(
         path,
         timeout=10.0,
     )
+    # Named-column access keeps row decoding explicit and less error-prone.
     connection.row_factory = sqlite3.Row
+    # Enforce the declared message-to-session foreign key on every connection.
     connection.execute(
         "PRAGMA foreign_keys = ON"
     )
 
+    # Treat each context-managed connection as a transaction: commit on
+    # success, roll back on error, and always close the handle.
     try:
         yield connection
         connection.commit()
@@ -136,6 +149,8 @@ def _timestamp(
 ) -> str:
     """Return a stable ISO timestamp."""
 
+    # An injected timestamp keeps tests deterministic; runtime falls back to
+    # the current local ISO timestamp.
     return (
         value
         or datetime.now().isoformat(
@@ -150,6 +165,8 @@ def _required_text(
 ) -> str:
     """Validate required text."""
 
+    # Normalise required text before persistence so empty values are rejected
+    # consistently across message fields.
     text = str(value or "").strip()
 
     if not text:
@@ -163,6 +180,8 @@ def _required_text(
 def _json_ready(value: Any) -> Any:
     """Convert enums, models and containers to JSON-compatible data."""
 
+    # Recursively prepare enums, Pydantic models, dataclasses and containers
+    # for JSON serialisation without coupling callers to one model type.
     if isinstance(value, Enum):
         return value.value
 
@@ -196,6 +215,7 @@ def _json_text(
 ) -> str:
     """Serialise application data consistently."""
 
+    # Preserve an explicit default only when the supplied value is None.
     prepared = (
         default
         if value is None
@@ -215,6 +235,8 @@ def _json_object(
 ) -> dict[str, Any] | None:
     """Decode one stored JSON object safely."""
 
+    # Missing or malformed JSON is handled defensively so older/corrupt rows
+    # do not crash conversation restoration.
     if raw_value is None:
         return None if allow_none else {}
 
@@ -248,6 +270,8 @@ def normalise_workflow(
     ):
         return workflow
 
+    # Canonicalise spaces, hyphens and underscores before applying supported
+    # user-facing workflow aliases.
     clean = " ".join(
         str(workflow or "")
         .strip()
@@ -257,6 +281,7 @@ def normalise_workflow(
         .split()
     )
 
+    # Accept both internal workflow names and the phrases shown in the UI.
     aliases = {
         "record observation": (
             ConversationWorkflow.record_observation
@@ -295,6 +320,7 @@ def normalise_status(
 
     clean = str(status or "").strip().lower()
 
+    # Let the enum validate the persisted status after simple text normalisation.
     try:
         return StoredConversationStatus(
             clean
@@ -318,6 +344,7 @@ def normalise_role(
 
     clean = str(role or "").strip().lower()
 
+    # Restrict stored/displayed roles to the two roles supported by the UI.
     try:
         return ConversationRole(
             clean
@@ -333,10 +360,14 @@ def create_conversation_tables(
 ) -> Path:
     """Create persistent session and message tables."""
 
+    # Ensure the base journal database exists before adding conversation-specific
+    # tables so all local persistence shares one SQLite file.
     path = create_database(
         database_path
     )
 
+    # Schema creation is idempotent, allowing startup code and read helpers to
+    # safely call it before using conversation persistence.
     with _connection(path) as connection:
         connection.execute(
             """
@@ -368,6 +399,8 @@ def create_conversation_tables(
             """
         )
 
+        # Messages reference their parent session and cascade-delete with it;
+        # the per-session sequence number preserves display order.
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS conversation_messages (
@@ -396,6 +429,8 @@ def create_conversation_tables(
             """
         )
 
+        # Index common restoration/listing paths by workflow/update time and
+        # message session/sequence.
         connection.execute(
             """
             CREATE INDEX IF NOT EXISTS
@@ -437,6 +472,8 @@ def create_conversation_session(
     path = create_conversation_tables(
         database_path
     )
+    # Normalise public inputs before insertion so only canonical enum values
+    # reach the SQLite CHECK constraints.
     workflow_value = normalise_workflow(
         workflow
     )
@@ -448,6 +485,8 @@ def create_conversation_session(
     )
 
     with _connection(path) as connection:
+        # Parameterised SQL stores the session metadata without interpolating
+        # user-provided content into the statement.
         cursor = connection.execute(
             """
             INSERT INTO conversation_sessions (
@@ -496,6 +535,8 @@ def _require_session(
 ) -> sqlite3.Row:
     """Return one session row or raise a controlled error."""
 
+    # Validate IDs before querying and centralise the "session must exist"
+    # check for write operations.
     if session_id < 1:
         raise ValueError(
             "session_id must be at least 1."
@@ -548,6 +589,8 @@ def add_conversation_message(
     )
 
     with _connection(path) as connection:
+        # Confirm the parent session exists before calculating the next message
+        # sequence number or inserting a row.
         _require_session(
             connection,
             session_id,
@@ -570,6 +613,8 @@ def add_conversation_message(
                 "SQLite did not return the next message sequence."
             )
 
+        # Sequence numbers are assigned per session so messages can always be
+        # restored in the original conversational order.
         sequence_number = int(
             sequence_row["next_sequence"]
         )
@@ -596,6 +641,8 @@ def add_conversation_message(
             ),
         )
 
+        # Touch the parent session whenever a message is appended so "latest"
+        # restoration reflects recent conversation activity.
         connection.execute(
             """
             UPDATE conversation_sessions
@@ -644,6 +691,8 @@ def update_conversation_session(
     )
 
     with _connection(path) as connection:
+        # Read the canonical row first so unspecified fields can be preserved
+        # rather than overwritten with defaults.
         current = _require_session(
             connection,
             session_id,
@@ -659,6 +708,8 @@ def update_conversation_session(
             "draft_state_json"
         ]
 
+        # Explicit update flags distinguish "clear this value" from "leave the
+        # existing stored value unchanged".
         if update_draft_state:
             next_draft = (
                 None
@@ -673,6 +724,7 @@ def update_conversation_session(
             "metadata_json"
         ]
 
+        # Metadata follows the same explicit-update pattern as draft state.
         if update_metadata:
             next_metadata = _json_text(
                 metadata,
@@ -699,6 +751,7 @@ def update_conversation_session(
         )
 
 
+# Row-conversion helpers keep SQLite representation details out of callers.
 def _message_from_row(
     row: sqlite3.Row,
 ) -> StoredConversationMessage:
@@ -747,9 +800,12 @@ def get_conversation_session(
             (session_id,),
         ).fetchone()
 
+        # Missing IDs are represented as None so service/API layers can decide
+        # how to surface the absence.
         if session_row is None:
             return None
 
+        # Load messages in sequence order to reconstruct the exact chat history.
         message_rows = connection.execute(
             """
             SELECT *
@@ -804,6 +860,7 @@ def list_conversation_sessions(
 ) -> list[StoredConversation]:
     """Return recent sessions, optionally filtered by workflow."""
 
+    # Reject invalid pagination values before querying SQLite.
     if limit < 1:
         raise ValueError(
             "limit must be at least 1."
@@ -814,6 +871,8 @@ def list_conversation_sessions(
     )
 
     with _connection(path) as connection:
+        # Listing can span all workflows or filter to one canonical workflow;
+        # both paths return the most recently updated sessions first.
         if workflow is None:
             rows = connection.execute(
                 """
@@ -844,6 +903,8 @@ def list_conversation_sessions(
 
     sessions: list[StoredConversation] = []
 
+    # Reuse the single-session loader so list results include decoded metadata,
+    # draft state and ordered messages consistently.
     for row in rows:
         session = get_conversation_session(
             int(row["id"]),
@@ -874,6 +935,8 @@ def delete_conversation_session(
             session_id,
         )
 
+        # Message rows are removed automatically by the ON DELETE CASCADE
+        # foreign-key rule defined in the schema.
         connection.execute(
             """
             DELETE FROM conversation_sessions
@@ -900,6 +963,7 @@ def count_conversation_sessions(
             """
         ).fetchone()
 
+    # COUNT(*) should always return one row; absence indicates a storage error.
     if row is None:
         raise RuntimeError(
             "SQLite did not return the conversation-session count."
@@ -927,6 +991,7 @@ def count_conversation_messages(
             """
         ).fetchone()
 
+    # Apply the same defensive check for the message count query.
     if row is None:
         raise RuntimeError(
             "SQLite did not return the conversation-message count."
@@ -940,6 +1005,8 @@ def count_conversation_messages(
 def main() -> None:
     """Create the tables and print local conversation counts."""
 
+    # The direct-execution path is a lightweight smoke test for schema creation
+    # and basic count queries against the default local database.
     path = create_conversation_tables()
 
     print("HEY JOEY CONVERSATION STORAGE")
@@ -955,5 +1022,6 @@ def main() -> None:
     )
 
 
+# Run the smoke test only when this module is executed directly.
 if __name__ == "__main__":
     main()

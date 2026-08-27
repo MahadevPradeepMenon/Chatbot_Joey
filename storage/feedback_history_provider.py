@@ -18,6 +18,8 @@ from storage.strategy_feedback import (
 )
 
 
+# Translate persisted feedback labels into the outcome vocabulary already used
+# by the history-aware ranker so both sources share one scoring language.
 RATING_TO_HISTORY_OUTCOME: dict[
     StrategyFeedbackRating,
     str,
@@ -34,6 +36,8 @@ RATING_TO_HISTORY_OUTCOME: dict[
 class _FeedbackAggregate:
     """Typed accumulator for one strategy's stored feedback."""
 
+    # Because storage returns feedback newest first, `latest` is the first item
+    # encountered for a strategy while `times_used` counts all matching records.
     latest: StoredStrategyFeedback
     times_used: int = 0
 
@@ -41,6 +45,7 @@ class _FeedbackAggregate:
 def _clean(value: str | None) -> str:
     """Return a cautious normalised comparison value."""
 
+    # Normalise only case and whitespace so identity matching remains conservative.
     return " ".join(
         str(value or "").strip().lower().split()
     )
@@ -54,6 +59,8 @@ def strategy_identity(
 ) -> tuple[str, str, str, str]:
     """Return a stable identity for stored or synthetic history."""
 
+    # Use multiple fields because codes/titles may be absent or repeated across
+    # collections and source files.
     return (
         _clean(strategy_code),
         normalise_title(strategy_title),
@@ -71,17 +78,22 @@ def records_match(
     first_code = _clean(first.strategy_code)
     second_code = _clean(second.strategy_code)
 
+    # Prefer an exact strategy-code match when both records contain a code.
     code_matches = (
         bool(first_code)
         and bool(second_code)
         and first_code == second_code
     )
 
+    # Title matching uses the ranker's shared normalisation helper so stored and
+    # synthetic/product history are compared consistently.
     title_matches = (
         normalise_title(first.strategy_title)
         == normalise_title(second.strategy_title)
     )
 
+    # Collection/source agreement adds context that helps avoid false matches
+    # when the same code or title appears in more than one place.
     collection_matches = (
         bool(first.collection_title)
         and bool(second.collection_title)
@@ -108,6 +120,8 @@ def records_match(
     ):
         return True
 
+    # Title-only matching is retained as the final fallback for records that do
+    # not contain enough collection/source metadata.
     return bool(title_matches)
 
 
@@ -131,11 +145,15 @@ def load_stored_feedback_history(
     outcome, while all matching records contribute to times_used.
     """
 
+    # Load recent persisted feedback from SQLite using the storage module's
+    # canonical newest-first ordering.
     feedback_items = list_strategy_feedback(
         limit=limit,
         database_path=database_path,
     )
 
+    # OrderedDict preserves first-seen order, which also preserves the recency
+    # ordering of each strategy's latest feedback record.
     grouped: OrderedDict[
         tuple[str, str, str, str],
         _FeedbackAggregate,
@@ -149,6 +167,8 @@ def load_stored_feedback_history(
             item.source_file,
         )
 
+        # The first item is the latest feedback because input is newest first;
+        # later matches only increment the usage count.
         if identity not in grouped:
             grouped[identity] = _FeedbackAggregate(
                 latest=item,
@@ -161,11 +181,14 @@ def load_stored_feedback_history(
     for group in grouped.values():
         latest = group.latest
 
+        # Fall back to collection title if the stored strategy has no explicit title.
         strategy_title = (
             latest.strategy_title
             or latest.collection_title
         )
 
+        # Stored feedback contributes outcome/usage history but does not claim that
+        # the strategy is currently active.
         records.append(
             StrategyHistoryRecord(
                 strategy_code=latest.strategy_code,
@@ -195,11 +218,13 @@ def merge_strategy_history(
     that a strategy is active, paused or archived.
     """
 
+    # Copy the base iterable so the caller's original history is not mutated.
     merged = list(base_records)
 
     for stored in stored_records:
         matching_index: int | None = None
 
+        # Search for the first cautiously matching existing strategy record.
         for index, existing in enumerate(
             merged
         ):
@@ -210,6 +235,7 @@ def merge_strategy_history(
                 matching_index = index
                 break
 
+        # Stored strategies not present in the base history are appended directly.
         if matching_index is None:
             merged.append(stored)
             continue
@@ -218,6 +244,8 @@ def merge_strategy_history(
             matching_index
         ]
 
+        # Preserve base identity/lifecycle fields where available, but let persisted
+        # feedback supply the latest outcome. Usage retains the larger known count.
         merged[matching_index] = (
             StrategyHistoryRecord(
                 strategy_code=(

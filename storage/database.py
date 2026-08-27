@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any, Iterable, Iterator, Mapping
 
 
+# Resolve the default database relative to the repository rather than the
+# process working directory so local storage behaves consistently.
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATABASE_PATH = (
     PROJECT_ROOT
@@ -19,6 +21,8 @@ DEFAULT_DATABASE_PATH = (
     / "joey.db"
 )
 
+# Map SQLite JSON-text columns back to their application-level field names
+# when journal rows are decoded.
 JSON_COLUMNS = {
     "mood_labels_json": "mood_labels",
     "behaviours_json": "behaviours",
@@ -37,6 +41,8 @@ def _database_path(
 ) -> Path:
     """Resolve the configured database path."""
 
+    # Use the repository-local SQLite file unless a caller injects another
+    # path, which is useful for tests and isolated environments.
     if database_path is None:
         return DEFAULT_DATABASE_PATH
 
@@ -54,6 +60,8 @@ def _connection(
     handle prevents temporary database files from being deleted.
     """
 
+    # Ensure the parent directory exists before opening SQLite; the same
+    # connection helper is reused by all read/write operations below.
     path = _database_path(database_path)
     path.parent.mkdir(
         parents=True,
@@ -64,11 +72,16 @@ def _connection(
         path,
         timeout=10.0,
     )
+    # sqlite3.Row preserves column-name access, which simplifies decoding
+    # database results into application dictionaries.
     connection.row_factory = sqlite3.Row
+    # Enforce declared SQLite foreign-key constraints for every connection.
     connection.execute(
         "PRAGMA foreign_keys = ON"
     )
 
+    # Treat the context-managed connection as a transaction: commit on
+    # success, roll back on failure, and always close the file handle.
     try:
         yield connection
         connection.commit()
@@ -86,6 +99,8 @@ def create_database(
 
     path = _database_path(database_path)
 
+    # Schema creation is idempotent so startup/read helpers can safely ensure
+    # the journal table exists before using it.
     with _connection(path) as connection:
         connection.execute(
             """
@@ -121,6 +136,8 @@ def create_database(
             """
         )
 
+        # Index the fields most likely to support chronological or simple
+        # category-based journal lookups.
         connection.execute(
             """
             CREATE INDEX IF NOT EXISTS
@@ -151,6 +168,8 @@ def create_database(
 def _json_ready(value: Any) -> Any:
     """Convert Pydantic and enum values into JSON-compatible data."""
 
+    # Recursively convert enums and container values into data that json.dumps
+    # can serialise without depending on Pydantic internals.
     if isinstance(value, Enum):
         return value.value
 
@@ -172,6 +191,8 @@ def _json_ready(value: Any) -> Any:
 def _record_dict(record: Any) -> dict[str, Any]:
     """Convert a Joey record into a plain JSON-ready dictionary."""
 
+    # Prefer the Pydantic v2 serialisation API, while retaining compatibility
+    # with v1-style models and plain mappings.
     if hasattr(record, "model_dump"):
         data = record.model_dump(
             mode="json"
@@ -194,6 +215,7 @@ def _history_item(item: Any) -> dict[str, Any]:
     if isinstance(item, Mapping):
         return _json_ready(dict(item))
 
+    # Only persist the conversation-turn fields used by the record workflow.
     fields = (
         "question",
         "answer",
@@ -228,6 +250,7 @@ def _required_text(
 ) -> str:
     """Validate a required text value."""
 
+    # Normalise required scalar text before enforcing the persistence boundary.
     text = str(value or "").strip()
 
     if not text:
@@ -244,6 +267,10 @@ def _enum_text(
 ) -> str:
     """Return a stable text value from an enum or scalar."""
 
+    # Store enum-backed fields as stable text values rather than Python enum
+    # representations.
+    # Store enum-backed fields as stable text values rather than Python enum
+    # representations.
     if isinstance(value, Enum):
         value = value.value
 
@@ -267,6 +294,8 @@ def save_confirmed_record(
     invoking this lower-level persistence function.
     """
 
+    # Ensure the target schema exists before serialising and inserting the
+    # already-confirmed record.
     path = create_database(
         database_path
     )
@@ -275,6 +304,8 @@ def save_confirmed_record(
         conversation_history
     )
 
+    # Allow deterministic timestamps in tests; normal runtime uses the local
+    # current time to second precision.
     saved_timestamp = (
         saved_at
         or datetime.now().isoformat(
@@ -291,6 +322,8 @@ def save_confirmed_record(
         "record.summary",
     )
 
+    # Flatten scalar fields directly and encode list/nested fields as JSON
+    # text for storage in the single journal_entries table.
     values = {
         "saved_at": saved_timestamp,
         "source": _required_text(
@@ -350,6 +383,7 @@ def save_confirmed_record(
             data.get("confidence"),
             "Medium",
         ),
+        # SQLite stores the confirmation flag as 0/1, matching the table check.
         "requires_parent_confirmation": int(
             bool(
                 data.get(
@@ -368,6 +402,8 @@ def save_confirmed_record(
         ),
     }
 
+    # Named SQL parameters keep the insert aligned with the prepared values
+    # dictionary and avoid interpolating user-provided text into SQL.
     with _connection(path) as connection:
         cursor = connection.execute(
             """
@@ -425,6 +461,8 @@ def save_confirmed_record(
             values,
         )
 
+        # A generated row ID is required so callers can link the saved entry
+        # back to the completed workflow.
         if cursor.lastrowid is None:
             raise RuntimeError(
                 "SQLite did not return a journal-entry ID."
@@ -453,6 +491,8 @@ def save_confirmed_session(
 ) -> int:
     """Validate and save one confirmed Joey conversation session."""
 
+    # This higher-level helper enforces the explicit confirmation boundary
+    # before delegating to the lower-level record insert function.
     if _status_text(
         getattr(session, "status", None)
     ) != "confirmed":
@@ -466,6 +506,7 @@ def save_confirmed_session(
         None,
     )
 
+    # A confirmed session must also contain the structured record to persist.
     if record is None:
         raise ValueError(
             "The confirmed session has no structured record."
@@ -495,6 +536,8 @@ def _decode_row(
 
     item = dict(row)
 
+    # Decode each JSON-text column back into the field shape expected by the
+    # application, using safe empty fallbacks for malformed legacy data.
     for database_name, output_name in JSON_COLUMNS.items():
         raw_value = item.pop(
             database_name,
@@ -515,6 +558,7 @@ def _decode_row(
                 else []
             )
 
+    # Convert SQLite integer storage back to the application boolean type.
     item["requires_parent_confirmation"] = bool(
         item["requires_parent_confirmation"]
     )
@@ -542,6 +586,7 @@ def get_journal_entry(
             (entry_id,),
         ).fetchone()
 
+    # Missing IDs are represented as None for the service/API layer to handle.
     if row is None:
         return None
 
@@ -554,6 +599,7 @@ def list_journal_entries(
 ) -> list[dict[str, Any]]:
     """Return recent journal entries, newest first."""
 
+    # Reject invalid limits before issuing SQL and return newest entries first.
     if limit < 1:
         raise ValueError(
             "limit must be at least 1."
@@ -597,6 +643,8 @@ def count_journal_entries(
             """
         ).fetchone()
 
+    # COUNT(*) should always return one row; treat its absence as a storage
+    # failure rather than silently returning zero.
     if row is None:
         raise RuntimeError(
             "SQLite did not return the journal-entry count."
@@ -610,6 +658,8 @@ def count_journal_entries(
 def main() -> None:
     """Create the default database as a small smoke test."""
 
+    # The CLI entry point is a lightweight smoke test for schema creation and
+    # basic read access to the default local database.
     path = create_database()
 
     print("HEY JOEY SQLITE STORAGE")
@@ -621,5 +671,6 @@ def main() -> None:
     )
 
 
+# Run the smoke test only when this module is executed directly.
 if __name__ == "__main__":
     main()

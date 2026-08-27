@@ -17,6 +17,8 @@ from storage.database import (
 )
 
 
+# Restrict persisted feedback to the supported outcome labels used by the
+# strategy-history and personalisation workflow.
 class StrategyFeedbackRating(str, Enum):
     """Supported feedback values stored in SQLite."""
 
@@ -26,6 +28,7 @@ class StrategyFeedbackRating(str, Enum):
     did_not_work_well = "did_not_work_well"
 
 
+# Keep storage values separate from the parent-facing labels shown in the UI.
 FEEDBACK_LABELS: dict[StrategyFeedbackRating, str] = {
     StrategyFeedbackRating.worked_well: "Worked well",
     StrategyFeedbackRating.helped_somewhat: "Helped somewhat",
@@ -33,6 +36,8 @@ FEEDBACK_LABELS: dict[StrategyFeedbackRating, str] = {
     StrategyFeedbackRating.did_not_work_well: "Did not work well",
 }
 
+# Accept a small set of equivalent user-facing phrases and normalise them to
+# the canonical enum values stored in SQLite.
 FEEDBACK_ALIASES: dict[str, StrategyFeedbackRating] = {
     "worked well": StrategyFeedbackRating.worked_well,
     "worked_well": StrategyFeedbackRating.worked_well,
@@ -48,6 +53,8 @@ FEEDBACK_ALIASES: dict[str, StrategyFeedbackRating] = {
 }
 
 
+# Frozen dataclasses provide typed read-only views of stored search results
+# and feedback after they are reconstructed from SQLite.
 @dataclass(frozen=True)
 class StoredStrategyResult:
     """One strategy displayed during a stored search."""
@@ -89,6 +96,8 @@ class StoredStrategyFeedback:
     created_at: str
 
     def to_dict(self) -> dict[str, Any]:
+        # Convert the feedback enum to its stable string representation for
+        # JSON/API use.
         data = asdict(self)
         data["rating"] = self.rating.value
         return data
@@ -99,6 +108,8 @@ def _database_path(
 ) -> Path:
     """Resolve the strategy-feedback database path."""
 
+    # Use the repository-local SQLite database unless a caller injects an
+    # alternate path for tests or isolated execution.
     if database_path is None:
         return DEFAULT_DATABASE_PATH
 
@@ -111,6 +122,8 @@ def _connection(
 ) -> Iterator[sqlite3.Connection]:
     """Open and always close a SQLite connection."""
 
+    # Create the parent directory before opening SQLite so first-run local
+    # persistence works without separate setup.
     path = _database_path(database_path)
     path.parent.mkdir(
         parents=True,
@@ -121,11 +134,15 @@ def _connection(
         path,
         timeout=10.0,
     )
+    # Named-column row access simplifies conversion back into typed records.
     connection.row_factory = sqlite3.Row
+    # Enforce the search/result/feedback relationships declared in the schema.
     connection.execute(
         "PRAGMA foreign_keys = ON"
     )
 
+    # Treat each context-managed connection as one transaction: commit on
+    # success, roll back on failure, and always close the handle.
     try:
         yield connection
         connection.commit()
@@ -141,10 +158,14 @@ def create_strategy_feedback_tables(
 ) -> Path:
     """Create strategy search, result and feedback tables."""
 
+    # Ensure the base local database exists before adding strategy-specific
+    # tables so all Joey persistence shares the same SQLite file.
     path = create_database(
         database_path
     )
 
+    # Schema creation is idempotent, so startup code can safely ensure these
+    # tables exist before searches or feedback are persisted.
     with _connection(path) as connection:
         connection.execute(
             """
@@ -162,6 +183,8 @@ def create_strategy_feedback_tables(
             """
         )
 
+        # Each accepted search stores the exact displayed evidence, including
+        # original and history-adjusted ranking information.
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS strategy_search_results (
@@ -189,6 +212,8 @@ def create_strategy_feedback_tables(
             """
         )
 
+        # Feedback points to one displayed search result; the UNIQUE constraint
+        # supports one current feedback record per displayed strategy.
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS strategy_feedback (
@@ -216,6 +241,8 @@ def create_strategy_feedback_tables(
             """
         )
 
+        # Index chronological lookups and strategy identity fields used by
+        # later history/feedback queries.
         connection.execute(
             """
             CREATE INDEX IF NOT EXISTS
@@ -254,6 +281,7 @@ def _required_text(
 ) -> str:
     """Validate one required text value."""
 
+    # Normalise required text before enforcing the persistence boundary.
     text = str(value or "").strip()
 
     if not text:
@@ -269,6 +297,7 @@ def _optional_text(
 ) -> str | None:
     """Return optional trimmed text."""
 
+    # Optional text is trimmed and represented as None when blank.
     text = str(value or "").strip()
     return text or None
 
@@ -284,6 +313,7 @@ def normalise_feedback_rating(
     ):
         return rating
 
+    # Canonicalise case, spacing and hyphens before matching supported aliases.
     clean = " ".join(
         str(rating or "")
         .strip()
@@ -292,6 +322,7 @@ def normalise_feedback_rating(
         .split()
     )
 
+    # Convert accepted user-facing wording to the single canonical stored value.
     result = FEEDBACK_ALIASES.get(
         clean
     )
@@ -317,6 +348,7 @@ def feedback_label(
     normalised = normalise_feedback_rating(
         rating
     )
+    # Convert canonical storage values back to the readable UI label.
     return FEEDBACK_LABELS[normalised]
 
 
@@ -326,8 +358,12 @@ def _evidence_dict(
 ) -> dict[str, Any]:
     """Convert one history-aware evidence item for SQLite storage."""
 
+    # Snapshot the evidence exactly as displayed while preserving its original
+    # retrieval rank/score and later history-aware adjustment.
     return {
         "display_rank": display_rank,
+        # Defensive lower bounds keep rank/count fields compatible with the
+        # SQLite CHECK constraints.
         "original_rank": max(
             int(
                 getattr(
@@ -464,6 +500,7 @@ def save_strategy_search(
     path = create_strategy_feedback_tables(
         database_path
     )
+    # Assign display ranks from the final evidence order shown to the user.
     evidence_rows = [
         _evidence_dict(
             item,
@@ -475,11 +512,14 @@ def save_strategy_search(
         )
     ]
 
+    # Only accepted searches with at least one displayed strategy are persisted.
     if not evidence_rows:
         raise ValueError(
             "At least one displayed strategy is required."
         )
 
+    # Allow deterministic timestamps in tests; runtime defaults to the current
+    # local ISO timestamp.
     created_timestamp = (
         created_at
         or datetime.now().isoformat(
@@ -487,12 +527,16 @@ def save_strategy_search(
         )
     )
 
+    # Store a complete JSON snapshot alongside normalised result rows for
+    # reproducibility and later inspection.
     evidence_json = json.dumps(
         evidence_rows,
         ensure_ascii=False,
     )
 
     with _connection(path) as connection:
+        # Persist the accepted search first so each displayed result can point
+        # back to its generated search ID.
         cursor = connection.execute(
             """
             INSERT INTO strategy_searches (
@@ -538,6 +582,8 @@ def save_strategy_search(
             cursor.lastrowid
         )
 
+        # Store each displayed strategy as its own row so later feedback can be
+        # linked to the exact rank/evidence item the parent saw.
         for row in evidence_rows:
             connection.execute(
                 """
@@ -596,6 +642,7 @@ def save_strategy_feedback(
     feedback updates the previous choice rather than creating duplicates.
     """
 
+    # Validate the search/rank identifiers before touching SQLite.
     if search_id < 1:
         raise ValueError(
             "search_id must be at least 1."
@@ -606,12 +653,14 @@ def save_strategy_feedback(
             "strategy_rank must be at least 1."
         )
 
+    # Convert any accepted label/alias to the canonical enum before storage.
     normalised_rating = normalise_feedback_rating(
         rating
     )
     path = create_strategy_feedback_tables(
         database_path
     )
+    # Feedback timestamps can likewise be injected for deterministic tests.
     created_timestamp = (
         created_at
         or datetime.now().isoformat(
@@ -620,6 +669,8 @@ def save_strategy_feedback(
     )
 
     with _connection(path) as connection:
+        # Verify that the selected display rank actually belongs to the stored
+        # search before accepting feedback.
         result_row = connection.execute(
             """
             SELECT id
@@ -643,6 +694,8 @@ def save_strategy_feedback(
             result_row["id"]
         )
 
+        # UPSERT keeps one current feedback row per displayed strategy, so a
+        # repeated rating updates the previous choice instead of duplicating it.
         connection.execute(
             """
             INSERT INTO strategy_feedback (
@@ -669,6 +722,8 @@ def save_strategy_feedback(
             ),
         )
 
+        # Reload the row ID after the insert/update so callers receive the
+        # canonical persisted feedback identifier.
         feedback_row = connection.execute(
             """
             SELECT id
@@ -708,9 +763,12 @@ def get_strategy_search(
             (search_id,),
         ).fetchone()
 
+        # Missing accepted-search IDs are represented as None for the service
+        # layer to map to an appropriate API response.
         if search_row is None:
             return None
 
+        # Restore displayed evidence in its original display order.
         result_rows = connection.execute(
             """
             SELECT *
@@ -727,6 +785,8 @@ def get_strategy_search(
         for row in result_rows
     ]
 
+    # Decode the stored snapshot defensively; malformed legacy JSON falls back
+    # to an empty snapshot without losing the normalised result rows.
     try:
         search["evidence_snapshot"] = json.loads(
             search.pop("evidence_json")
@@ -746,6 +806,7 @@ def list_strategy_feedback(
 ) -> list[StoredStrategyFeedback]:
     """Return recent strategy feedback, newest first."""
 
+    # Reject invalid pagination values before querying SQLite.
     if limit < 1:
         raise ValueError(
             "limit must be at least 1."
@@ -756,6 +817,8 @@ def list_strategy_feedback(
     )
 
     with _connection(path) as connection:
+        # Join feedback to the stored search result so each rating retains the
+        # strategy identity and display rank it referred to.
         rows = connection.execute(
             """
             SELECT
@@ -781,6 +844,7 @@ def list_strategy_feedback(
 
     feedback_items: list[StoredStrategyFeedback] = []
 
+    # Convert canonical stored ratings back into typed records and readable labels.
     for row in rows:
         rating = StrategyFeedbackRating(
             row["rating"]
@@ -832,6 +896,7 @@ def count_strategy_searches(
             """
         ).fetchone()
 
+    # COUNT(*) should always yield a row; absence indicates a storage failure.
     if row is None:
         raise RuntimeError(
             "SQLite did not return the search count."
@@ -859,6 +924,7 @@ def count_strategy_feedback(
             """
         ).fetchone()
 
+    # Apply the same defensive check to the feedback count query.
     if row is None:
         raise RuntimeError(
             "SQLite did not return the feedback count."
@@ -872,6 +938,8 @@ def count_strategy_feedback(
 def main() -> None:
     """Create tables and print local strategy-feedback counts."""
 
+    # The direct-execution path is a lightweight smoke test for schema creation
+    # and basic count queries against the default local database.
     path = create_strategy_feedback_tables()
 
     print("HEY JOEY STRATEGY FEEDBACK STORAGE")
@@ -887,5 +955,6 @@ def main() -> None:
     )
 
 
+# Run the smoke test only when this module is executed directly.
 if __name__ == "__main__":
     main()
