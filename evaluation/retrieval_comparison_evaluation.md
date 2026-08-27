@@ -1,8 +1,11 @@
-# Rule-Based, Semantic and Hybrid Retrieval Comparison
+# Development Retrieval Comparison: Rule-Based, Semantic and Hybrid
+
+
+> **Status note:** This document records an earlier **10-query development evaluation** retained as supporting engineering evidence. It is **not** the final MSc dissertation retrieval experiment. The final thesis evaluation uses **30 synthetic queries** and compares **Rule-based, BM25-only, Semantic-only and Hybrid RRF** retrieval. The final datasets, runner and results are stored under `evaluation/final_thesis/`.
 
 ## Purpose
 
-This evaluation compared three local Joey strategy-retrieval methods:
+This development evaluation compared three local Joey strategy-retrieval methods:
 
 1. the original deterministic rule-based retriever;
 2. the local semantic retriever;
@@ -12,7 +15,7 @@ The purpose was to determine how the three methods differed in relevant-result r
 
 ## Evaluation Dataset
 
-Ten synthetic support queries were used, covering:
+Ten synthetic support queries were used for this development comparison, covering:
 
 - friendship
 - toilet training
@@ -28,6 +31,9 @@ Ten synthetic support queries were used, covering:
 Each query contained predefined expected keywords used to identify relevant strategy metadata within the top three results.
 
 All three retrievers were evaluated on the same queries, expected keywords and `top_k = 3` setting.
+
+
+For the final dissertation experiment, the evaluation was expanded to 30 synthetic queries across the same ten strategy collections and a separate BM25-only method was added. Those final artefacts are stored under `evaluation/final_thesis/`.
 
 ## Retrieval Methods
 
@@ -75,6 +81,30 @@ Average latency was measured after the local retrieval components had been loade
 | Semantic | 8/10 | 9/10 | 0.8333 | 0.065338 seconds | 0 |
 | Hybrid | 7/10 | 9/10 | 0.8000 | 0.064551 seconds | 0 |
 
+
+## Relationship to the Final Thesis Evaluation
+
+The results above are preserved as an earlier development benchmark. They should not be used as the source for the final dissertation retrieval metrics.
+
+The final thesis experiment used 30 synthetic queries and four retrieval methods:
+
+| Retriever | Hit@1 | Hit@3 | MRR | Mean warm-run latency |
+|---|---:|---:|---:|---:|
+| Rule-based baseline | 40.0% | 50.0% | 0.4500 | 0.615 ms |
+| BM25-only | 66.7% | 86.7% | 0.7611 | 4.316 ms |
+| Semantic-only | 86.7% | 90.0% | 0.8833 | 28.765 ms |
+| Hybrid RRF | 86.7% | 90.0% | 0.8833 | 30.142 ms |
+
+Semantic-only and Hybrid RRF tied on the final synthetic ranking metrics. Hybrid RRF remained the application default because it combines lexical and semantic evidence while keeping the two ranking signals separate until Reciprocal Rank Fusion.
+
+The canonical final thesis artefacts are:
+
+- `evaluation/final_thesis/data/retrieval_final_cases.json`
+- `evaluation/final_thesis/results/retrieval_final_case_results.csv`
+- `evaluation/final_thesis/results/retrieval_final_summary.csv`
+- `evaluation/final_thesis/results/retrieval_final_results.json`
+- `evaluation/final_thesis/run_final_ml_experiments.py`
+
 ## Interpretation
 
 Both embedding-based approaches substantially outperformed the original rule-based baseline on the designed ten-case evaluation set.
@@ -113,10 +143,10 @@ The results demonstrate comparative retrieval performance on this evaluation set
 
 ## Conclusion
 
-For the designed ten-case synthetic evaluation set, semantic-only retrieval achieved the strongest ranking performance, with Hit@1 of 8/10, Hit@3 of 9/10 and Mean Reciprocal Rank of 0.8333.
+For this designed ten-case development evaluation set, semantic-only retrieval achieved the strongest ranking performance, with Hit@1 of 8/10, Hit@3 of 9/10 and Mean Reciprocal Rank of 0.8333.
 
 Hybrid BM25 and semantic retrieval achieved Hit@1 of 7/10, Hit@3 of 9/10 and Mean Reciprocal Rank of 0.8000. It therefore matched semantic retrieval for top-three coverage while performing slightly less strongly at rank one.
 
 Both local embedding-based approaches substantially outperformed the original rule-based baseline, while maintaining practical local response times and requiring no paid language-model API.
 
-The Hybrid retriever remains the application’s chosen production-style retrieval architecture because it combines semantic and lexical evidence, but the evaluation honestly shows that semantic-only retrieval performed best on this particular synthetic test set.
+The Hybrid retriever remained the application’s chosen production-style retrieval architecture because it combines semantic and lexical evidence. This ten-query development evaluation showed semantic-only retrieval performing best on that particular test set; the later 30-query final thesis experiment found Semantic-only and Hybrid RRF tied on Hit@1, Hit@3 and MRR.
