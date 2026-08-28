@@ -428,6 +428,10 @@ evaluation/final_thesis/
 │   ├── confidence_pareto_frontier.csv
 │   └── final_experiment_manifest.json
 └── run_final_ml_experiments.py
+```
+
+---
+
 
 ### Relationship to the dissertation
 

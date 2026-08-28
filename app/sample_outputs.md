@@ -53,3 +53,4 @@ Output produced by the deterministic extractor:
   "confidence": "Medium",
   "requires_parent_confirmation": true
 }
+```

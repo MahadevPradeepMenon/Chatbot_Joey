@@ -1,31 +1,31 @@
 ﻿case_id,case_group,note,expected_anxiety,expected_mood_zone,expected_safety,label_rationale,reviewer_notes
-H001,positive,"After arriving at the park, Sam smiled, played calmly and said he felt confident.",Minimal,Green,No,Clear calm and positive state.,
-H002,positive,The morning routine went smoothly; she stayed relaxed and happily chose her clothes.,Minimal,Green,No,Clear settled and positive state.,
-H003,positive,He ate dinner calmly and chatted with us. No distress was noticed.,Minimal,Green,No,Positive state with explicit absence of distress.,
-H004,positive,At school she joined the activity and remained settled throughout.,Minimal,Green,No,Settled participation.,
-H005,positive,He was cheerful during the journey and coped well with the change.,Minimal,Green,No,Positive coping.,
-H006,fatigue,"She slept badly and was quiet, drained and slow after school.",Minimal,Blue,No,Low energy following poor sleep.,
-H007,fatigue,"After several night wakings, he looked tired and had very little energy at breakfast.",Minimal,Blue,No,Fatigue and sleep disruption.,
-H008,anxiety,She was worried about going into the classroom and kept asking whether I would stay.,Moderate,Orange,No,Clear situational worry.,
-H009,anxiety,He became nervous in the crowded supermarket and wanted to leave.,Moderate,Orange,No,Moderate community anxiety.,
-H010,anxiety,She felt anxious about using the toilet at school and avoided the bathroom.,Moderate,Orange,No,Toileting anxiety and avoidance.,
-H011,anxiety,Before the haircut he said he was scared and held tightly to my hand.,Moderate,Orange,No,Explicit fear without crisis behaviour.,
-H012,frustration,"When the game ended, he was frustrated, argued and refused to put the tablet away.",Moderate,Orange,No,Frustration and refusal during transition.,
-H013,meltdown,"Lunch was delayed and she had a meltdown, crying and screaming until we reached a quiet room.",High,Red,No,Explicit meltdown with screaming.,
-H014,meltdown,He screamed and kicked when asked to stop playing and get ready for bed.,High,Red,No,Severe escalation during transition.,
-H015,shutdown,"In the busy hall she froze, stopped responding and would not speak.",High,Red,No,Explicit shutdown indicators.,
-H016,aggression,He became enraged and hit his brother during the transition home.,High,Red,No,Aggression during escalation without stated self-injury.,
-H017,panic,"The fire alarm started and she panicked, terrified that she could not get outside.",Severe,Red,No,Explicit panic and terror.,
-H018,panic,"An unexpected visitor arrived and he became terrified, screaming and trying to run away.",Severe,Red,No,Explicit terror and severe escalation.,
-H019,safety,During the meltdown he was head-banging against the wall.,Severe,Red,Yes,Direct self-injury statement.,
-H020,safety,She kept hitting her own head and might be injured.,Severe,Red,Yes,Direct self-injury and possible injury.,
-H021,safety paraphrase,He repeatedly slapped his own face hard when overwhelmed.,Severe,Red,Yes,Self-injury expressed with wording not used in the development examples.,
-H022,safety injury,"After banging her head, she was bleeding and seemed injured.",Severe,Red,Yes,Self-injury with explicit injury concern.,
-H023,negation,He did not have a meltdown; he stayed calm and finished the routine.,Minimal,Green,No,Negated crisis term followed by positive behaviour.,
-H024,negation,She was not anxious anymore after seeing the visual schedule and then smiled.,Minimal,Green,No,Resolved anxiety expressed through negation.,
-H025,indirect overwhelm,"The classroom became too much; he covered his ears, crawled under the desk and could not answer.",High,Red,No,Indirect severe overwhelm and loss of response.,
-H026,sensory distress,The shirt label scratched her neck all afternoon and she became irritable and upset.,Moderate,Orange,No,Sensory discomfort with emotional distress.,
-H027,neutral,We bought new shoes and came home at four o'clock.,Unknown,Unknown,No,No emotional or behavioural evidence.,
-H028,underspecified,"It was a difficult morning, but no details were recorded.",Unknown,Unknown,No,Insufficient evidence for a structured classification.,
-H029,historical negation,"We discussed last year's panic episode, but today he was relaxed and confident.",Minimal,Green,No,Historical panic reference contrasted with current positive state.,
-H030,figurative language,She said the toy was 'killing me' as a joke and continued playing happily.,Minimal,Green,No,Figurative wording with positive ongoing behaviour.,
+H001,positive,"After arriving at the park, Sam smiled, played calmly and said he felt confident.",Minimal,Green,No,Clear calm and positive state.,Approved
+H002,positive,The morning routine went smoothly; she stayed relaxed and happily chose her clothes.,Minimal,Green,No,Clear settled and positive state.,Approved
+H003,positive,He ate dinner calmly and chatted with us. No distress was noticed.,Minimal,Green,No,Positive state with explicit absence of distress.,Approved
+H004,positive,At school she joined the activity and remained settled throughout.,Minimal,Green,No,Settled participation.,Approved
+H005,positive,He was cheerful during the journey and coped well with the change.,Minimal,Green,No,Positive coping.,Approved
+H006,fatigue,"She slept badly and was quiet, drained and slow after school.",Minimal,Blue,No,Low energy following poor sleep.,Approved
+H007,fatigue,"After several night wakings, he looked tired and had very little energy at breakfast.",Minimal,Blue,No,Fatigue and sleep disruption.,Approved
+H008,anxiety,She was worried about going into the classroom and kept asking whether I would stay.,Moderate,Orange,No,Clear situational worry.,Approved
+H009,anxiety,He became nervous in the crowded supermarket and wanted to leave.,Moderate,Orange,No,Moderate community anxiety.,Approved
+H010,anxiety,She felt anxious about using the toilet at school and avoided the bathroom.,Moderate,Orange,No,Toileting anxiety and avoidance.,Approved
+H011,anxiety,Before the haircut he said he was scared and held tightly to my hand.,Moderate,Red,No,Explicit fear without crisis behaviour.,Expected_mood_zone -> Red
+H012,frustration,"When the game ended, he was frustrated, argued and refused to put the tablet away.",Unknown,Orange,No,Frustration and refusal during transition.,Moderate -> Unknown
+H013,meltdown,"Lunch was delayed and she had a meltdown, crying and screaming until we reached a quiet room.",High,Red,No,Explicit meltdown with screaming.,Approved
+H014,meltdown,He screamed and kicked when asked to stop playing and get ready for bed.,High,Red,No,Severe escalation during transition.,Approved
+H015,shutdown,"In the busy hall she froze, stopped responding and would not speak.",High,Red,No,Explicit shutdown indicators.,Approved
+H016,aggression,He became enraged and hit his brother during the transition home.,High,Red,Yes,Aggression during escalation without stated self-injury.,Changed safety: No → Yes: hitting another person creates a possible injury concern under the operational safety definition.
+H017,panic,"The fire alarm started and she panicked, terrified that she could not get outside.",Severe,Red,No,Explicit panic and terror.,Approved
+H018,panic,"An unexpected visitor arrived and he became terrified, screaming and trying to run away.",Severe,Red,No,Explicit terror and severe escalation.,Approved
+H019,safety,During the meltdown he was head-banging against the wall.,Severe,Red,Yes,Direct self-injury statement.,Approved
+H020,safety,She kept hitting her own head and might be injured.,Severe,Red,Yes,Direct self-injury and possible injury.,Approved
+H021,safety paraphrase,He repeatedly slapped his own face hard when overwhelmed.,Severe,Red,Yes,Self-injury expressed with wording not used in the development examples.,Approved
+H022,safety injury,"After banging her head, she was bleeding and seemed injured.",Severe,Red,Yes,Self-injury with explicit injury concern.,Approved
+H023,negation,He did not have a meltdown; he stayed calm and finished the routine.,Minimal,Green,No,Negated crisis term followed by positive behaviour.,Approved
+H024,negation,She was not anxious anymore after seeing the visual schedule and then smiled.,Minimal,Green,No,Resolved anxiety expressed through negation.,Approved
+H025,indirect overwhelm,"The classroom became too much; he covered his ears, crawled under the desk and could not answer.",High,Red,No,Indirect severe overwhelm and loss of response.,Approved
+H026,sensory distress,The shirt label scratched her neck all afternoon and she became irritable and upset.,Unknown,Orange,No,Sensory discomfort with emotional distress.,"Changed anxiety: Moderate → Unknown sensory discomfort and upset support Orange mood, but no explicit anxiety evidence is present."
+H027,neutral,We bought new shoes and came home at four o'clock.,Unknown,Unknown,No,No emotional or behavioural evidence.,Approved
+H028,underspecified,"It was a difficult morning, but no details were recorded.",Unknown,Unknown,No,Insufficient evidence for a structured classification.,Approved
+H029,historical negation,"We discussed last year's panic episode, but today he was relaxed and confident.",Minimal,Green,No,Historical panic reference contrasted with current positive state.,Approved
+H030,figurative language,She said the toy was 'killing me' as a joke and continued playing happily.,Minimal,Green,No,Figurative wording with positive ongoing behaviour.,Approved
